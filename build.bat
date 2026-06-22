@@ -1,9 +1,9 @@
 @echo off
-echo Building SpaceCraft.exe...
-python -m PyInstaller --onefile --noconsole --name SpaceCraft --clean overlay.py
+echo Building CraftMap.exe...
+python -m PyInstaller --onefile --noconsole --name CraftMap --clean overlay.py
 if %ERRORLEVEL% == 0 (
-    copy /y dist\SpaceCraft.exe SpaceCraft.exe >nul
-    echo Done! SpaceCraft.exe updated.
+    copy /y dist\CraftMap.exe CraftMap.exe >nul
+    echo Done! CraftMap.exe updated.
 ) else (
     echo Build failed.
 )

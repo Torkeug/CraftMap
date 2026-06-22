@@ -1,6 +1,6 @@
 # pylint: disable=missing-function-docstring,missing-class-docstring,too-many-lines
 """
-SpaceCraft Resource Overlay
+CraftMap Resource Overlay
 A lightweight, always-on-top, hotkey-toggleable resource tracker
 designed to sit over the game window in borderless mode.
 
@@ -1528,7 +1528,7 @@ class CraftQueuePanel:
 class Overlay(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("SpaceCraft Resources")
+        self.title("CraftMap Resources")
         self.attributes("-topmost", True)
         self.attributes("-alpha", 0.94)
         self.configure(bg="#0d1117")
@@ -1680,7 +1680,7 @@ class Overlay(tk.Tk):
             widget.bind("<ButtonRelease-1>", lambda _e: self._save_position())
 
     def _title_text(self):
-        return f"⠿  SpaceCraft Resources   ({self.toggle_key} to hide)"
+        return f"⠿  CraftMap Resources   ({self.toggle_key} to hide)"
 
     def _update_title_bar(self):
         self._title_label.config(text=self._title_text())
@@ -3590,11 +3590,11 @@ def _make_tray_image():
 
 def main():
     # Prevent multiple instances via a Windows named mutex.
-    ctypes.windll.kernel32.CreateMutexW(None, True, "SpaceCraftOverlay_SingleInstance")
+    ctypes.windll.kernel32.CreateMutexW(None, True, "CraftMapOverlay_SingleInstance")
     if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
         _r = tk.Tk()
         _r.withdraw()
-        messagebox.showwarning("SpaceCraft", "SpaceCraft is already running.")
+        messagebox.showwarning("CraftMap", "CraftMap is already running.")
         _r.destroy()
         return
 
@@ -3627,7 +3627,7 @@ def main():
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Exit", lambda: app.after(0, app.quit_app)),
         )
-        _icon = pystray.Icon("SpaceCraft", _make_tray_image(), "SpaceCraft", menu)
+        _icon = pystray.Icon("CraftMap", _make_tray_image(), "CraftMap", menu)
         app.tray_icon = _icon
         threading.Thread(target=_icon.run, daemon=True).start()
 

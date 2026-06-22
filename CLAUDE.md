@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**SpaceCraft** is a Windows desktop overlay that tracks in-game resource deposits and crafting recipes. It sits always-on-top over a game window (borderless mode) and can be toggled visible/hidden via a global hotkey (default: F1). It is a single-file Python/tkinter application.
+**CraftMap** is a Windows desktop overlay that tracks in-game resource deposits and crafting recipes. It sits always-on-top over a game window (borderless mode) and can be toggled visible/hidden via a global hotkey (default: F1). It is a single-file Python/tkinter application.
 
 ## Commands
 
@@ -23,7 +23,7 @@ pip install keyboard --break-system-packages
 ```
 build.bat
 ```
-This runs PyInstaller (`--onefile --noconsole`) and copies the output to `SpaceCraft.exe` in the project root.
+This runs PyInstaller (`--onefile --noconsole`) and copies the output to `CraftMap.exe` in the project root.
 
 ## Architecture
 

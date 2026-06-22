@@ -7,7 +7,7 @@ dist/
 *.spec
 
 # Compiled binary
-SpaceCraft.exe
+CraftMap.exe
 
 # User data & local config
 resources.db
