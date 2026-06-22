@@ -744,6 +744,33 @@ def resolve_recipe_tree(
 
 # ---------- UI ----------
 
+_NO_ARROW_STYLES: set[str] = set()
+
+
+def _strip_arrow(layout):
+    result = []
+    for name, opts in layout:
+        if "arrow" in name.lower():
+            continue
+        new_opts = dict(opts)
+        if "children" in new_opts:
+            new_opts["children"] = _strip_arrow(new_opts["children"])
+        result.append((name, new_opts))
+    return result
+
+
+def _remove_combobox_arrow(box: ttk.Combobox) -> None:
+    base = box.cget("style") or "TCombobox"
+    patched = "_LiveDD." + base
+    if patched not in _NO_ARROW_STYLES:
+        style = ttk.Style(box)
+        try:
+            style.layout(patched, _strip_arrow(style.layout(base)))
+            _NO_ARROW_STYLES.add(patched)
+        except Exception:
+            return
+    box.configure(style=patched)
+
 
 class _LiveDropdown:
     """
@@ -765,6 +792,46 @@ class _LiveDropdown:
         box.bind("<Escape>", lambda _e: self.hide(), add=True)
         box.bind("<Down>", self._on_down, add=True)
         box.bind("<Return>", self._on_return, add=True)
+        box.bind("<Configure>", self._reposition_arrow, add=True)
+        box.bind("<Destroy>", lambda _: self._arrow_btn.destroy(), add=True)
+        _remove_combobox_arrow(box)
+        self._arrow_btn = tk.Button(
+            box.master,
+            text="▾",
+            command=self._on_arrow_click,
+            bg="#21262d",
+            fg="#8b949e",
+            activebackground="#30363d",
+            activeforeground="#c9d1d9",
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 7),
+            cursor="arrow",
+            takefocus=False,
+        )
+        box.after(1, self._reposition_arrow)
+
+    def _reposition_arrow(self, _=None):
+        b = self._box
+        b.update_idletasks()
+        btn_w = max(b.winfo_height(), 18)
+        self._arrow_btn.place(
+            in_=b.master,
+            x=b.winfo_x() + b.winfo_width() - btn_w,
+            y=b.winfo_y(),
+            width=btn_w,
+            height=b.winfo_height(),
+        )
+        self._arrow_btn.lift()
+
+    def _on_arrow_click(self):
+        if self._win and self._win.winfo_exists() and self._win.winfo_ismapped():
+            self.hide()
+        else:
+            if self._pre_fn:
+                self._pre_fn()
+            self._box.after(0, self._refresh)
+        self._box.focus_set()
 
     def _on_key(self, event):
         if event.keysym in _AUTOCOMPLETE_SKIP:
@@ -800,8 +867,7 @@ class _LiveDropdown:
         self._win.attributes("-topmost", True)
         frm = tk.Frame(self._win, bg="#21262d", bd=1, relief="solid")
         frm.pack(fill="both", expand=True)
-        vsb = ttk.Scrollbar(frm, orient="vertical")
-        vsb.pack(side="right", fill="y")
+        vsb = ttk.Scrollbar(frm, orient="vertical", style="Thin.Vertical.TScrollbar")
         self._lb = tk.Listbox(
             frm,
             bg="#161b22",
@@ -813,10 +879,17 @@ class _LiveDropdown:
             bd=0,
             font=("Segoe UI", 9),
             height=8,
-            yscrollcommand=vsb.set,
         )
         self._lb.pack(side="left", fill="both", expand=True)
         vsb.config(command=self._lb.yview)
+        lb = self._lb
+        def _yscroll(first, last):
+            if float(first) <= 0.0 and float(last) >= 1.0:
+                vsb.pack_forget()
+            else:
+                vsb.pack(side="right", fill="y", before=lb)
+            vsb.set(first, last)
+        lb.configure(yscrollcommand=_yscroll)
         self._lb.bind("<ButtonRelease-1>", self._on_lb_click)
         self._lb.bind("<Return>", lambda _e: self._lb_pick())
         self._lb.bind("<Escape>", lambda _e: self.hide())
@@ -3057,9 +3130,14 @@ class Overlay(tk.Tk):
                                  style="Thin.Vertical.TScrollbar",
                                  command=self._ing_canvas.yview)
         self._ing_inner = tk.Frame(self._ing_canvas, bg="#0d1117")
-        ing_vsb.pack(side="right", fill="y")
         self._ing_canvas.pack(side="left", fill="x", expand=True)
-        self._ing_canvas.configure(yscrollcommand=ing_vsb.set)
+        def _ing_yscroll(first, last):
+            if float(first) <= 0.0 and float(last) >= 1.0:
+                ing_vsb.pack_forget()
+            else:
+                ing_vsb.pack(side="right", fill="y", before=self._ing_canvas)
+            ing_vsb.set(first, last)
+        self._ing_canvas.configure(yscrollcommand=_ing_yscroll)
         self._ing_window = self._ing_canvas.create_window(
             (0, 0), window=self._ing_inner, anchor="nw"
         )
