@@ -385,6 +385,15 @@ def save_recipe(recipe_id, name, output_qty, ingredients, output_name=None):
     return recipe_id
 
 
+def get_recipe_name(recipe_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT name FROM recipes WHERE id=?", (recipe_id,))
+    row = c.fetchone()
+    conn.close()
+    return row[0] if row else ""
+
+
 def get_recipe_output_name(recipe_id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -873,6 +882,17 @@ class _LiveDropdown:
             self._win.withdraw()
 
 
+def _autohide_yscroll(sb):
+    """yscrollcommand callback that hides the scrollbar when all content is visible."""
+    def _cmd(first, last):
+        if float(first) <= 0.0 and float(last) >= 1.0:
+            sb.grid_remove()
+        else:
+            sb.grid()
+        sb.set(first, last)
+    return _cmd
+
+
 class CraftQueuePanel:
     """
     Pinnable always-on-top floating window for the persistent crafting queue.
@@ -895,6 +915,8 @@ class CraftQueuePanel:
         self._bd_iid_info: dict = {}
         self._bd_toggled = False
         self._drag_x = self._drag_y = 0
+        self._resize_x = self._resize_y = 0
+        self._resize_w = self._resize_h = 0
         self.on_hide_cb = lambda: None
 
         cfg = load_config()
@@ -909,10 +931,14 @@ class CraftQueuePanel:
 
         x = cfg.get("queue_x", 400)
         y = cfg.get("queue_y", 60)
-        self._win.geometry(f"320x500+{x}+{y}")
+        w = cfg.get("queue_w", 320)
+        h = cfg.get("queue_h", 500)
+        self._split_h = cfg.get("queue_split", 120)
+        self._win.geometry(f"{w}x{h}+{x}+{y}")
 
         self._build_ui()
         self._refresh_job_list()
+        self._enable_composited()
         self._win.bind("<Escape>", lambda _e: self.hide())
 
     def _build_ui(self):
@@ -979,66 +1005,20 @@ class CraftQueuePanel:
         drag.bind("<B1-Motion>", self._do_move)
         drag.bind("<ButtonRelease-1>", lambda _e: self._save_pos())
 
-        # --- job list (fixed height, scrollable) ---
-        list_outer = tk.Frame(self._win, bg="#0d1117")
-        list_outer.pack(fill="x", padx=6, pady=(6, 0))
-        list_fixed = tk.Frame(list_outer, bg="#0d1117", height=150)
-        list_fixed.pack(fill="x")
-        list_fixed.pack_propagate(False)
-
-        jvsb = ttk.Scrollbar(list_fixed, orient="vertical")
-        jvsb.pack(side="right", fill="y")
-        self._job_canvas = tk.Canvas(
-            list_fixed, bg="#0d1117", highlightthickness=0, yscrollcommand=jvsb.set
-        )
-        self._job_canvas.pack(side="left", fill="both", expand=True)
-        jvsb.config(command=self._job_canvas.yview)
-        self._job_inner = tk.Frame(self._job_canvas, bg="#0d1117")
-        _jwin = self._job_canvas.create_window(
-            (0, 0), window=self._job_inner, anchor="nw"
-        )
-        self._job_inner.bind(
-            "<Configure>",
-            lambda _e: self._job_canvas.configure(
-                scrollregion=self._job_canvas.bbox("all") or (0, 0, 0, 0)
-            ),
-        )
-        self._job_canvas.bind(
-            "<Configure>", lambda e: self._job_canvas.itemconfig(_jwin, width=e.width)
-        )
-        self._job_canvas.bind(
-            "<MouseWheel>",
-            lambda e: self._job_canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"),
-        )
-
-        # --- separator ---
-        tk.Frame(self._win, bg="#21262d", height=1).pack(fill="x", padx=6, pady=(4, 0))
-
-        # --- breakdown / totals tree (fills remaining space) ---
-        bd_frame = tk.Frame(self._win, bg="#0d1117")
-        bd_frame.pack(fill="both", expand=True, padx=6, pady=(4, 0))
-        bd_vsb = ttk.Scrollbar(bd_frame, orient="vertical")
-        bd_vsb.pack(side="right", fill="y")
-        self._bd_tree = ttk.Treeview(bd_frame, show="tree", yscrollcommand=bd_vsb.set)
-        self._bd_tree.pack(side="left", fill="both", expand=True)
-        bd_vsb.config(command=self._bd_tree.yview)
-        self._bd_tree.bind("<ButtonRelease-1>", self._on_bd_click)
-        self._bd_tree.bind(
-            "<<TreeviewOpen>>", lambda _e: setattr(self, "_bd_toggled", True)
-        )
-        self._bd_tree.bind(
-            "<<TreeviewClose>>", lambda _e: setattr(self, "_bd_toggled", True)
-        )
+        # Bottom items must be packed before the expanding PanedWindow so the
+        # pack manager reserves their space before distributing the remainder.
+        self._build_resize_grip()
 
         # --- add-job row ---
         add_row = tk.Frame(self._win, bg="#0d1117")
-        add_row.pack(fill="x", padx=6, pady=(4, 6))
+        add_row.pack(side="bottom", fill="x", padx=6, pady=(4, 6))
 
         self._add_recipe_var = tk.StringVar()
         self._add_recipe_cb = ttk.Combobox(
             add_row, textvariable=self._add_recipe_var, width=20
         )
         self._add_recipe_cb.pack(side="left", padx=(0, 4))
+        self._add_recipe_cb.configure(values=[n for _, n in get_all_recipes()])
         self._add_recipe_cb.bind(
             "<FocusIn>",
             lambda _e: self._add_recipe_cb.configure(
@@ -1086,6 +1066,65 @@ class CraftQueuePanel:
             font=("Segoe UI", 8),
         ).pack(side="right")
 
+        # --- PanedWindow: job list (top pane) + breakdown tree (bottom pane) ---
+        self._pw = tk.PanedWindow(
+            self._win, orient=tk.VERTICAL,
+            bg="#21262d", sashwidth=5, sashrelief="flat",
+            sashpad=0, handlesize=0, bd=0,
+        )
+        self._pw.pack(fill="both", expand=True, padx=6, pady=(6, 0))
+        self._pw.bind("<ButtonRelease-1>", self._save_split)
+
+        # Top pane: scrollable job list
+        job_frame = tk.Frame(self._pw, bg="#0d1117")
+        self._pw.add(job_frame, height=self._split_h, minsize=40, stretch="never")
+
+        job_frame.grid_rowconfigure(0, weight=1)
+        job_frame.grid_columnconfigure(0, weight=1)
+        self._job_canvas = tk.Canvas(job_frame, bg="#0d1117", highlightthickness=0)
+        self._job_canvas.grid(row=0, column=0, sticky="nsew")
+        jvsb = ttk.Scrollbar(job_frame, orient="vertical", style="Thin.Vertical.TScrollbar",
+                              command=self._job_canvas.yview)
+        jvsb.grid(row=0, column=1, sticky="ns")
+        self._job_canvas.configure(yscrollcommand=_autohide_yscroll(jvsb))
+        self._job_inner = tk.Frame(self._job_canvas, bg="#0d1117")
+        _jwin = self._job_canvas.create_window((0, 0), window=self._job_inner, anchor="nw")
+        self._job_inner.bind(
+            "<Configure>",
+            lambda _e: self._job_canvas.configure(
+                scrollregion=self._job_canvas.bbox("all") or (0, 0, 0, 0)
+            ),
+        )
+        self._job_canvas.bind(
+            "<Configure>", lambda e: self._job_canvas.itemconfig(_jwin, width=e.width)
+        )
+        self._job_canvas.bind(
+            "<MouseWheel>",
+            lambda e: self._job_canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
+            if self._job_inner.winfo_reqheight() > self._job_canvas.winfo_height()
+            else None,
+        )
+
+        # Bottom pane: breakdown / totals tree
+        bd_frame = tk.Frame(self._pw, bg="#0d1117")
+        self._pw.add(bd_frame, minsize=60, stretch="always")
+
+        bd_frame.grid_rowconfigure(0, weight=1)
+        bd_frame.grid_columnconfigure(0, weight=1)
+        self._bd_tree = ttk.Treeview(bd_frame, show="tree")
+        self._bd_tree.grid(row=0, column=0, sticky="nsew")
+        bd_vsb = ttk.Scrollbar(bd_frame, orient="vertical", style="Thin.Vertical.TScrollbar",
+                                command=self._bd_tree.yview)
+        bd_vsb.grid(row=0, column=1, sticky="ns")
+        self._bd_tree.configure(yscrollcommand=_autohide_yscroll(bd_vsb))
+        self._bd_tree.bind("<ButtonRelease-1>", self._on_bd_click)
+        self._bd_tree.bind(
+            "<<TreeviewOpen>>", lambda _e: setattr(self, "_bd_toggled", True)
+        )
+        self._bd_tree.bind(
+            "<<TreeviewClose>>", lambda _e: setattr(self, "_bd_toggled", True)
+        )
+
     # --- drag / position ---
 
     def _start_move(self, event):
@@ -1101,7 +1140,53 @@ class CraftQueuePanel:
         cfg: dict = load_config()
         cfg["queue_x"] = self._win.winfo_x()
         cfg["queue_y"] = self._win.winfo_y()
+        cfg["queue_w"] = self._win.winfo_width()
+        cfg["queue_h"] = self._win.winfo_height()
+        try:
+            cfg["queue_split"] = self._pw.sash_coord(0)[1]
+        except Exception:
+            pass
         save_config(cfg)
+
+    def _save_split(self, _):
+        self._save_pos()
+
+    def _build_resize_grip(self):
+        btm = tk.Frame(self._win, bg="#0d1117")
+        btm.pack(side="bottom", fill="x")
+        grip = tk.Label(btm, text="◢", bg="#0d1117", fg="#3b434d",
+                        font=("Segoe UI", 7), cursor="size_nw_se")
+        grip.pack(side="right", padx=2, pady=1)
+        grip.bind("<ButtonPress-1>", self._start_resize)
+        grip.bind("<B1-Motion>", self._do_resize)
+        grip.bind("<ButtonRelease-1>", self._end_resize)
+
+    def _enable_composited(self):
+        if sys.platform != "win32":
+            return
+        self._win.update_idletasks()
+        hwnd = self._win.winfo_id()
+        style = ctypes.windll.user32.GetWindowLongW(hwnd, -20)
+        ctypes.windll.user32.SetWindowLongW(hwnd, -20, style | 0x02000000)
+
+    def _start_resize(self, event):
+        self._resize_x = event.x_root
+        self._resize_y = event.y_root
+        self._resize_w = self._win.winfo_width()
+        self._resize_h = self._win.winfo_height()
+
+    def _do_resize(self, event):
+        dw = event.x_root - self._resize_x
+        dh = event.y_root - self._resize_y
+        new_w = max(320, self._resize_w + dw)
+        new_h = max(380, self._resize_h + dh)
+        self._win.geometry(f"{new_w}x{new_h}+{self._win.winfo_x()}+{self._win.winfo_y()}")
+        self._win.update_idletasks()
+        if sys.platform == "win32":
+            ctypes.windll.user32.RedrawWindow(self._win.winfo_id(), None, None, 0x0185)
+
+    def _end_resize(self, _):
+        self._save_pos()
 
     # --- pin / mode ---
 
@@ -1396,7 +1481,7 @@ class CraftQueuePanel:
                 )
                 self._bd_iid_info[loc_iid] = {"type": "location"}
 
-    def _insert_node(self, tree, parent_iid, node, queue_id, path_parts, checked):
+    def _insert_node(self, tree, parent_iid, node, queue_id, path_parts, checked, depth=0):
         name = node["name"]
         qty = node["qty"]
         used_recipe = node.get("recipe_name", name)
@@ -1411,7 +1496,7 @@ class CraftQueuePanel:
             "end",
             text=label,
             image=img,
-            open=True,
+            open=False,
             tags=("done" if is_done else "ingredient",),
         )
         self._bd_iid_info[iid] = {
@@ -1423,7 +1508,7 @@ class CraftQueuePanel:
         if node["children"]:
             for child in node["children"]:
                 self._insert_node(
-                    tree, iid, child, queue_id, path_parts + [name], checked
+                    tree, iid, child, queue_id, path_parts + [name], checked, depth + 1
                 )
         elif not node["is_recipe"]:
             for sector, system_name, planet, status in get_deposits_for_ingredient(
@@ -1554,6 +1639,7 @@ class Overlay(tk.Tk):
         self._iid_to_key: dict = {}
         self._recipe_selected_id: int | None = None
         self._viewing_recipe_id: int | None = None
+        self._recipe_split: int = int(cfg.get("recipe_split", 200))
         self._ing_rows: list = []
         self._recipe_iid_info: dict = {}
         self._bd_toggled: bool = False
@@ -1562,6 +1648,8 @@ class Overlay(tk.Tk):
         self.img_unchecked: tk.PhotoImage
         self.img_checked: tk.PhotoImage
         self._recipe_breakdown_mode: str = "breakdown"
+        self._usedin_recipe_id: "int | None" = None
+        self._usedin_navigated_away: bool = False
 
         _x, _y = cfg.get("window_x", 60), cfg.get("window_y", 60)
         _w, _h = cfg.get("window_w"), cfg.get("window_h")
@@ -1780,7 +1868,14 @@ class Overlay(tk.Tk):
         cfg: dict = load_config()
         cfg["window_x"] = self.winfo_x()
         cfg["window_y"] = self.winfo_y()
+        try:
+            cfg["recipe_split"] = self._pw_recipe.sash_coord(0)[1]
+        except Exception:
+            pass
         save_config(cfg)
+
+    def _save_recipe_split(self, _):
+        self._save_position()
 
     def _on_hotkey(self):
         self.after(0, self.toggle)
@@ -1995,15 +2090,34 @@ class Overlay(tk.Tk):
         )
         style.map("Treeview", background=[("selected", "#1f6feb")])
 
+        style.layout("Thin.Vertical.TScrollbar", [  # type: ignore[arg-type]
+            ("Vertical.TScrollbar.trough", {"sticky": "ns", "children": [
+                ("Vertical.TScrollbar.thumb", {"expand": "1", "sticky": "nswe"}),
+            ]}),
+        ])
+        style.configure(
+            "Thin.Vertical.TScrollbar",
+            background="#30363d",
+            troughcolor="#161b22",
+            bordercolor="#161b22",
+            relief="flat",
+            width=6,
+        )
+        style.map("Thin.Vertical.TScrollbar",
+            background=[("active", "#484f58"), ("pressed", "#58a6ff")],
+        )
+
         self._tree_frame = tk.Frame(self, bg="#0d1117")
         self._tree_frame.pack(fill="both", expand=True, padx=8, pady=4)
 
-        vsb = ttk.Scrollbar(self._tree_frame, orient="vertical")
-        vsb.pack(side="right", fill="y")
-
-        self.tree = ttk.Treeview(self._tree_frame, show="tree", yscrollcommand=vsb.set)
-        self.tree.pack(side="left", fill="both", expand=True)
-        vsb.config(command=self.tree.yview)
+        self._tree_frame.grid_rowconfigure(0, weight=1)
+        self._tree_frame.grid_columnconfigure(0, weight=1)
+        self.tree = ttk.Treeview(self._tree_frame, show="tree")
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        vsb = ttk.Scrollbar(self._tree_frame, orient="vertical",
+                             style="Thin.Vertical.TScrollbar", command=self.tree.yview)
+        vsb.grid(row=0, column=1, sticky="ns")
+        self.tree.configure(yscrollcommand=_autohide_yscroll(vsb))
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.tree.bind("<<TreeviewOpen>>", self._on_tree_open)
@@ -2758,11 +2872,14 @@ class Overlay(tk.Tk):
         # --- selector row ---
         sel = tk.Frame(self._recipe_frame, bg="#0d1117")
         sel.pack(fill="x", pady=(4, 2))
+        # Left controls — hidden in "Used In" mode
+        self._sel_left = tk.Frame(sel, bg="#0d1117")
+        self._sel_left.pack(side="left")
         tk.Label(
-            sel, text="Recipe:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+            self._sel_left, text="Recipe:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
         ).pack(side="left", padx=(0, 4))
         self._recipe_var = tk.StringVar()
-        self._recipe_combo = ttk.Combobox(sel, textvariable=self._recipe_var, width=28)
+        self._recipe_combo = ttk.Combobox(self._sel_left, textvariable=self._recipe_var, width=28)
         self._recipe_combo.pack(side="left", padx=(0, 6))
         self._recipe_combo.bind("<<ComboboxSelected>>", self._on_recipe_combo_select)
         self._recipe_combo.bind("<Return>", self._on_recipe_combo_select)
@@ -2775,7 +2892,7 @@ class Overlay(tk.Tk):
             on_select_fn=self._on_recipe_combo_select,
         )
         tk.Button(
-            sel,
+            self._sel_left,
             text="New",
             command=self.clear_recipe_form,
             bg="#21262d",
@@ -2785,12 +2902,12 @@ class Overlay(tk.Tk):
             padx=8,
             font=("Segoe UI", 8),
         ).pack(side="left", padx=(0, 8))
-        tk.Label(sel, text="×", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 9)).pack(
+        tk.Label(self._sel_left, text="×", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 9)).pack(
             side="left"
         )
         self._recipe_qty_var = tk.StringVar(value="1")
         qty_entry = tk.Entry(
-            sel,
+            self._sel_left,
             textvariable=self._recipe_qty_var,
             width=5,
             bg="#161b22",
@@ -2841,52 +2958,42 @@ class Overlay(tk.Tk):
         )
         self._btn_bd_usedin.pack(side="right", padx=(0, 2))
 
-        # Item search row — shown only in "Used In" mode
-        self._usedin_row = tk.Frame(self._recipe_frame, bg="#0d1117")
-        tk.Label(
-            self._usedin_row,
-            text="Item:",
-            bg="#0d1117",
-            fg="#8b949e",
-            font=("Segoe UI", 8),
-        ).pack(side="left", padx=(0, 4))
-        self._usedin_var = tk.StringVar()
-        self._usedin_cb = ttk.Combobox(
-            self._usedin_row, textvariable=self._usedin_var, width=28
-        )
-        self._usedin_cb.pack(side="left", fill="x", expand=True)
-        self._usedin_cb.bind(
-            "<<ComboboxSelected>>", lambda _e: self._refresh_recipe_breakdown()
-        )
-        self._usedin_cb.bind("<Return>", lambda _e: self._refresh_recipe_breakdown())
-        _LiveDropdown(
-            self._usedin_cb,
-            pre_fn=lambda: self._usedin_cb.configure(
-                values=self._all_ingredient_options()
-            ),
-            on_select_fn=lambda _e=None: self._refresh_recipe_breakdown(),
-        )
 
-        # --- breakdown tree ---
-        self._bd_frame = tk.Frame(self._recipe_frame, bg="#0d1117")
-        bd_frame = self._bd_frame
-        bd_frame.pack(fill="both", expand=True, pady=(2, 4))
-        bd_vsb = ttk.Scrollbar(bd_frame, orient="vertical")
-        bd_vsb.pack(side="right", fill="y")
-        self._recipe_breakdown_tree = ttk.Treeview(
-            bd_frame, show="tree", yscrollcommand=bd_vsb.set
+        # --- PanedWindow: breakdown tree (top) + edit form (bottom) ---
+        self._pw_recipe = tk.PanedWindow(
+            self._recipe_frame, orient=tk.VERTICAL,
+            bg="#21262d", sashwidth=5, sashrelief="flat",
+            sashpad=0, handlesize=0, bd=0,
         )
-        self._recipe_breakdown_tree.pack(side="left", fill="both", expand=True)
-        bd_vsb.config(command=self._recipe_breakdown_tree.yview)
+        self._pw_recipe.pack(fill="both", expand=True, pady=(2, 4))
+        self._pw_recipe.bind("<ButtonRelease-1>", self._save_recipe_split)
+
+        # Top pane: breakdown tree
+        self._bd_frame = tk.Frame(self._pw_recipe, bg="#0d1117")
+        self._pw_recipe.add(self._bd_frame, height=self._recipe_split, minsize=40, stretch="always")
+        bd_frame = self._bd_frame
+        bd_frame.grid_rowconfigure(0, weight=1)
+        bd_frame.grid_columnconfigure(0, weight=1)
+        self._recipe_breakdown_tree = ttk.Treeview(bd_frame, show="tree")
+        self._recipe_breakdown_tree.grid(row=0, column=0, sticky="nsew")
+        bd_vsb = ttk.Scrollbar(bd_frame, orient="vertical",
+                                style="Thin.Vertical.TScrollbar",
+                                command=self._recipe_breakdown_tree.yview)
+        bd_vsb.grid(row=0, column=1, sticky="ns")
+        self._recipe_breakdown_tree.configure(yscrollcommand=_autohide_yscroll(bd_vsb))
         self._recipe_breakdown_tree.bind("<ButtonRelease-1>", self._on_breakdown_click)
+        self._recipe_breakdown_tree.bind("<Double-Button-1>", self._on_breakdown_double_click)
         self._recipe_breakdown_tree.bind("<<TreeviewOpen>>", self._on_bd_toggled)
         self._recipe_breakdown_tree.bind("<<TreeviewClose>>", self._on_bd_toggled)
 
-        # --- separator ---
-        tk.Frame(self._recipe_frame, bg="#21262d", height=1).pack(fill="x", pady=(0, 6))
-
-        # --- recipe edit form ---
-        form = tk.Frame(self._recipe_frame, bg="#0d1117")
+        # Bottom pane: separator + edit form + action buttons
+        form_pane = tk.Frame(self._pw_recipe, bg="#0d1117")
+        self._pw_recipe.add(form_pane, minsize=160, stretch="never")
+        # btn_row reserved at the bottom first so it survives pane being resized small
+        btn_row = tk.Frame(form_pane, bg="#0d1117")
+        btn_row.pack(side="bottom", fill="x", pady=(4, 2))
+        tk.Frame(form_pane, bg="#21262d", height=1).pack(fill="x", pady=(0, 6))
+        form = tk.Frame(form_pane, bg="#0d1117")
         form.pack(fill="x")
 
         name_row = tk.Frame(form, bg="#0d1117")
@@ -2945,19 +3052,14 @@ class Overlay(tk.Tk):
         # scrollable ingredient rows
         ing_outer = tk.Frame(form, bg="#0d1117")
         ing_outer.pack(fill="x")
-        self._ing_canvas = tk.Canvas(
-            ing_outer,
-            bg="#0d1117",
-            highlightthickness=0,
-            height=110,
-            yscrollcommand=lambda *a: ing_vsb.set(*a),
-        )
-        ing_vsb = ttk.Scrollbar(
-            ing_outer, orient="vertical", command=self._ing_canvas.yview
-        )
+        self._ing_canvas = tk.Canvas(ing_outer, bg="#0d1117", highlightthickness=0, height=110)
+        ing_vsb = ttk.Scrollbar(ing_outer, orient="vertical",
+                                 style="Thin.Vertical.TScrollbar",
+                                 command=self._ing_canvas.yview)
         self._ing_inner = tk.Frame(self._ing_canvas, bg="#0d1117")
         ing_vsb.pack(side="right", fill="y")
         self._ing_canvas.pack(side="left", fill="x", expand=True)
+        self._ing_canvas.configure(yscrollcommand=ing_vsb.set)
         self._ing_window = self._ing_canvas.create_window(
             (0, 0), window=self._ing_inner, anchor="nw"
         )
@@ -2974,8 +3076,6 @@ class Overlay(tk.Tk):
         self._ing_canvas.bind("<MouseWheel>", self._ing_scroll)
         self._ing_inner.bind("<MouseWheel>", self._ing_scroll)
 
-        btn_row = tk.Frame(form, bg="#0d1117")
-        btn_row.pack(fill="x", pady=(6, 0))
         tk.Button(
             btn_row,
             text="+ Ingredient",
@@ -3036,6 +3136,8 @@ class Overlay(tk.Tk):
             return
         self._recipe_selected_id = recipe_id
         self._viewing_recipe_id = recipe_id
+        self._usedin_recipe_id = recipe_id
+        self._usedin_navigated_away = False
         self._recipe_name_var.set(name)
         oqty = get_recipe_output_qty(recipe_id)
         self._recipe_output_var.set(f"{oqty:g}")
@@ -3173,12 +3275,52 @@ class Overlay(tk.Tk):
     def _on_bd_toggled(self, _):
         self._bd_toggled = True
 
+    def _load_recipe_into_form(self, rid: int, rname: str):
+        self._recipe_selected_id = rid
+        self._viewing_recipe_id = rid
+        self._recipe_var.set(rname)
+        self._recipe_combo.icursor("end")
+        self._recipe_combo.selection_range(0, "end")
+        self._recipe_name_var.set(rname)
+        oqty = get_recipe_output_qty(rid)
+        self._recipe_output_var.set(f"{oqty:g}")
+        self._recipe_item_var.set(get_recipe_output_name(rid))
+        for row in self._ing_rows:
+            row["frame"].destroy()
+        self._ing_rows.clear()
+        for ing_name, qty in get_recipe_ingredients(rid):
+            self._add_ingredient_row(ing_name, qty)
+
+    def _on_breakdown_double_click(self, event):
+        tree = self._recipe_breakdown_tree
+        iid = tree.identify_row(event.y)
+        if not iid:
+            return
+        info = self._recipe_iid_info.get(iid)
+        if not info or info["type"] != "usedin_recipe":
+            return
+        self._usedin_navigated_away = True
+        self._load_recipe_into_form(info["recipe_id"], info["recipe_name"])
+        self._set_recipe_mode("breakdown")
+
     def _on_breakdown_click(self, event):
+        tree = self._recipe_breakdown_tree
+        iid = tree.identify_row(event.y)
+        # Handle usedin_header before the toggle guard: clicking it also collapses
+        # the node, which fires <<TreeviewClose>> and sets _bd_toggled before
+        # ButtonRelease-1 arrives, so the guard would swallow the click otherwise.
+        if iid:
+            info = self._recipe_iid_info.get(iid)
+            if info and info["type"] == "usedin_header":
+                self._bd_toggled = False
+                rid = info.get("recipe_id")
+                rname = info.get("recipe_name", "")
+                if rid is not None and rname:
+                    self._load_recipe_into_form(rid, rname)
+                return
         if self._bd_toggled:
             self._bd_toggled = False
             return
-        tree = self._recipe_breakdown_tree
-        iid = tree.identify_row(event.y)
         if not iid:
             return
         info = self._recipe_iid_info.get(iid)
@@ -3189,22 +3331,7 @@ class Overlay(tk.Tk):
             self._refresh_recipe_breakdown()
             return
         if info["type"] == "usedin_recipe":
-            # Load the clicked recipe into the edit form and switch to breakdown view
-            rid = info["recipe_id"]
-            rname = info["recipe_name"]
-            self._recipe_selected_id = rid
-            self._viewing_recipe_id = rid
-            self._recipe_var.set(rname)
-            self._recipe_name_var.set(rname)
-            oqty = get_recipe_output_qty(rid)
-            self._recipe_output_var.set(f"{oqty:g}")
-            self._recipe_item_var.set(get_recipe_output_name(rid))
-            for row in self._ing_rows:
-                row["frame"].destroy()
-            self._ing_rows.clear()
-            for ing_name, qty in get_recipe_ingredients(rid):
-                self._add_ingredient_row(ing_name, qty)
-            self._set_recipe_mode("breakdown")
+            self._load_recipe_into_form(info["recipe_id"], info["recipe_name"])
             return
         if info["type"] != "ingredient":
             return
@@ -3333,6 +3460,15 @@ class Overlay(tk.Tk):
 
     def _set_recipe_mode(self, mode: str):
         self._recipe_breakdown_mode = mode
+        if mode == "usedin":
+            if not self._usedin_navigated_away:
+                self._usedin_recipe_id = self._viewing_recipe_id
+            else:
+                if self._usedin_recipe_id is not None:
+                    rname = get_recipe_name(self._usedin_recipe_id)
+                    if rname:
+                        self._load_recipe_into_form(self._usedin_recipe_id, rname)
+            self._usedin_navigated_away = False
         for btn, key in (
             (self._btn_bd_breakdown, "breakdown"),
             (self._btn_bd_totals, "totals"),
@@ -3342,15 +3478,6 @@ class Overlay(tk.Tk):
                 bg="#1f6feb" if mode == key else "#21262d",
                 fg="white" if mode == key else "#8b949e",
             )
-        if mode == "usedin":
-            self._usedin_row.pack(fill="x", padx=8, pady=(0, 4), before=self._bd_frame)
-            # Pre-fill with the current recipe's output if nothing typed yet
-            if not self._usedin_var.get() and self._viewing_recipe_id is not None:
-                self._usedin_var.set(
-                    get_recipe_output_name(self._viewing_recipe_id) or ""
-                )
-        else:
-            self._usedin_row.pack_forget()
         self._refresh_recipe_breakdown()
 
     def _refresh_recipe_breakdown(self):
@@ -3415,8 +3542,14 @@ class Overlay(tk.Tk):
                 self._insert_breakdown_node(root_iid, child, recipe_id, [], checked)
 
     def _refresh_usedin_view(self, tree):
-        item_name = self._usedin_var.get().strip()
+        view_id = self._usedin_recipe_id
+        item_name = (
+            get_recipe_output_name(view_id)
+            if view_id is not None
+            else None
+        ) or ""
         if not item_name:
+            tree.insert("", "end", text="Select a recipe above to see where it's used.", tags=("section",))
             return
         rows = get_recipes_using_ingredient(item_name)
         header = tree.insert(
@@ -3426,7 +3559,11 @@ class Overlay(tk.Tk):
             open=True,
             tags=("root",),
         )
-        self._recipe_iid_info[header] = {"type": "root"}
+        self._recipe_iid_info[header] = {
+            "type": "usedin_header",
+            "recipe_id": view_id,
+            "recipe_name": get_recipe_name(view_id),
+        }
         if not rows:
             tree.insert(header, "end", text="  (none found)", tags=("section",))
             return
