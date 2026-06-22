@@ -1,0 +1,9 @@
+{
+    "VsCodeTaskButtons.tasks": [
+        {
+            "label": "$(tools) Build CraftMap",
+            "task": "Build CraftMap.exe",
+            "tooltip": "Build CraftMap.exe via PyInstaller"
+        }
+    ]
+}
