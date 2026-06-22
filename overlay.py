@@ -43,6 +43,14 @@ try:
 except ImportError:
     HOTKEY_AVAILABLE = False
 
+try:
+    import pystray
+    from PIL import Image, ImageDraw
+
+    PYSTRAY_AVAILABLE = True
+except ImportError:
+    PYSTRAY_AVAILABLE = False
+
 _APP_DIR = (
     os.path.dirname(sys.executable)
     if getattr(sys, "frozen", False)
@@ -53,10 +61,24 @@ CONFIG_PATH = os.path.join(_APP_DIR, "config.json")
 
 STATUS_OPTIONS = ["Free", "Claimed", "Depleted", "Unknown"]
 
-_AUTOCOMPLETE_SKIP = frozenset({
-    "Return", "Tab", "Escape", "Up", "Down", "Left", "Right",
-    "Control_L", "Control_R", "Alt_L", "Alt_R", "Shift_L", "Shift_R", "caps_lock",
-})
+_AUTOCOMPLETE_SKIP = frozenset(
+    {
+        "Return",
+        "Tab",
+        "Escape",
+        "Up",
+        "Down",
+        "Left",
+        "Right",
+        "Control_L",
+        "Control_R",
+        "Alt_L",
+        "Alt_R",
+        "Shift_L",
+        "Shift_R",
+        "caps_lock",
+    }
+)
 
 
 # ---------- Config ----------
@@ -307,14 +329,18 @@ def get_recipe_ingredients(recipe_id):
 def distinct_ingredient_names():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT DISTINCT ingredient_name FROM recipe_ingredients ORDER BY ingredient_name COLLATE NOCASE")
+    c.execute(
+        "SELECT DISTINCT ingredient_name FROM recipe_ingredients"
+        " ORDER BY ingredient_name COLLATE NOCASE"
+    )
     rows = c.fetchall()
     conn.close()
     return [r[0] for r in rows]
 
 
 def get_recipes_using_ingredient(ingredient_name):
-    """Return [(recipe_id, recipe_name, qty, output_name, output_qty)] for every recipe that uses ingredient_name."""
+    """Return (recipe_id, recipe_name, qty, output_name, output_qty) for every
+    recipe that uses ingredient_name."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
@@ -337,12 +363,16 @@ def save_recipe(recipe_id, name, output_qty, ingredients, output_name=None):
     c = conn.cursor()
     oname = output_name if output_name and output_name != name else None
     if recipe_id is None:
-        c.execute("INSERT INTO recipes (name, output_qty, output_name) VALUES (?, ?, ?)",
-                  (name, output_qty, oname))
+        c.execute(
+            "INSERT INTO recipes (name, output_qty, output_name) VALUES (?, ?, ?)",
+            (name, output_qty, oname),
+        )
         recipe_id = c.lastrowid
     else:
-        c.execute("UPDATE recipes SET name=?, output_qty=?, output_name=? WHERE id=?",
-                  (name, output_qty, oname, recipe_id))
+        c.execute(
+            "UPDATE recipes SET name=?, output_qty=?, output_name=? WHERE id=?",
+            (name, output_qty, oname, recipe_id),
+        )
         c.execute("DELETE FROM recipe_ingredients WHERE recipe_id=?", (recipe_id,))
     for ing_name, qty in ingredients:
         c.execute(
@@ -358,7 +388,9 @@ def save_recipe(recipe_id, name, output_qty, ingredients, output_name=None):
 def get_recipe_output_name(recipe_id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT COALESCE(output_name, name) FROM recipes WHERE id=?", (recipe_id,))
+    c.execute(
+        "SELECT COALESCE(output_name, name) FROM recipes WHERE id=?", (recipe_id,)
+    )
     row = c.fetchone()
     conn.close()
     return row[0] if row else ""
@@ -446,7 +478,9 @@ def set_alt_pref(ingredient_name, recipe_id):
 def clear_alt_pref(ingredient_name):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("DELETE FROM recipe_alt_prefs WHERE ingredient_name=?", (ingredient_name,))
+    c.execute(
+        "DELETE FROM recipe_alt_prefs WHERE ingredient_name=?", (ingredient_name,)
+    )
     conn.commit()
     conn.close()
 
@@ -561,11 +595,11 @@ def _load_recipe_data():
         "SELECT id, name, COALESCE(output_name, name), COALESCE(output_qty, 1)"
         " FROM recipes ORDER BY id ASC"
     )
-    recipe_map = {}         # output_name / recipe_name → first recipe_id
-    output_map = {}         # recipe_id → output_qty
+    recipe_map = {}  # output_name / recipe_name → first recipe_id
+    output_map = {}  # recipe_id → output_qty
     output_name_by_id = {}  # recipe_id → what it produces (COALESCE(output_name, name))
     recipe_name_by_id = {}  # recipe_id → recipe's own name
-    alts_by_output = {}     # output_name → [(rid, recipe_name, oqty), ...]
+    alts_by_output = {}  # output_name → [(rid, recipe_name, oqty), ...]
     for rid, rname, oname, oqty in c.fetchall():
         output_map[rid] = float(oqty)
         output_name_by_id[rid] = oname
@@ -576,12 +610,21 @@ def _load_recipe_data():
         # Also index by recipe name so ingredients can reference alternates by name
         if rname not in recipe_map:
             recipe_map[rname] = rid
-    c.execute("SELECT recipe_id, ingredient_name, quantity FROM recipe_ingredients ORDER BY id")
+    c.execute(
+        "SELECT recipe_id, ingredient_name, quantity FROM recipe_ingredients ORDER BY id"
+    )
     ing_map: dict = {}
     for rid, ing_name, qty in c.fetchall():
         ing_map.setdefault(rid, []).append((ing_name, qty))
     conn.close()
-    return recipe_map, ing_map, output_map, output_name_by_id, alts_by_output, recipe_name_by_id
+    return (
+        recipe_map,
+        ing_map,
+        output_map,
+        output_name_by_id,
+        alts_by_output,
+        recipe_name_by_id,
+    )
 
 
 def resolve_recipe_tree(
@@ -605,8 +648,14 @@ def resolve_recipe_tree(
     _alt_prefs: {ingredient_name: recipe_id} of user-selected alternate recipes.
     """
     if _recipe_map is None or _ing_map is None or _output_map is None:
-        (_recipe_map, _ing_map, _output_map,
-         _output_name_by_id, _alts_by_output, _recipe_name_by_id) = _load_recipe_data()
+        (
+            _recipe_map,
+            _ing_map,
+            _output_map,
+            _output_name_by_id,
+            _alts_by_output,
+            _recipe_name_by_id,
+        ) = _load_recipe_data()
     if _visited is None:
         _visited = frozenset()
 
@@ -629,8 +678,12 @@ def resolve_recipe_tree(
         sub_visited = _visited | {name}
         for ing_name, ing_qty in _ing_map.get(recipe_id, []):
             child = resolve_recipe_tree(
-                ing_name, crafts * ing_qty, sub_visited,
-                _recipe_map, _ing_map, _output_map,
+                ing_name,
+                crafts * ing_qty,
+                sub_visited,
+                _recipe_map,
+                _ing_map,
+                _output_map,
                 _output_name_by_id=_output_name_by_id,
                 _alts_by_output=_alts_by_output,
                 _recipe_name_by_id=_recipe_name_by_id,
@@ -639,32 +692,44 @@ def resolve_recipe_tree(
             children.append(child)
         # Find every other recipe that produces the same output
         actual_output = (_output_name_by_id or {}).get(recipe_id, name)
-        for alt_rid, alt_rname, alt_oqty in (_alts_by_output or {}).get(actual_output, []):
+        for alt_rid, alt_rname, alt_oqty in (_alts_by_output or {}).get(
+            actual_output, []
+        ):
             if alt_rid == recipe_id:
                 continue
             alt_crafts = math.ceil(qty_needed / alt_oqty)
             alt_children = []
             for ing_name, ing_qty in _ing_map.get(alt_rid, []):
                 alt_child = resolve_recipe_tree(
-                    ing_name, alt_crafts * ing_qty, sub_visited,
-                    _recipe_map, _ing_map, _output_map,
+                    ing_name,
+                    alt_crafts * ing_qty,
+                    sub_visited,
+                    _recipe_map,
+                    _ing_map,
+                    _output_map,
                     _output_name_by_id=_output_name_by_id,
                     _alts_by_output=_alts_by_output,
                     _recipe_name_by_id=_recipe_name_by_id,
                     _alt_prefs=_alt_prefs,
                 )
                 alt_children.append(alt_child)
-            alts.append({
-                "recipe_id": alt_rid,
-                "recipe_name": alt_rname,
-                "output_qty": alt_oqty,
-                "children": alt_children,
-            })
+            alts.append(
+                {
+                    "recipe_id": alt_rid,
+                    "recipe_name": alt_rname,
+                    "output_qty": alt_oqty,
+                    "children": alt_children,
+                }
+            )
 
     return {
-        "name": name, "qty": qty_needed, "is_recipe": is_recipe,
-        "output_qty": output_qty, "recipe_name": used_recipe_name,
-        "children": children, "alts": alts,
+        "name": name,
+        "qty": qty_needed,
+        "is_recipe": is_recipe,
+        "output_qty": output_qty,
+        "recipe_name": used_recipe_name,
+        "children": children,
+        "alts": alts,
     }
 
 
@@ -721,6 +786,7 @@ class _LiveDropdown:
 
     def _build(self):
         self._win = tk.Toplevel(self._box)
+        self._win.withdraw()  # hide until repositioned to avoid flash at (0,0)
         self._win.overrideredirect(True)
         self._win.attributes("-topmost", True)
         frm = tk.Frame(self._win, bg="#21262d", bd=1, relief="solid")
@@ -728,10 +794,17 @@ class _LiveDropdown:
         vsb = ttk.Scrollbar(frm, orient="vertical")
         vsb.pack(side="right", fill="y")
         self._lb = tk.Listbox(
-            frm, bg="#161b22", fg="#c9d1d9",
-            selectbackground="#1f6feb", selectforeground="white",
-            activestyle="none", relief="flat", bd=0,
-            font=("Segoe UI", 9), height=8, yscrollcommand=vsb.set,
+            frm,
+            bg="#161b22",
+            fg="#c9d1d9",
+            selectbackground="#1f6feb",
+            selectforeground="white",
+            activestyle="none",
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 9),
+            height=8,
+            yscrollcommand=vsb.set,
         )
         self._lb.pack(side="left", fill="both", expand=True)
         vsb.config(command=self._lb.yview)
@@ -778,7 +851,7 @@ class _LiveDropdown:
         if self._on_select:
             self._on_select(value)
 
-    def _on_down(self, event):
+    def _on_down(self, _event):
         if self._win and self._win.winfo_viewable() and self._lb:
             self._lb.focus_set()
             if not self._lb.curselection():
@@ -822,7 +895,7 @@ class CraftQueuePanel:
         self._bd_iid_info: dict = {}
         self._bd_toggled = False
         self._drag_x = self._drag_y = 0
-        self._on_hide_cb = lambda: None
+        self.on_hide_cb = lambda: None
 
         cfg = load_config()
         self._pinned = bool(cfg.get("queue_pinned", False))
@@ -847,33 +920,57 @@ class CraftQueuePanel:
         drag = tk.Frame(self._win, bg="#161b22", height=28)
         drag.pack(fill="x")
 
-        tk.Label(drag, text="⠿  Craft Queue", bg="#161b22", fg="#c9d1d9",
-                 font=("Segoe UI", 9)).pack(side="left", padx=8)
+        tk.Label(
+            drag,
+            text="⠿  Craft Queue",
+            bg="#161b22",
+            fg="#c9d1d9",
+            font=("Segoe UI", 9),
+        ).pack(side="left", padx=8)
 
-        tk.Button(drag, text="✕", bg="#161b22", fg="#c9d1d9", bd=0,
-                  command=self.hide, font=("Segoe UI", 9)).pack(side="right", padx=4)
+        tk.Button(
+            drag,
+            text="✕",
+            bg="#161b22",
+            fg="#c9d1d9",
+            bd=0,
+            command=self.hide,
+            font=("Segoe UI", 9),
+        ).pack(side="right", padx=4)
 
         self._pin_btn = tk.Button(
-            drag, text="📌", bg="#161b22",
+            drag,
+            text="📌",
+            bg="#161b22",
             fg="#f0883e" if self._pinned else "#6e7681",
-            bd=0, command=self._toggle_pin, font=("Segoe UI", 9),
+            bd=0,
+            command=self._toggle_pin,
+            font=("Segoe UI", 9),
         )
         self._pin_btn.pack(side="right", padx=2)
 
         self._btn_totals = tk.Button(
-            drag, text="Totals",
+            drag,
+            text="Totals",
             bg="#1f6feb" if self._mode == "totals" else "#21262d",
             fg="white" if self._mode == "totals" else "#8b949e",
-            relief="flat", bd=0, padx=6, font=("Segoe UI", 8),
+            relief="flat",
+            bd=0,
+            padx=6,
+            font=("Segoe UI", 8),
             command=lambda: self._set_mode("totals"),
         )
         self._btn_totals.pack(side="right", padx=(0, 2))
 
         self._btn_queue = tk.Button(
-            drag, text="Queue",
+            drag,
+            text="Queue",
             bg="#1f6feb" if self._mode == "queue" else "#21262d",
             fg="white" if self._mode == "queue" else "#8b949e",
-            relief="flat", bd=0, padx=6, font=("Segoe UI", 8),
+            relief="flat",
+            bd=0,
+            padx=6,
+            font=("Segoe UI", 8),
             command=lambda: self._set_mode("queue"),
         )
         self._btn_queue.pack(side="right", padx=(0, 2))
@@ -891,18 +988,28 @@ class CraftQueuePanel:
 
         jvsb = ttk.Scrollbar(list_fixed, orient="vertical")
         jvsb.pack(side="right", fill="y")
-        self._job_canvas = tk.Canvas(list_fixed, bg="#0d1117", highlightthickness=0,
-                                      yscrollcommand=jvsb.set)
+        self._job_canvas = tk.Canvas(
+            list_fixed, bg="#0d1117", highlightthickness=0, yscrollcommand=jvsb.set
+        )
         self._job_canvas.pack(side="left", fill="both", expand=True)
         jvsb.config(command=self._job_canvas.yview)
         self._job_inner = tk.Frame(self._job_canvas, bg="#0d1117")
-        _jwin = self._job_canvas.create_window((0, 0), window=self._job_inner, anchor="nw")
-        self._job_inner.bind("<Configure>", lambda _e: self._job_canvas.configure(
-            scrollregion=self._job_canvas.bbox("all") or (0, 0, 0, 0)))
-        self._job_canvas.bind("<Configure>", lambda e: self._job_canvas.itemconfig(
-            _jwin, width=e.width))
-        self._job_canvas.bind("<MouseWheel>", lambda e: self._job_canvas.yview_scroll(
-            int(-1 * (e.delta / 120)), "units"))
+        _jwin = self._job_canvas.create_window(
+            (0, 0), window=self._job_inner, anchor="nw"
+        )
+        self._job_inner.bind(
+            "<Configure>",
+            lambda _e: self._job_canvas.configure(
+                scrollregion=self._job_canvas.bbox("all") or (0, 0, 0, 0)
+            ),
+        )
+        self._job_canvas.bind(
+            "<Configure>", lambda e: self._job_canvas.itemconfig(_jwin, width=e.width)
+        )
+        self._job_canvas.bind(
+            "<MouseWheel>",
+            lambda e: self._job_canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"),
+        )
 
         # --- separator ---
         tk.Frame(self._win, bg="#21262d", height=1).pack(fill="x", padx=6, pady=(4, 0))
@@ -916,34 +1023,68 @@ class CraftQueuePanel:
         self._bd_tree.pack(side="left", fill="both", expand=True)
         bd_vsb.config(command=self._bd_tree.yview)
         self._bd_tree.bind("<ButtonRelease-1>", self._on_bd_click)
-        self._bd_tree.bind("<<TreeviewOpen>>", lambda _e: setattr(self, "_bd_toggled", True))
-        self._bd_tree.bind("<<TreeviewClose>>", lambda _e: setattr(self, "_bd_toggled", True))
+        self._bd_tree.bind(
+            "<<TreeviewOpen>>", lambda _e: setattr(self, "_bd_toggled", True)
+        )
+        self._bd_tree.bind(
+            "<<TreeviewClose>>", lambda _e: setattr(self, "_bd_toggled", True)
+        )
 
         # --- add-job row ---
         add_row = tk.Frame(self._win, bg="#0d1117")
         add_row.pack(fill="x", padx=6, pady=(4, 6))
 
         self._add_recipe_var = tk.StringVar()
-        self._add_recipe_cb = ttk.Combobox(add_row, textvariable=self._add_recipe_var, width=20)
+        self._add_recipe_cb = ttk.Combobox(
+            add_row, textvariable=self._add_recipe_var, width=20
+        )
         self._add_recipe_cb.pack(side="left", padx=(0, 4))
-        self._add_recipe_cb.bind("<FocusIn>", lambda _e: self._add_recipe_cb.configure(
-            values=[n for _, n in get_all_recipes()]))
-        _LiveDropdown(self._add_recipe_cb,
-                      pre_fn=lambda: self._add_recipe_cb.configure(
-                          values=[n for _, n in get_all_recipes()]))
+        self._add_recipe_cb.bind(
+            "<FocusIn>",
+            lambda _e: self._add_recipe_cb.configure(
+                values=[n for _, n in get_all_recipes()]
+            ),
+        )
+        _LiveDropdown(
+            self._add_recipe_cb,
+            pre_fn=lambda: self._add_recipe_cb.configure(
+                values=[n for _, n in get_all_recipes()]
+            ),
+        )
 
         self._add_qty_var = tk.StringVar(value="1")
-        tk.Entry(add_row, textvariable=self._add_qty_var, width=4,
-                 bg="#161b22", fg="#c9d1d9", insertbackground="#c9d1d9",
-                 relief="flat", justify="center").pack(side="left", padx=(0, 4), ipady=2)
+        tk.Entry(
+            add_row,
+            textvariable=self._add_qty_var,
+            width=4,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+            justify="center",
+        ).pack(side="left", padx=(0, 4), ipady=2)
 
-        tk.Button(add_row, text="+ Add", command=self._add_job,
-                  bg="#238636", fg="white", relief="flat", padx=6,
-                  font=("Segoe UI", 8)).pack(side="left")
+        tk.Button(
+            add_row,
+            text="+ Add",
+            command=self._add_job,
+            bg="#238636",
+            fg="white",
+            relief="flat",
+            padx=6,
+            font=("Segoe UI", 8),
+        ).pack(side="left")
 
-        tk.Button(add_row, text="Clear done", command=self._clear_all_done,
-                  bg="#21262d", fg="#c9d1d9", relief="flat", padx=6,
-                  font=("Segoe UI", 8)).pack(side="right")
+        tk.Button(
+            add_row,
+            text="Clear done",
+            command=self._clear_all_done,
+            bg="#21262d",
+            fg="#c9d1d9",
+            relief="flat",
+            padx=6,
+            font=("Segoe UI", 8),
+        ).pack(side="right")
 
     # --- drag / position ---
 
@@ -970,15 +1111,19 @@ class CraftQueuePanel:
         cfg: dict = load_config()
         cfg["queue_pinned"] = self._pinned
         save_config(cfg)
+        if not self._pinned and self._overlay.state() == "withdrawn":
+            self.hide()
 
     def _set_mode(self, mode):
         self._mode = mode
         self._btn_queue.config(
             bg="#1f6feb" if mode == "queue" else "#21262d",
-            fg="white" if mode == "queue" else "#8b949e")
+            fg="white" if mode == "queue" else "#8b949e",
+        )
         self._btn_totals.config(
             bg="#1f6feb" if mode == "totals" else "#21262d",
-            fg="white" if mode == "totals" else "#8b949e")
+            fg="white" if mode == "totals" else "#8b949e",
+        )
         self._refresh_breakdown()
 
     # --- job list ---
@@ -989,12 +1134,18 @@ class CraftQueuePanel:
         self._job_frames = {}
         jobs = get_craft_queue()
         if not jobs:
-            tk.Label(self._job_inner, text="No jobs — add one below.",
-                     bg="#0d1117", fg="#6e7681",
-                     font=("Segoe UI", 8)).pack(anchor="w", padx=4, pady=4)
-        for queue_id, recipe_id, recipe_name, output_name, qty in jobs:
+            tk.Label(
+                self._job_inner,
+                text="No jobs — add one below.",
+                bg="#0d1117",
+                fg="#6e7681",
+                font=("Segoe UI", 8),
+            ).pack(anchor="w", padx=4, pady=4)
+        for queue_id, recipe_id, _, output_name, qty in jobs:
             self._build_job_row(queue_id, recipe_id, output_name, qty)
-        self._job_canvas.configure(scrollregion=self._job_canvas.bbox("all") or (0, 0, 0, 0))
+        self._job_canvas.configure(
+            scrollregion=self._job_canvas.bbox("all") or (0, 0, 0, 0)
+        )
 
     def _build_job_row(self, queue_id, recipe_id, output_name, qty):
         is_sel = self._selected_job is not None and self._selected_job[0] == queue_id
@@ -1003,25 +1154,46 @@ class CraftQueuePanel:
         row.pack(fill="x", pady=1)
         self._job_frames[queue_id] = row
 
-        lbl = tk.Label(row, text=output_name, bg=bg,
-                       fg="white" if is_sel else "#c9d1d9",
-                       font=("Segoe UI", 8), anchor="w")
+        lbl = tk.Label(
+            row,
+            text=output_name,
+            bg=bg,
+            fg="white" if is_sel else "#c9d1d9",
+            font=("Segoe UI", 8),
+            anchor="w",
+        )
         lbl.pack(side="left", padx=(6, 2), pady=3, fill="x", expand=True)
 
-        tk.Button(row, text="×", bg=bg,
-                  fg="#ffaaaa" if is_sel else "#da3633",
-                  relief="flat", bd=0, font=("Segoe UI", 9),
-                  command=lambda qid=queue_id: self._remove_job(qid)).pack(side="right", padx=4)
+        tk.Button(
+            row,
+            text="×",
+            bg=bg,
+            fg="#ffaaaa" if is_sel else "#da3633",
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 9),
+            command=lambda qid=queue_id: self._remove_job(qid),
+        ).pack(side="right", padx=4)
 
         qty_var = tk.StringVar(value=f"{qty:g}")
-        qty_e = tk.Entry(row, textvariable=qty_var, width=4, bg="#21262d",
-                          fg="#c9d1d9", insertbackground="#c9d1d9",
-                          relief="flat", justify="center", font=("Segoe UI", 8))
+        qty_e = tk.Entry(
+            row,
+            textvariable=qty_var,
+            width=4,
+            bg="#21262d",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+            justify="center",
+            font=("Segoe UI", 8),
+        )
         qty_e.pack(side="right", padx=2, ipady=1)
-        qty_e.bind("<Return>",
-                   lambda _e, qid=queue_id, v=qty_var: self._update_qty(qid, v))
-        qty_e.bind("<FocusOut>",
-                   lambda _e, qid=queue_id, v=qty_var: self._update_qty(qid, v))
+        qty_e.bind(
+            "<Return>", lambda _e, qid=queue_id, v=qty_var: self._update_qty(qid, v)
+        )
+        qty_e.bind(
+            "<FocusOut>", lambda _e, qid=queue_id, v=qty_var: self._update_qty(qid, v)
+        )
 
         def _on_click(_ev, qid=queue_id, rid=recipe_id, oname=output_name, qv=qty_var):
             self._select_job(qid, rid, oname, qv)
@@ -1091,11 +1263,15 @@ class CraftQueuePanel:
             tree.delete(item)
         self._bd_iid_info = {}
         tree.tag_configure("root", foreground="#f0883e", font=("Segoe UI", 9, "bold"))
-        tree.tag_configure("section", foreground="#8b949e", font=("Segoe UI", 8, "italic"))
+        tree.tag_configure(
+            "section", foreground="#8b949e", font=("Segoe UI", 8, "italic")
+        )
         tree.tag_configure("ingredient", foreground="#c9d1d9")
         tree.tag_configure("done", foreground="#6e7681")
         tree.tag_configure("location", foreground="#3fb950", font=("Segoe UI", 8))
-        tree.tag_configure("alt_header", foreground="#8b949e", font=("Segoe UI", 8, "italic"))
+        tree.tag_configure(
+            "alt_header", foreground="#8b949e", font=("Segoe UI", 8, "italic")
+        )
         if self._mode == "totals":
             self._render_totals(tree)
         else:
@@ -1103,13 +1279,18 @@ class CraftQueuePanel:
 
     def _render_breakdown(self, tree):
         if self._selected_job is None:
-            tree.insert("", "end", text="← Select a job above to see its breakdown.",
-                        tags=("section",))
+            tree.insert(
+                "",
+                "end",
+                text="← Select a job above to see its breakdown.",
+                tags=("section",),
+            )
             return
         queue_id, recipe_id, output_name, qty = self._selected_job
         alt_prefs = get_alt_prefs()
-        node = resolve_recipe_tree(output_name, qty_needed=qty,
-                                    _root_recipe_id=recipe_id, _alt_prefs=alt_prefs)
+        node = resolve_recipe_tree(
+            output_name, qty_needed=qty, _root_recipe_id=recipe_id, _alt_prefs=alt_prefs
+        )
         checked = get_queue_checked(queue_id)
         oqty = node.get("output_qty", 1.0)
         crafts = math.ceil(qty / oqty)
@@ -1130,23 +1311,29 @@ class CraftQueuePanel:
         all_raw: dict = {}
         all_crafted: dict = {}
         for _qid, recipe_id, _rname, output_name, qty in jobs:
-            node = resolve_recipe_tree(output_name, qty_needed=qty,
-                                        _root_recipe_id=recipe_id, _alt_prefs=alt_prefs)
-            for iname, raw_qty in Overlay._collect_totals(node).items():
+            node = resolve_recipe_tree(
+                output_name,
+                qty_needed=qty,
+                _root_recipe_id=recipe_id,
+                _alt_prefs=alt_prefs,
+            )
+            for iname, raw_qty in Overlay.collect_totals(node).items():
                 all_raw[iname] = all_raw.get(iname, 0) + raw_qty
-            for iname, info in Overlay._collect_intermediates(node).items():
+            for iname, info in Overlay.collect_intermediates(node).items():
                 if iname not in all_crafted:
                     all_crafted[iname] = {"qty": 0.0, "output_qty": info["output_qty"]}
                 all_crafted[iname]["qty"] += info["qty"]
 
         checked = get_queue_checked(self._TOTALS_QID)
-        header = tree.insert("", "end", text=f"◆  All Jobs  ({len(jobs)})",
-                              open=True, tags=("root",))
+        header = tree.insert(
+            "", "end", text=f"◆  All Jobs  ({len(jobs)})", open=True, tags=("root",)
+        )
         self._bd_iid_info[header] = {"type": "root"}
 
         if all_crafted:
-            craft_hdr = tree.insert(header, "end", text="── Crafted ──",
-                                     open=True, tags=("section",))
+            craft_hdr = tree.insert(
+                header, "end", text="── Crafted ──", open=True, tags=("section",)
+            )
             self._bd_iid_info[craft_hdr] = {"type": "root"}
             for iname, info in sorted(all_crafted.items(), key=lambda x: x[0].lower()):
                 qty = info["qty"]
@@ -1154,38 +1341,59 @@ class CraftQueuePanel:
                 crafts = math.ceil(qty / oq)
                 path_key = f"__craft__|{iname}"
                 is_done = path_key in checked
-                img = self._overlay._img_checked if is_done else self._overlay._img_unchecked
+                img = (
+                    self._overlay.img_checked
+                    if is_done
+                    else self._overlay.img_unchecked
+                )
                 suffix = f"  ({crafts:g} crafts)" if oq > 1 else ""
-                iid = tree.insert(craft_hdr, "end",
-                                   text=f"{qty:g}×  {iname}{suffix}",
-                                   image=img, open=True,
-                                   tags=("done" if is_done else "ingredient",))
+                iid = tree.insert(
+                    craft_hdr,
+                    "end",
+                    text=f"{qty:g}×  {iname}{suffix}",
+                    image=img,
+                    open=True,
+                    tags=("done" if is_done else "ingredient",),
+                )
                 self._bd_iid_info[iid] = {
-                    "type": "ingredient", "queue_id": self._TOTALS_QID,
-                    "path_key": path_key, "checked": is_done,
+                    "type": "ingredient",
+                    "queue_id": self._TOTALS_QID,
+                    "path_key": path_key,
+                    "checked": is_done,
                 }
 
-        raw_hdr = tree.insert(header, "end", text="── Raw Materials ──",
-                               open=True, tags=("section",))
+        raw_hdr = tree.insert(
+            header, "end", text="── Raw Materials ──", open=True, tags=("section",)
+        )
         self._bd_iid_info[raw_hdr] = {"type": "root"}
         for iname, qty in sorted(all_raw.items(), key=lambda x: x[0].lower()):
             path_key = f"__total__|{iname}"
             is_done = path_key in checked
-            img = self._overlay._img_checked if is_done else self._overlay._img_unchecked
-            iid = tree.insert(raw_hdr, "end", text=f"{qty:g}×  {iname}",
-                               image=img, open=True,
-                               tags=("done" if is_done else "ingredient",))
+            img = self._overlay.img_checked if is_done else self._overlay.img_unchecked
+            iid = tree.insert(
+                raw_hdr,
+                "end",
+                text=f"{qty:g}×  {iname}",
+                image=img,
+                open=True,
+                tags=("done" if is_done else "ingredient",),
+            )
             self._bd_iid_info[iid] = {
-                "type": "ingredient", "queue_id": self._TOTALS_QID,
-                "path_key": path_key, "checked": is_done,
+                "type": "ingredient",
+                "queue_id": self._TOTALS_QID,
+                "path_key": path_key,
+                "checked": is_done,
             }
-            for sector, system_name, planet, status in get_deposits_for_ingredient(iname):
+            for sector, system_name, planet, status in get_deposits_for_ingredient(
+                iname
+            ):
                 parts = [p for p in (sector, system_name, planet) if p]
                 loc_text = " / ".join(parts)
                 if status and status not in ("Unknown", ""):
                     loc_text += f"  [{status}]"
-                loc_iid = tree.insert(iid, "end", text=f"    📍 {loc_text}",
-                                       tags=("location",))
+                loc_iid = tree.insert(
+                    iid, "end", text=f"    📍 {loc_text}", tags=("location",)
+                )
                 self._bd_iid_info[loc_iid] = {"type": "location"}
 
     def _insert_node(self, tree, parent_iid, node, queue_id, path_parts, checked):
@@ -1197,37 +1405,60 @@ class CraftQueuePanel:
         label = f"{qty:g}×  {name}"
         if used_recipe and used_recipe != name:
             label += f"  [{used_recipe}]"
-        img = self._overlay._img_checked if is_done else self._overlay._img_unchecked
-        iid = tree.insert(parent_iid, "end", text=label, image=img, open=True,
-                           tags=("done" if is_done else "ingredient",))
+        img = self._overlay.img_checked if is_done else self._overlay.img_unchecked
+        iid = tree.insert(
+            parent_iid,
+            "end",
+            text=label,
+            image=img,
+            open=True,
+            tags=("done" if is_done else "ingredient",),
+        )
         self._bd_iid_info[iid] = {
-            "type": "ingredient", "queue_id": queue_id,
-            "path_key": path_key, "checked": is_done,
+            "type": "ingredient",
+            "queue_id": queue_id,
+            "path_key": path_key,
+            "checked": is_done,
         }
         if node["children"]:
             for child in node["children"]:
-                self._insert_node(tree, iid, child, queue_id, path_parts + [name], checked)
+                self._insert_node(
+                    tree, iid, child, queue_id, path_parts + [name], checked
+                )
         elif not node["is_recipe"]:
-            for sector, system_name, planet, status in get_deposits_for_ingredient(name):
+            for sector, system_name, planet, status in get_deposits_for_ingredient(
+                name
+            ):
                 parts = [p for p in (sector, system_name, planet) if p]
                 loc_text = " / ".join(parts)
                 if status and status not in ("Unknown", ""):
                     loc_text += f"  [{status}]"
-                loc_iid = tree.insert(iid, "end", text=f"    📍 {loc_text}",
-                                       tags=("location",))
+                loc_iid = tree.insert(
+                    iid, "end", text=f"    📍 {loc_text}", tags=("location",)
+                )
                 self._bd_iid_info[loc_iid] = {"type": "location"}
         for alt in node.get("alts", []):
-            alt_iid = tree.insert(iid, "end",
-                                   text=f"⟳  {alt['recipe_name']}  (alt — click to use)",
-                                   open=False, tags=("alt_header",))
+            alt_iid = tree.insert(
+                iid,
+                "end",
+                text=f"⟳  {alt['recipe_name']}  (alt — click to use)",
+                open=False,
+                tags=("alt_header",),
+            )
             self._bd_iid_info[alt_iid] = {
                 "type": "alt_header",
                 "ingredient_name": name,
                 "alt_recipe_id": alt["recipe_id"],
             }
             for alt_child in alt["children"]:
-                self._insert_node(tree, alt_iid, alt_child, queue_id,
-                                   path_parts + [f"~{alt['recipe_id']}~{name}"], checked)
+                self._insert_node(
+                    tree,
+                    alt_iid,
+                    alt_child,
+                    queue_id,
+                    path_parts + [f"~{alt['recipe_id']}~{name}"],
+                    checked,
+                )
 
     def _on_bd_click(self, event):
         if self._bd_toggled:
@@ -1253,9 +1484,15 @@ class CraftQueuePanel:
             toggle_queue_checked(queue_id, path_key, currently_checked=is_done)
             new_done = not is_done
             info["checked"] = new_done
-            tree.item(iid,
-                      image=self._overlay._img_checked if new_done else self._overlay._img_unchecked,
-                      tags=("done" if new_done else "ingredient",))
+            tree.item(
+                iid,
+                image=(
+                    self._overlay.img_checked
+                    if new_done
+                    else self._overlay.img_unchecked
+                ),
+                tags=("done" if new_done else "ingredient",),
+            )
 
     # --- show / hide / pin ---
 
@@ -1265,7 +1502,7 @@ class CraftQueuePanel:
 
     def hide(self):
         self._win.withdraw()
-        self._on_hide_cb()
+        self.on_hide_cb()
 
     def is_visible(self):
         return self._win.state() != "withdrawn"
@@ -1321,6 +1558,10 @@ class Overlay(tk.Tk):
         self._recipe_iid_info: dict = {}
         self._bd_toggled: bool = False
         self._queue_panel: "CraftQueuePanel | None" = None
+        self.tray_icon: object = None
+        self.img_unchecked: tk.PhotoImage
+        self.img_checked: tk.PhotoImage
+        self._recipe_breakdown_mode: str = "breakdown"
 
         _x, _y = cfg.get("window_x", 60), cfg.get("window_y", 60)
         _w, _h = cfg.get("window_w"), cfg.get("window_h")
@@ -1390,7 +1631,7 @@ class Overlay(tk.Tk):
             relief="flat",
             padx=6,
             font=("Segoe UI", 8),
-            command=self._toggle_queue_panel,
+            command=self.toggle_queue_panel,
         )
         self._btn_queue_panel.pack(side="right", padx=(0, 2))
 
@@ -2382,10 +2623,10 @@ class Overlay(tk.Tk):
             if self._queue_panel and not self._queue_panel.pinned:
                 self._queue_panel.hide()
 
-    def _toggle_queue_panel(self):
+    def toggle_queue_panel(self):
         if self._queue_panel is None:
             self._queue_panel = CraftQueuePanel(self, self)
-            self._queue_panel._on_hide_cb = self._on_queue_panel_hide
+            self._queue_panel.on_hide_cb = self._on_queue_panel_hide
             self._btn_queue_panel.config(bg="#1f6feb", fg="white")
         elif self._queue_panel.is_visible():
             self._queue_panel.hide()
@@ -2399,8 +2640,14 @@ class Overlay(tk.Tk):
     def _on_recipe_combo_right_click(self, event):
         if self._recipe_selected_id is None:
             return
-        menu = tk.Menu(self, tearoff=0, bg="#21262d", fg="#c9d1d9",
-                       activebackground="#1f6feb", activeforeground="white")
+        menu = tk.Menu(
+            self,
+            tearoff=0,
+            bg="#21262d",
+            fg="#c9d1d9",
+            activebackground="#1f6feb",
+            activeforeground="white",
+        )
         menu.add_command(label="Add to Queue", command=self._add_recipe_to_queue)
         menu.tk_popup(event.x_root, event.y_root)
 
@@ -2409,7 +2656,7 @@ class Overlay(tk.Tk):
             return
         if self._queue_panel is None:
             self._queue_panel = CraftQueuePanel(self, self)
-            self._queue_panel._on_hide_cb = self._on_queue_panel_hide
+            self._queue_panel.on_hide_cb = self._on_queue_panel_hide
         try:
             qty = max(float(self._recipe_qty_var.get()), 0.001)
         except ValueError:
@@ -2422,6 +2669,8 @@ class Overlay(tk.Tk):
         """Fully close the app (not just hide) - also ends the hotkey
         listener thread and the hidden console process."""
         self._save_position()
+        if self.tray_icon is not None:
+            getattr(self.tray_icon, "stop")()
         try:
             self.destroy()
         finally:
@@ -2438,12 +2687,16 @@ class Overlay(tk.Tk):
         y = self.winfo_y()
         self.geometry(f"{width}x{height}+{x}+{y}")
 
-
     # ----- recipe panel -----
 
     def _apply_view_visibility(self):
         is_recipe = self._view_mode == "recipe"
-        deposit_frames = [self._search_frame, self.filter_frame, self._tree_frame, self._form_frame]
+        deposit_frames = [
+            self._search_frame,
+            self.filter_frame,
+            self._tree_frame,
+            self._form_frame,
+        ]
         if is_recipe:
             for f in deposit_frames:
                 f.pack_forget()
@@ -2462,19 +2715,40 @@ class Overlay(tk.Tk):
         for y in range(s):
             unc.put(" ".join(["#161b22"] * s), to=(0, y))
         for i in range(s):
-            unc.put("#6e7681", to=(0, i, 1, i+1))
-            unc.put("#6e7681", to=(s-1, i, s, i+1))
-            unc.put("#6e7681", to=(i, 0, i+1, 1))
-            unc.put("#6e7681", to=(i, s-1, i+1, s))
+            unc.put("#6e7681", to=(0, i, 1, i + 1))
+            unc.put("#6e7681", to=(s - 1, i, s, i + 1))
+            unc.put("#6e7681", to=(i, 0, i + 1, 1))
+            unc.put("#6e7681", to=(i, s - 1, i + 1, s))
         chk = tk.PhotoImage(width=s, height=s)
         for y in range(s):
             chk.put(" ".join(["#1f6feb"] * s), to=(0, y))
-        for x, y in [(2,7),(2,8),(3,8),(3,9),(4,9),(4,10),(5,10),(5,11),
-                     (6,9),(6,10),(7,8),(7,9),(8,7),(8,8),(9,6),(9,7),
-                     (10,5),(10,6),(11,4),(11,5),(12,3),(12,4)]:
-            chk.put("#ffffff", to=(x, y, x+1, y+1))
-        self._img_unchecked = unc
-        self._img_checked = chk
+        for x, y in [
+            (2, 7),
+            (2, 8),
+            (3, 8),
+            (3, 9),
+            (4, 9),
+            (4, 10),
+            (5, 10),
+            (5, 11),
+            (6, 9),
+            (6, 10),
+            (7, 8),
+            (7, 9),
+            (8, 7),
+            (8, 8),
+            (9, 6),
+            (9, 7),
+            (10, 5),
+            (10, 6),
+            (11, 4),
+            (11, 5),
+            (12, 3),
+            (12, 4),
+        ]:
+            chk.put("#ffffff", to=(x, y, x + 1, y + 1))
+        self.img_unchecked = unc
+        self.img_checked = chk
 
     def _build_recipe_panel(self):
         self._recipe_frame = tk.Frame(self, bg="#0d1117")
@@ -2484,8 +2758,9 @@ class Overlay(tk.Tk):
         # --- selector row ---
         sel = tk.Frame(self._recipe_frame, bg="#0d1117")
         sel.pack(fill="x", pady=(4, 2))
-        tk.Label(sel, text="Recipe:", bg="#0d1117", fg="#8b949e",
-                 font=("Segoe UI", 8)).pack(side="left", padx=(0, 4))
+        tk.Label(
+            sel, text="Recipe:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(side="left", padx=(0, 4))
         self._recipe_var = tk.StringVar()
         self._recipe_combo = ttk.Combobox(sel, textvariable=self._recipe_var, width=28)
         self._recipe_combo.pack(side="left", padx=(0, 6))
@@ -2499,37 +2774,68 @@ class Overlay(tk.Tk):
             ),
             on_select_fn=self._on_recipe_combo_select,
         )
-        tk.Button(sel, text="New", command=self.clear_recipe_form,
-                  bg="#21262d", fg="#c9d1d9", relief="flat", bd=0, padx=8,
-                  font=("Segoe UI", 8)).pack(side="left", padx=(0, 8))
-        tk.Label(sel, text="×", bg="#0d1117", fg="#8b949e",
-                 font=("Segoe UI", 9)).pack(side="left")
+        tk.Button(
+            sel,
+            text="New",
+            command=self.clear_recipe_form,
+            bg="#21262d",
+            fg="#c9d1d9",
+            relief="flat",
+            bd=0,
+            padx=8,
+            font=("Segoe UI", 8),
+        ).pack(side="left", padx=(0, 8))
+        tk.Label(sel, text="×", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 9)).pack(
+            side="left"
+        )
         self._recipe_qty_var = tk.StringVar(value="1")
-        qty_entry = tk.Entry(sel, textvariable=self._recipe_qty_var, width=5,
-                             bg="#161b22", fg="#c9d1d9", insertbackground="#c9d1d9",
-                             relief="flat", justify="center")
+        qty_entry = tk.Entry(
+            sel,
+            textvariable=self._recipe_qty_var,
+            width=5,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+            justify="center",
+        )
         qty_entry.pack(side="left", ipady=2, padx=(1, 12))
         qty_entry.bind("<Return>", lambda _e: self._refresh_recipe_breakdown())
         qty_entry.bind("<FocusOut>", lambda _e: self._refresh_recipe_breakdown())
         # Breakdown / Totals / Used In toggle (right side)
         self._recipe_breakdown_mode = "breakdown"
         self._btn_bd_breakdown = tk.Button(
-            sel, text="Breakdown",
-            bg="#1f6feb", fg="white", relief="flat", bd=0, padx=6,
+            sel,
+            text="Breakdown",
+            bg="#1f6feb",
+            fg="white",
+            relief="flat",
+            bd=0,
+            padx=6,
             font=("Segoe UI", 8),
             command=lambda: self._set_recipe_mode("breakdown"),
         )
         self._btn_bd_breakdown.pack(side="right", padx=(2, 0))
         self._btn_bd_totals = tk.Button(
-            sel, text="Totals",
-            bg="#21262d", fg="#8b949e", relief="flat", bd=0, padx=6,
+            sel,
+            text="Totals",
+            bg="#21262d",
+            fg="#8b949e",
+            relief="flat",
+            bd=0,
+            padx=6,
             font=("Segoe UI", 8),
             command=lambda: self._set_recipe_mode("totals"),
         )
         self._btn_bd_totals.pack(side="right", padx=(0, 2))
         self._btn_bd_usedin = tk.Button(
-            sel, text="Used In",
-            bg="#21262d", fg="#8b949e", relief="flat", bd=0, padx=6,
+            sel,
+            text="Used In",
+            bg="#21262d",
+            fg="#8b949e",
+            relief="flat",
+            bd=0,
+            padx=6,
             font=("Segoe UI", 8),
             command=lambda: self._set_recipe_mode("usedin"),
         )
@@ -2537,16 +2843,27 @@ class Overlay(tk.Tk):
 
         # Item search row — shown only in "Used In" mode
         self._usedin_row = tk.Frame(self._recipe_frame, bg="#0d1117")
-        tk.Label(self._usedin_row, text="Item:", bg="#0d1117", fg="#8b949e",
-                 font=("Segoe UI", 8)).pack(side="left", padx=(0, 4))
+        tk.Label(
+            self._usedin_row,
+            text="Item:",
+            bg="#0d1117",
+            fg="#8b949e",
+            font=("Segoe UI", 8),
+        ).pack(side="left", padx=(0, 4))
         self._usedin_var = tk.StringVar()
-        self._usedin_cb = ttk.Combobox(self._usedin_row, textvariable=self._usedin_var, width=28)
+        self._usedin_cb = ttk.Combobox(
+            self._usedin_row, textvariable=self._usedin_var, width=28
+        )
         self._usedin_cb.pack(side="left", fill="x", expand=True)
-        self._usedin_cb.bind("<<ComboboxSelected>>", lambda _e: self._refresh_recipe_breakdown())
+        self._usedin_cb.bind(
+            "<<ComboboxSelected>>", lambda _e: self._refresh_recipe_breakdown()
+        )
         self._usedin_cb.bind("<Return>", lambda _e: self._refresh_recipe_breakdown())
         _LiveDropdown(
             self._usedin_cb,
-            pre_fn=lambda: self._usedin_cb.configure(values=self._all_ingredient_options()),
+            pre_fn=lambda: self._usedin_cb.configure(
+                values=self._all_ingredient_options()
+            ),
             on_select_fn=lambda _e=None: self._refresh_recipe_breakdown(),
         )
 
@@ -2556,8 +2873,9 @@ class Overlay(tk.Tk):
         bd_frame.pack(fill="both", expand=True, pady=(2, 4))
         bd_vsb = ttk.Scrollbar(bd_frame, orient="vertical")
         bd_vsb.pack(side="right", fill="y")
-        self._recipe_breakdown_tree = ttk.Treeview(bd_frame, show="tree",
-                                                    yscrollcommand=bd_vsb.set)
+        self._recipe_breakdown_tree = ttk.Treeview(
+            bd_frame, show="tree", yscrollcommand=bd_vsb.set
+        )
         self._recipe_breakdown_tree.pack(side="left", fill="both", expand=True)
         bd_vsb.config(command=self._recipe_breakdown_tree.yview)
         self._recipe_breakdown_tree.bind("<ButtonRelease-1>", self._on_breakdown_click)
@@ -2573,25 +2891,41 @@ class Overlay(tk.Tk):
 
         name_row = tk.Frame(form, bg="#0d1117")
         name_row.pack(fill="x", pady=(0, 4))
-        tk.Label(name_row, text="Name:", bg="#0d1117", fg="#8b949e",
-                 font=("Segoe UI", 8)).pack(side="left", padx=(0, 4))
+        tk.Label(
+            name_row, text="Name:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(side="left", padx=(0, 4))
         self._recipe_name_var = tk.StringVar()
-        tk.Entry(name_row, textvariable=self._recipe_name_var,
-                 bg="#161b22", fg="#c9d1d9", insertbackground="#c9d1d9",
-                 relief="flat").pack(side="left", fill="x", expand=True, ipady=3, padx=(0, 8))
-        tk.Label(name_row, text="Produces:", bg="#0d1117", fg="#8b949e",
-                 font=("Segoe UI", 8)).pack(side="left", padx=(0, 4))
+        tk.Entry(
+            name_row,
+            textvariable=self._recipe_name_var,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+        ).pack(side="left", fill="x", expand=True, ipady=3, padx=(0, 8))
+        tk.Label(
+            name_row, text="Produces:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(side="left", padx=(0, 4))
         self._recipe_output_var = tk.StringVar(value="1")
-        tk.Entry(name_row, textvariable=self._recipe_output_var, width=5,
-                 bg="#161b22", fg="#c9d1d9", insertbackground="#c9d1d9",
-                 relief="flat").pack(side="left", ipady=3)
+        tk.Entry(
+            name_row,
+            textvariable=self._recipe_output_var,
+            width=5,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+        ).pack(side="left", ipady=3)
 
         item_row = tk.Frame(form, bg="#0d1117")
         item_row.pack(fill="x", pady=(0, 4))
-        tk.Label(item_row, text="Item:", bg="#0d1117", fg="#8b949e",
-                 font=("Segoe UI", 8)).pack(side="left", padx=(0, 4))
+        tk.Label(
+            item_row, text="Item:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(side="left", padx=(0, 4))
         self._recipe_item_var = tk.StringVar()
-        self._recipe_item_cb = ttk.Combobox(item_row, textvariable=self._recipe_item_var, width=30)
+        self._recipe_item_cb = ttk.Combobox(
+            item_row, textvariable=self._recipe_item_var, width=30
+        )
         self._recipe_item_cb.pack(side="left", fill="x", expand=True)
         self._recipe_item_cb.bind(
             "<FocusIn>",
@@ -2599,18 +2933,28 @@ class Overlay(tk.Tk):
         )
         _LiveDropdown(
             self._recipe_item_cb,
-            pre_fn=lambda: self._recipe_item_cb.configure(values=get_all_output_names()),
+            pre_fn=lambda: self._recipe_item_cb.configure(
+                values=get_all_output_names()
+            ),
         )
 
-        tk.Label(form, text="Ingredients:", bg="#0d1117", fg="#8b949e",
-                 font=("Segoe UI", 8)).pack(anchor="w", pady=(0, 2))
+        tk.Label(
+            form, text="Ingredients:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(anchor="w", pady=(0, 2))
 
         # scrollable ingredient rows
         ing_outer = tk.Frame(form, bg="#0d1117")
         ing_outer.pack(fill="x")
-        self._ing_canvas = tk.Canvas(ing_outer, bg="#0d1117", highlightthickness=0, height=110,
-                                     yscrollcommand=lambda *a: ing_vsb.set(*a))
-        ing_vsb = ttk.Scrollbar(ing_outer, orient="vertical", command=self._ing_canvas.yview)
+        self._ing_canvas = tk.Canvas(
+            ing_outer,
+            bg="#0d1117",
+            highlightthickness=0,
+            height=110,
+            yscrollcommand=lambda *a: ing_vsb.set(*a),
+        )
+        ing_vsb = ttk.Scrollbar(
+            ing_outer, orient="vertical", command=self._ing_canvas.yview
+        )
         self._ing_inner = tk.Frame(self._ing_canvas, bg="#0d1117")
         ing_vsb.pack(side="right", fill="y")
         self._ing_canvas.pack(side="left", fill="x", expand=True)
@@ -2632,15 +2976,44 @@ class Overlay(tk.Tk):
 
         btn_row = tk.Frame(form, bg="#0d1117")
         btn_row.pack(fill="x", pady=(6, 0))
-        tk.Button(btn_row, text="+ Ingredient", command=lambda: self._add_ingredient_row(),
-                  bg="#21262d", fg="#c9d1d9", relief="flat", bd=0, padx=8,
-                  font=("Segoe UI", 8)).pack(side="left", padx=(0, 10))
-        tk.Button(btn_row, text="Save", command=self.save_recipe_action,
-                  bg="#238636", fg="white", relief="flat", padx=10).pack(side="left", padx=2)
-        tk.Button(btn_row, text="Clear", command=self.clear_recipe_form,
-                  bg="#21262d", fg="#c9d1d9", relief="flat", padx=10).pack(side="left", padx=2)
-        tk.Button(btn_row, text="Delete", command=self.delete_recipe_action,
-                  bg="#da3633", fg="white", relief="flat", padx=10).pack(side="right", padx=(2, 18))
+        tk.Button(
+            btn_row,
+            text="+ Ingredient",
+            command=self._add_ingredient_row,
+            bg="#21262d",
+            fg="#c9d1d9",
+            relief="flat",
+            bd=0,
+            padx=8,
+            font=("Segoe UI", 8),
+        ).pack(side="left", padx=(0, 10))
+        tk.Button(
+            btn_row,
+            text="Save",
+            command=self.save_recipe_action,
+            bg="#238636",
+            fg="white",
+            relief="flat",
+            padx=10,
+        ).pack(side="left", padx=2)
+        tk.Button(
+            btn_row,
+            text="Clear",
+            command=self.clear_recipe_form,
+            bg="#21262d",
+            fg="#c9d1d9",
+            relief="flat",
+            padx=10,
+        ).pack(side="left", padx=2)
+        tk.Button(
+            btn_row,
+            text="Delete",
+            command=self.delete_recipe_action,
+            bg="#da3633",
+            fg="white",
+            relief="flat",
+            padx=10,
+        ).pack(side="right", padx=(2, 18))
 
     def _all_ingredient_options(self):
         produced = get_all_output_names()
@@ -2695,28 +3068,45 @@ class Overlay(tk.Tk):
         name_cb.pack(side="left", padx=(0, 4))
         _LiveDropdown(
             name_cb,
-            pre_fn=lambda cb=name_cb: cb.configure(values=self._all_ingredient_options()),
+            pre_fn=lambda cb=name_cb: cb.configure(
+                values=self._all_ingredient_options()
+            ),
         )
-        qty_entry = tk.Entry(row_frame, textvariable=qty_var, width=7,
-                 bg="#161b22", fg="#c9d1d9", insertbackground="#c9d1d9",
-                 relief="flat")
+        qty_entry = tk.Entry(
+            row_frame,
+            textvariable=qty_var,
+            width=7,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+        )
         qty_entry.pack(side="left", padx=(0, 4), ipady=2)
         row = {"name_var": name_var, "qty_var": qty_var, "frame": row_frame}
 
-        def remove(r=row):
-            self._ing_rows = [x for x in self._ing_rows if x is not r]
-            r["frame"].destroy()
+        def remove():
+            self._ing_rows = [x for x in self._ing_rows if x is not row]
+            row["frame"].destroy()
 
-        rm_btn = tk.Button(row_frame, text="×", command=remove,
-                  bg="#0d1117", fg="#da3633", relief="flat", bd=0,
-                  font=("Segoe UI", 9))
+        rm_btn = tk.Button(
+            row_frame,
+            text="×",
+            command=remove,
+            bg="#0d1117",
+            fg="#da3633",
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 9),
+        )
         rm_btn.pack(side="left")
         for w in (row_frame, name_cb, qty_entry, rm_btn):
             w.bind("<MouseWheel>", self._ing_scroll, add=True)
         self._ing_rows.append(row)
         # auto-scroll to bottom so the new row is visible
         self._ing_inner.update_idletasks()
-        self._ing_canvas.configure(scrollregion=self._ing_canvas.bbox("all") or (0, 0, 0, 0))
+        self._ing_canvas.configure(
+            scrollregion=self._ing_canvas.bbox("all") or (0, 0, 0, 0)
+        )
         self._ing_canvas.yview_moveto(1.0)
 
     def _insert_breakdown_node(self, parent_iid, node, recipe_id, path_parts, checked):
@@ -2730,7 +3120,7 @@ class Overlay(tk.Tk):
         if used_recipe and used_recipe != name:
             label += f"  [{used_recipe}]"
         tag = "done" if is_done else "ingredient"
-        img = self._img_checked if is_done else self._img_unchecked
+        img = self.img_checked if is_done else self.img_unchecked
         iid = self._recipe_breakdown_tree.insert(
             parent_iid, "end", text=label, image=img, open=True, tags=(tag,)
         )
@@ -2760,7 +3150,8 @@ class Overlay(tk.Tk):
         # Alternate recipes for the same output — collapsed by default; click to select
         for alt in node.get("alts", []):
             alt_iid = self._recipe_breakdown_tree.insert(
-                iid, "end",
+                iid,
+                "end",
                 text=f"⟳  {alt['recipe_name']}  (alt — click to use)",
                 open=False,
                 tags=("alt_header",),
@@ -2772,8 +3163,11 @@ class Overlay(tk.Tk):
             }
             for alt_child in alt["children"]:
                 self._insert_breakdown_node(
-                    alt_iid, alt_child, recipe_id,
-                    path_parts + [f"~{alt['recipe_id']}~{name}"], checked
+                    alt_iid,
+                    alt_child,
+                    recipe_id,
+                    path_parts + [f"~{alt['recipe_id']}~{name}"],
+                    checked,
                 )
 
     def _on_bd_toggled(self, _):
@@ -2824,8 +3218,11 @@ class Overlay(tk.Tk):
         toggle_checked(recipe_id, path_key, currently_checked=is_done)
         new_done = not is_done
         info["checked"] = new_done
-        tree.item(iid, image=self._img_checked if new_done else self._img_unchecked,
-                  tags=("done" if new_done else "ingredient",))
+        tree.item(
+            iid,
+            image=self.img_checked if new_done else self.img_unchecked,
+            tags=("done" if new_done else "ingredient",),
+        )
         tree.tag_configure("ingredient", foreground="#c9d1d9")
         tree.tag_configure("done", foreground="#6e7681")
 
@@ -2844,7 +3241,9 @@ class Overlay(tk.Tk):
             try:
                 qty = float(qty_str)
             except ValueError:
-                messagebox.showwarning("Invalid quantity", f"Invalid quantity for '{ing_name}'.")
+                messagebox.showwarning(
+                    "Invalid quantity", f"Invalid quantity for '{ing_name}'."
+                )
                 self.after(0, self._recipe_repaint)
                 return
             ingredients.append((ing_name, qty))
@@ -2854,7 +3253,9 @@ class Overlay(tk.Tk):
             return
         existing_id = get_recipe_by_name(name)
         if existing_id is not None and existing_id != self._recipe_selected_id:
-            messagebox.showwarning("Duplicate", f"A recipe named '{name}' already exists.")
+            messagebox.showwarning(
+                "Duplicate", f"A recipe named '{name}' already exists."
+            )
             self.after(0, self._recipe_repaint)
             return
         try:
@@ -2862,11 +3263,15 @@ class Overlay(tk.Tk):
             if output_qty <= 0:
                 raise ValueError
         except ValueError:
-            messagebox.showwarning("Invalid quantity", "Output quantity must be a positive number.")
+            messagebox.showwarning(
+                "Invalid quantity", "Output quantity must be a positive number."
+            )
             self.after(0, self._recipe_repaint)
             return
         output_name = self._recipe_item_var.get().strip() or name
-        rid = save_recipe(self._recipe_selected_id, name, output_qty, ingredients, output_name)
+        rid = save_recipe(
+            self._recipe_selected_id, name, output_qty, ingredients, output_name
+        )
         self._recipe_selected_id = rid
         self._viewing_recipe_id = rid
         self._recipe_var.set(name)
@@ -2888,12 +3293,14 @@ class Overlay(tk.Tk):
             self.after(0, self._recipe_repaint)
             return
         delete_recipe(self._recipe_selected_id)
+
         def _finish():
             self.clear_recipe_form()
             self._refresh_recipe_list()
             self._recipe_frame.pack_forget()
             self._recipe_frame.pack(fill="both", expand=True, padx=8, pady=4)
             self.focus_force()
+
         self.after(0, _finish)
 
     def clear_recipe_form(self):
@@ -2939,7 +3346,9 @@ class Overlay(tk.Tk):
             self._usedin_row.pack(fill="x", padx=8, pady=(0, 4), before=self._bd_frame)
             # Pre-fill with the current recipe's output if nothing typed yet
             if not self._usedin_var.get() and self._viewing_recipe_id is not None:
-                self._usedin_var.set(get_recipe_output_name(self._viewing_recipe_id) or "")
+                self._usedin_var.set(
+                    get_recipe_output_name(self._viewing_recipe_id) or ""
+                )
         else:
             self._usedin_row.pack_forget()
         self._refresh_recipe_breakdown()
@@ -2950,12 +3359,18 @@ class Overlay(tk.Tk):
             tree.delete(item)
         self._recipe_iid_info = {}
         tree.tag_configure("root", foreground="#f0883e", font=("Segoe UI", 9, "bold"))
-        tree.tag_configure("total_header", foreground="#f0883e", font=("Segoe UI", 9, "bold"))
-        tree.tag_configure("section", foreground="#8b949e", font=("Segoe UI", 8, "italic"))
+        tree.tag_configure(
+            "total_header", foreground="#f0883e", font=("Segoe UI", 9, "bold")
+        )
+        tree.tag_configure(
+            "section", foreground="#8b949e", font=("Segoe UI", 8, "italic")
+        )
         tree.tag_configure("ingredient", foreground="#c9d1d9")
         tree.tag_configure("done", foreground="#6e7681")
         tree.tag_configure("location", foreground="#3fb950", font=("Segoe UI", 8))
-        tree.tag_configure("alt_header", foreground="#8b949e", font=("Segoe UI", 8, "italic"))
+        tree.tag_configure(
+            "alt_header", foreground="#8b949e", font=("Segoe UI", 8, "italic")
+        )
         if self._recipe_breakdown_mode == "usedin":
             self._refresh_usedin_view(tree)
             return
@@ -2971,20 +3386,30 @@ class Overlay(tk.Tk):
             craft_qty = 1.0
         checked = get_checked_paths(recipe_id)
         alt_prefs = get_alt_prefs()
-        node = resolve_recipe_tree(output_name, qty_needed=craft_qty,
-                                   _root_recipe_id=recipe_id, _alt_prefs=alt_prefs)
+        node = resolve_recipe_tree(
+            output_name,
+            qty_needed=craft_qty,
+            _root_recipe_id=recipe_id,
+            _alt_prefs=alt_prefs,
+        )
         if self._recipe_breakdown_mode == "totals":
-            self._refresh_totals_view(tree, output_name, node, recipe_id, checked, craft_qty)
+            self._refresh_totals_view(
+                tree, output_name, node, recipe_id, checked, craft_qty
+            )
         else:
             oqty = node.get("output_qty", 1.0)
             crafts = math.ceil(craft_qty / oqty)
             if craft_qty == 1.0:
-                root_label = f"◆  {output_name}  ×{oqty:g}" if oqty > 1 else f"◆  {output_name}"
+                root_label = (
+                    f"◆  {output_name}  ×{oqty:g}" if oqty > 1 else f"◆  {output_name}"
+                )
             else:
                 root_label = f"◆  {output_name}  ×{craft_qty:g}"
                 if crafts > 1 or oqty > 1:
                     root_label += f"  ({crafts:g} crafts)"
-            root_iid = tree.insert("", "end", text=root_label, open=True, tags=("root",))
+            root_iid = tree.insert(
+                "", "end", text=root_label, open=True, tags=("root",)
+            )
             self._recipe_iid_info[root_iid] = {"type": "root"}
             for child in node["children"]:
                 self._insert_breakdown_node(root_iid, child, recipe_id, [], checked)
@@ -2995,9 +3420,11 @@ class Overlay(tk.Tk):
             return
         rows = get_recipes_using_ingredient(item_name)
         header = tree.insert(
-            "", "end",
-            text=f"Recipes using  \"{item_name}\"",
-            open=True, tags=("root",),
+            "",
+            "end",
+            text=f'Recipes using  "{item_name}"',
+            open=True,
+            tags=("root",),
         )
         self._recipe_iid_info[header] = {"type": "root"}
         if not rows:
@@ -3008,82 +3435,129 @@ class Overlay(tk.Tk):
             if output_name != rname:
                 oq_suffix = f"  ×{output_qty:g}" if output_qty != 1 else ""
                 label += f"  [{output_name}{oq_suffix}]"
-            iid = tree.insert(header, "end", text=label, open=False, tags=("ingredient",))
-            self._recipe_iid_info[iid] = {"type": "usedin_recipe", "recipe_id": rid, "recipe_name": rname}
+            iid = tree.insert(
+                header, "end", text=label, open=False, tags=("ingredient",)
+            )
+            self._recipe_iid_info[iid] = {
+                "type": "usedin_recipe",
+                "recipe_id": rid,
+                "recipe_name": rname,
+            }
 
     @staticmethod
-    @staticmethod
-    def _collect_totals(node, totals=None):
+    def collect_totals(node, totals=None):
         """Aggregate raw-resource leaf quantities across the whole tree."""
         if totals is None:
             totals = {}
         if not node["is_recipe"] and not node["children"]:
             totals[node["name"]] = totals.get(node["name"], 0) + node["qty"]
         for child in node["children"]:
-            Overlay._collect_totals(child, totals)
+            Overlay.collect_totals(child, totals)
         return totals
 
     @staticmethod
-    def _collect_intermediates(node, totals=None):
+    def collect_intermediates(node, totals=None):
         """Aggregate sub-recipe quantities across the whole tree (excluding root)."""
         if totals is None:
             totals = {}
         for child in node["children"]:
             if child["is_recipe"]:
                 entry = totals.setdefault(
-                    child["name"], {"qty": 0.0, "output_qty": child.get("output_qty", 1.0), "alts": child.get("alts", [])}
+                    child["name"],
+                    {
+                        "qty": 0.0,
+                        "output_qty": child.get("output_qty", 1.0),
+                        "alts": child.get("alts", []),
+                    },
                 )
                 entry["qty"] += child["qty"]
-            Overlay._collect_intermediates(child, totals)
+            Overlay.collect_intermediates(child, totals)
         return totals
 
-    def _refresh_totals_view(self, tree, recipe_name, node, recipe_id, checked, craft_qty=1.0):
+    def _refresh_totals_view(
+        self, tree, recipe_name, node, recipe_id, checked, craft_qty=1.0
+    ):
         oqty = node.get("output_qty", 1.0)
         if craft_qty == 1.0:
-            root_label = f"◆  {recipe_name}  ×{oqty:g}" if oqty > 1 else f"◆  {recipe_name}"
+            root_label = (
+                f"◆  {recipe_name}  ×{oqty:g}" if oqty > 1 else f"◆  {recipe_name}"
+            )
         else:
             crafts = math.ceil(craft_qty / oqty)
             root_label = f"◆  {recipe_name}  ×{craft_qty:g}"
             if crafts > 1 or oqty > 1:
                 root_label += f"  ({crafts:g} crafts)"
-        header = tree.insert("", "end", text=root_label, open=True, tags=("total_header",))
+        header = tree.insert(
+            "", "end", text=root_label, open=True, tags=("total_header",)
+        )
         self._recipe_iid_info[header] = {"type": "root"}
 
         def insert_raw(parent, res_name, qty, path_key):
             is_done = path_key in checked
-            img = self._img_checked if is_done else self._img_unchecked
-            iid = tree.insert(parent, "end", text=f"{qty:g}×  {res_name}",
-                              image=img, open=True, tags=("done" if is_done else "ingredient",))
-            self._recipe_iid_info[iid] = {"type": "ingredient", "recipe_id": recipe_id, "path_key": path_key, "checked": is_done}
-            for sector, system_name, planet, status in get_deposits_for_ingredient(res_name):
+            img = self.img_checked if is_done else self.img_unchecked
+            iid = tree.insert(
+                parent,
+                "end",
+                text=f"{qty:g}×  {res_name}",
+                image=img,
+                open=True,
+                tags=("done" if is_done else "ingredient",),
+            )
+            self._recipe_iid_info[iid] = {
+                "type": "ingredient",
+                "recipe_id": recipe_id,
+                "path_key": path_key,
+                "checked": is_done,
+            }
+            for sector, system_name, planet, status in get_deposits_for_ingredient(
+                res_name
+            ):
                 parts = [p for p in (sector, system_name, planet) if p]
                 loc_text = " / ".join(parts)
                 if status and status not in ("Unknown", ""):
                     loc_text += f"  [{status}]"
-                loc_iid = tree.insert(iid, "end", text=f"    📍 {loc_text}", tags=("location",))
+                loc_iid = tree.insert(
+                    iid, "end", text=f"    📍 {loc_text}", tags=("location",)
+                )
                 self._recipe_iid_info[loc_iid] = {"type": "location"}
 
-        intermediates = self._collect_intermediates(node)
+        intermediates = self.collect_intermediates(node)
         if intermediates:
-            craft_hdr = tree.insert(header, "end", text="── Crafted ──", open=True, tags=("section",))
+            craft_hdr = tree.insert(
+                header, "end", text="── Crafted ──", open=True, tags=("section",)
+            )
             self._recipe_iid_info[craft_hdr] = {"type": "root"}
-            for res_name, info in sorted(intermediates.items(), key=lambda x: x[0].lower()):
+            for res_name, info in sorted(
+                intermediates.items(), key=lambda x: x[0].lower()
+            ):
                 qty = info["qty"]
                 oq = info["output_qty"]
                 crafts = math.ceil(qty / oq)
                 path_key = f"__craft__|{res_name}"
                 is_done = path_key in checked
-                img = self._img_checked if is_done else self._img_unchecked
+                img = self.img_checked if is_done else self.img_unchecked
                 suffix = f"  ({crafts:g} crafts)" if oq > 1 else ""
-                iid = tree.insert(craft_hdr, "end",
-                                  text=f"{qty:g}×  {res_name}{suffix}",
-                                  image=img, open=True, tags=("done" if is_done else "ingredient",))
-                self._recipe_iid_info[iid] = {"type": "ingredient", "recipe_id": recipe_id, "path_key": path_key, "checked": is_done}
+                iid = tree.insert(
+                    craft_hdr,
+                    "end",
+                    text=f"{qty:g}×  {res_name}{suffix}",
+                    image=img,
+                    open=True,
+                    tags=("done" if is_done else "ingredient",),
+                )
+                self._recipe_iid_info[iid] = {
+                    "type": "ingredient",
+                    "recipe_id": recipe_id,
+                    "path_key": path_key,
+                    "checked": is_done,
+                }
                 for alt in info.get("alts", []):
                     alt_iid = tree.insert(
-                        iid, "end",
+                        iid,
+                        "end",
                         text=f"⟳  {alt['recipe_name']}  (alt — click to use)",
-                        open=False, tags=("alt_header",),
+                        open=False,
+                        tags=("alt_header",),
                     )
                     self._recipe_iid_info[alt_iid] = {
                         "type": "alt_header",
@@ -3091,13 +3565,39 @@ class Overlay(tk.Tk):
                         "alt_recipe_id": alt["recipe_id"],
                     }
 
-        raw_hdr = tree.insert(header, "end", text="── Raw materials ──", open=True, tags=("section",))
+        raw_hdr = tree.insert(
+            header, "end", text="── Raw materials ──", open=True, tags=("section",)
+        )
         self._recipe_iid_info[raw_hdr] = {"type": "root"}
-        for res_name, qty in sorted(self._collect_totals(node).items(), key=lambda x: x[0].lower()):
+        for res_name, qty in sorted(
+            self.collect_totals(node).items(), key=lambda x: x[0].lower()
+        ):
             insert_raw(raw_hdr, res_name, qty, f"__total__|{res_name}")
 
 
+def _make_tray_image():
+    size = 64
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    draw.ellipse(
+        [2, 2, 61, 61], fill=(13, 17, 23, 255), outline=(31, 111, 235, 255), width=3
+    )
+    draw.ellipse([20, 20, 43, 43], fill=(31, 111, 235, 255))
+    draw.arc([8, 30, 55, 46], start=0, end=180, fill=(201, 209, 217, 220), width=2)
+    draw.arc([8, 30, 55, 46], start=180, end=360, fill=(201, 209, 217, 90), width=2)
+    return img
+
+
 def main():
+    # Prevent multiple instances via a Windows named mutex.
+    ctypes.windll.kernel32.CreateMutexW(None, True, "SpaceCraftOverlay_SingleInstance")
+    if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        _r = tk.Tk()
+        _r.withdraw()
+        messagebox.showwarning("SpaceCraft", "SpaceCraft is already running.")
+        _r.destroy()
+        return
+
     init_db()
     app = Overlay()
 
@@ -3115,6 +3615,21 @@ def main():
         print(
             "Use the on-screen ✕ button or Esc key (while focused) to hide the window."
         )
+
+    if PYSTRAY_AVAILABLE:
+        menu = pystray.Menu(
+            pystray.MenuItem(
+                "Show / Hide", lambda: app.after(0, app.toggle), default=True
+            ),
+            pystray.MenuItem(
+                "Craft Queue", lambda: app.after(0, app.toggle_queue_panel)
+            ),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Exit", lambda: app.after(0, app.quit_app)),
+        )
+        _icon = pystray.Icon("SpaceCraft", _make_tray_image(), "SpaceCraft", menu)
+        app.tray_icon = _icon
+        threading.Thread(target=_icon.run, daemon=True).start()
 
     app.mainloop()
 
