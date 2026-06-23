@@ -2415,7 +2415,7 @@ class Overlay(tk.Tk):
             planet,
             status,
             notes,
-            logged_at,
+            _,
         ) in rows:
             type_label = res_type if res_type else "(Uncategorized)"
 
@@ -2508,11 +2508,9 @@ class Overlay(tk.Tk):
             if status and status != "Unknown":
                 extras.append(status)
             if notes:
-                extras.append(notes)
-            if logged_at:
-                extras.append(logged_at)
+                extras.append(f"[{notes}]")
             if extras:
-                label += "  —  " + " | ".join(extras)
+                label += "  —  " + "  ".join(extras)
             self.tree.insert(
                 s_node, "end", iid=str(row_id), text=label, tags=("planet",)
             )
@@ -2620,7 +2618,7 @@ class Overlay(tk.Tk):
                 if stat and stat not in ("Unknown", ""):
                     parts.append(f"—  {stat}")
                 if nts:
-                    parts.append(f"|  {nts}")
+                    parts.append(f"[{nts}]")
                 self.tree.insert(
                     pla_node,
                     "end",
