@@ -786,6 +786,7 @@ class _LiveDropdown:
         self._on_select = on_select_fn
         self._win: tk.Toplevel | None = None
         self._lb: tk.Listbox | None = None
+        self._padding_applied = False
 
         box.bind("<KeyRelease>", self._on_key, add=True)
         box.bind("<FocusOut>", lambda _e: box.after(150, self._maybe_hide), add=True)
@@ -823,6 +824,9 @@ class _LiveDropdown:
             height=b.winfo_height(),
         )
         self._arrow_btn.lift()
+        if not self._padding_applied:
+            self._padding_applied = True
+            ttk.Style(b).configure(b.cget("style"), padding=[0, 0, btn_w, 0])
 
     def _on_arrow_click(self):
         if self._win and self._win.winfo_exists() and self._win.winfo_ismapped():
@@ -2686,6 +2690,7 @@ class Overlay(tk.Tk):
             self.status_var.set(status or STATUS_OPTIONS[3])
             self.notes_entry.delete(0, "end")
             self.notes_entry.insert(0, notes or "")
+            self.notes_entry.xview_moveto(1.0)
             self._filter_dropdowns()
 
     def get_form_values(self):
@@ -3300,7 +3305,7 @@ class Overlay(tk.Tk):
         tag = "done" if is_done else "ingredient"
         img = self.img_checked if is_done else self.img_unchecked
         iid = self._recipe_breakdown_tree.insert(
-            parent_iid, "end", text=label, image=img, open=True, tags=(tag,)
+            parent_iid, "end", text=label, image=img, open=False, tags=(tag,)
         )
         self._recipe_iid_info[iid] = {
             "type": "ingredient",

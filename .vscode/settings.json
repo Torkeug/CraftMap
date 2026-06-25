@@ -4,6 +4,11 @@
             "label": "$(tools) Build CraftMap",
             "task": "Build CraftMap.exe",
             "tooltip": "Build CraftMap.exe via PyInstaller"
+        },
+        {
+            "label": "$(rocket) Ship Builder",
+            "task": "Start Ship Builder",
+            "tooltip": "Start the Ship Builder local server"
         }
     ]
 }
