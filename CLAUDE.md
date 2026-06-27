@@ -78,6 +78,116 @@ Everything lives in [overlay.py](overlay.py) (~2480 lines). There are no modules
 
 Both `resources.db` and `config.json` are always co-located with whichever of these is the app root.
 
+## Ship Builder
+
+A Three.js browser-based ship designer in `shipbuilder/`. Launch with `start.bat` (double-click) or `python -m http.server 8765` then open `http://localhost:8765`.
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `shipbuilder/index.html` | App shell — palette, viewport, inspector panels |
+| `shipbuilder/style.css` | All styling (Orbitron/Rajdhani fonts, dark theme, stats panel, slot grid) |
+| `shipbuilder/js/main.js` | All Three.js logic (~950 lines) |
+| `shipbuilder/js/data.js` | Part data loading, fan-stat lookup (`statsFor`), ship stat calc functions |
+| `shipbuilder/js/meshLoader.js` | Manifest fetch, geometry loading, cache-busted `.bin` fetches |
+| `shipbuilder/ship_editor_data.json` | Complete part catalogue: 77 hull + 59 module parts, all shapes and material variants |
+| `shipbuilder/ship_stats_data.json` | Fan-sourced stat values (weight, frame, thrust, shields, etc.) keyed by part name |
+| `shipbuilder/ship_meshes/` | `.bin` mesh files + `_manifest.json` |
+| `shipbuilder/ship_icons/` | Part icon `.webp` files (one per part ID) |
+| `shipbuilder/ship_shapes/` | Shape thumbnail `.webp` files |
+| `shipbuilder/start.bat` | Launcher: tries Python then Node.js, opens browser automatically |
+
+### Part model (`ship_editor_data.json`)
+
+Each part has `id`, `name`, `group`, `kind`, `mount`, `dims`, `stats`, `shapes`, `color`/`grad`.
+
+- `kind: 'build'` — hull frames, cockpits, wings, engines (77 parts). Each provides **1 internal module slot**.
+- `kind: 'module'` — cargo, FTL, shields, batteries, etc. (59 parts).
+  - `mount: 'inside'` — placed into a hull slot via the slot sprite system.
+  - `mount: 'surface'` — placed on the grid surface like hull pieces.
+
+### Module slot system (`main.js`)
+
+Inside modules (`isInsideMod(part)`) bypass the grid occupation system entirely and are instead **assigned to a hull piece** via `slotOwner: hullEntry`.
+
+**Key functions:**
+- `placeInSlot(part, hullEntry)` — places module at hull center; swaps if slot already occupied.
+- `syncSlotModule(hullEntry)` — repositions the slot module after hull drag or rebuild.
+- `refreshSlotSprites()` — rebuilds Three.js Sprite billboards over all hull pieces; visible only when Modules tab is active.
+- `setSlotHighlight(hullEntry, on)` — highlights the hovered slot sprite.
+
+**Slot sprite textures** (canvas-based, created once at module load):
+- `TEX_SLOT_EMPTY` — dashed white border (no module).
+- `TEX_SLOT_OCCUPIED` — not used directly; replaced by `getSlotOccupiedTex(part)`.
+- `TEX_SLOT_HOVER` / `TEX_SLOT_HOVER_SWAP` — fallback hover states.
+- `getSlotOccupiedTex(part)` — canvas texture with part icon + cyan border; async image load updates texture.
+- `getSlotHoverTex(part, isSwap)` — hover preview showing selected module's icon; white border = place, amber = swap.
+
+**Interaction:**
+- Switch to **Modules tab** → slot sprites appear over all hull pieces.
+- Select an inside module → hover over sprites shows the module icon as preview (white = empty, amber = will swap).
+- Left-click sprite → place or swap.
+- Right-click sprite → remove installed module.
+- Dragging a hull piece moves its slot module with it (`syncSlotModule`).
+- Removing a hull piece cascades to remove its slot module.
+
+**Save/load:** `slotOwnerIdx` (index into the placed array) persists slot assignments across clipboard save/load.
+
+### Ship stats panel (`updateShipStats` in `main.js`)
+
+Shown in the inspector when parts are placed. Sections:
+- **Verdict banner** — flight-ready / not ready.
+- **Viability checks** — Cockpit, Engine, Thrust/Mass, Integrity, Sys. support, Power, FTL cap. (if FTL present), Module slots.
+- **System Support bar** — SP used vs capacity.
+- **Structure** — Weight, Frames, Integrity (fan formula: `200 − 7w²/25f`), Maneuverability (`280×steering/w^1.5`).
+- **Propulsion** — Thrust, Force.
+- **Power** — Gen, Usage (`PowerUsage + EngineConsumption`), Net, Battery, Recharge, Heat cap.
+- **Module Slots** — dot grid (one dot per hull piece, cyan = occupied), foot label.
+- **Cargo** — Solid, Liquid, Mag fuel, FTL cap.
+- **Combat & Heat** — Shields, Heat gen. (fan data).
+
+Stats sourced from `part.stats` (game data in `ship_editor_data.json`) plus `statsFor(name)` (fan data in `ship_stats_data.json`).
+
+### HMD Mesh Pipeline
+
+See [`tools/hmd_format_notes.md`](tools/hmd_format_notes.md) for full format documentation, coordinate transforms, vertex/index buffer layouts, and the .bin output format. **Keep this file up to date** with any new findings discovered during conversion work.
+
+**All tools must be saved to `tools/`** — never write a tool only in memory or in a code block. Save every script immediately after writing it, even if incomplete.
+
+**Do not use .har files as reference — use only the in-game extracted files from pak_out.**
+
+#### Current state
+
+- Production HMD format (magic `HMD\x06`, disc=0x02): fully decoded. Three ring-buffer variants documented in `hmd_format_notes.md`.
+- **129 of 130 shapes from pak_out.** All 11 hull sizes complete. Only 8x3x1_N remains HAR-sourced (anomalous format — raw index data at byte 0, no parseable HMD header).
+- `shipbuilder/ship_editor_data.json` — complete with all hull sizes and all material variants. No edits needed there.
+- `shipbuilder/ship_shapes/` — missing H.webp, I.webp, L.webp, M.webp shape thumbnails.
+
+#### Conversion tools
+
+| Tool                          | Purpose                                                            |
+|-------------------------------|--------------------------------------------------------------------|
+| `tools/hmd_parse_prod.py`     | Parser for production HMD v0x06: `parse_prod_hmd()`, `parse_material_groups()`, `_parse_attr_blocks()`, `read_verts_f16()`, `read_indices_le_u16()` |
+| `tools/hmd_to_bin.py`         | CLI converter: auto-detects format and writes .bin; entry point for all conversions |
+| `tools/batch_convert_hulls.py`| Batch converter: converts all Main_Structures sizes from pak_out, updates `_manifest.json` |
+| `tools/hmd_parse.py`          | Legacy parser for TestPE (disc=0x00) files — no longer primary focus |
+| `tools/pak_extract.py`        | Extracts both disc=0x00 and disc=0x02 files from res.pak using cumulative offset calculation for disc=0x02 |
+
+**Running the converter:**
+```
+python tools/hmd_to_bin.py <input.hmd> <output.bin>
+python tools/batch_convert_hulls.py   # converts all sizes, updates _manifest.json
+```
+
+#### Remaining work
+
+1. **Missing shape thumbnails:** `ship_shapes/` is missing H.webp, I.webp, L.webp, M.webp — must come from game assets, not HAR.
+2. **8x3x1_N:** starts with raw big-endian uint16 index data — does not match any known HMD format. HAR-sourced bin is preserved.
+3. **12x6x2 and 16x6x2:** vertex positions appear normalized (±1 bbox cube) rather than grid-unit scale — coordinate space issue under investigation.
+
+**pak_extract.py** handles disc=0x02 extraction (D02_DATA_START = 2,156,315,392, 16-byte alignment). Re-extract any hull size: `python tools/pak_extract.py --extract "Main_Structures" --out pak_out`.
+
 ## Data model
 
 **`deposits`** columns: `id`, `res_type`, `resource`, `sector`, `system_name`, `planet`, `status`, `notes`, `logged_at`.

@@ -16,3 +16,15 @@ config.json
 # Editor / tool state
 .claude/
 .history/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Large extracted game data (not committed)
+pak_out/
+
+# Archive files
+*.har
+*.7z
