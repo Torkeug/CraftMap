@@ -184,7 +184,6 @@ python tools/batch_convert_hulls.py   # converts all sizes, updates _manifest.js
 
 1. **Missing shape thumbnails:** `ship_shapes/` is missing H.webp, I.webp, L.webp, M.webp — must come from game assets, not HAR.
 2. **8x3x1_N:** starts with raw big-endian uint16 index data — does not match any known HMD format. HAR-sourced bin is preserved.
-3. **12x6x2 and 16x6x2:** vertex positions appear normalized (±1 bbox cube) rather than grid-unit scale — coordinate space issue under investigation.
 
 **pak_extract.py** handles disc=0x02 extraction (D02_DATA_START = 2,156,315,392, 16-byte alignment). Re-extract any hull size: `python tools/pak_extract.py --extract "Main_Structures" --out pak_out`.
 
