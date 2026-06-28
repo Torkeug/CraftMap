@@ -1175,12 +1175,8 @@ class CraftQueuePanel:
         self._job_canvas.bind(
             "<Configure>", lambda e: self._job_canvas.itemconfig(_jwin, width=e.width)
         )
-        self._job_canvas.bind(
-            "<MouseWheel>",
-            lambda e: self._job_canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
-            if self._job_inner.winfo_reqheight() > self._job_canvas.winfo_height()
-            else None,
-        )
+        self._job_canvas.bind("<MouseWheel>", self._job_scroll)
+        self._job_inner.bind("<MouseWheel>", self._job_scroll)
 
         # Bottom pane: breakdown / totals tree
         bd_frame = tk.Frame(self._pw, bg="#0d1117")
@@ -1201,6 +1197,10 @@ class CraftQueuePanel:
         self._bd_tree.bind(
             "<<TreeviewClose>>", lambda _e: setattr(self, "_bd_toggled", True)
         )
+
+    def _job_scroll(self, event):
+        if self._job_inner.winfo_reqheight() > self._job_canvas.winfo_height():
+            self._job_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     # --- drag / position ---
 
@@ -1326,7 +1326,7 @@ class CraftQueuePanel:
         )
         lbl.pack(side="left", padx=(6, 2), pady=3, fill="x", expand=True)
 
-        tk.Button(
+        rm_btn = tk.Button(
             row,
             text="×",
             bg=bg,
@@ -1335,7 +1335,9 @@ class CraftQueuePanel:
             bd=0,
             font=("Segoe UI", 9),
             command=lambda qid=queue_id: self._remove_job(qid),
-        ).pack(side="right", padx=4)
+        )
+        rm_btn.pack(side="right", padx=4)
+        rm_btn.bind("<MouseWheel>", self._job_scroll, add=True)
 
         qty_var = tk.StringVar(value=f"{qty:g}")
         qty_e = tk.Entry(
@@ -1362,6 +1364,8 @@ class CraftQueuePanel:
 
         for w in (row, lbl):
             w.bind("<ButtonPress-1>", _on_click)
+            w.bind("<MouseWheel>", self._job_scroll, add=True)
+        qty_e.bind("<MouseWheel>", self._job_scroll, add=True)
 
     def _select_job(self, queue_id, recipe_id, output_name, qty_var):
         try:
