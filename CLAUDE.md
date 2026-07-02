@@ -151,6 +151,8 @@ Stats sourced from `part.stats` (game data in `ship_editor_data.json`) plus `sta
 
 ### HMD Mesh Pipeline
 
+The source game (SpaceCraft) runs on **Heaps.io** (a Haxe game engine), or a modified/customized build of it — confirmed by `res.pak`'s directory format, the `HMD` mesh magic, and a `.prefab` object-tree format that matches Heaps' `hxbit` binary serializer conventions (tag bytes 0/1/2/3/4/5/6/7 for null/false/true/int/float/object/string/array — see `tools/prefab_parse.py`). Assume Heaps/Haxe conventions when reverse-engineering any new binary format from `res.pak`.
+
 See [`tools/hmd_format_notes.md`](tools/hmd_format_notes.md) for full format documentation, coordinate transforms, vertex/index buffer layouts, and the .bin output format. **Keep this file up to date** with any new findings discovered during conversion work.
 
 **All tools must be saved to `tools/`** — never write a tool only in memory or in a code block. Save every script immediately after writing it, even if incomplete.
