@@ -943,7 +943,11 @@ class _LiveDropdown:
             if not self._lb.curselection():
                 self._lb.selection_set(0)
                 self._lb.activate(0)
-            return "break"
+        else:
+            if self._pre_fn:
+                self._pre_fn()
+            self._refresh()
+        return "break"
 
     def _on_return(self, _event):
         if self._win and self._win.winfo_viewable() and self._lb:
@@ -1113,7 +1117,7 @@ class CraftQueuePanel:
         tk.Entry(
             add_row,
             textvariable=self._add_qty_var,
-            width=4,
+            width=7,
             bg="#161b22",
             fg="#c9d1d9",
             insertbackground="#c9d1d9",
@@ -1343,7 +1347,7 @@ class CraftQueuePanel:
         qty_e = tk.Entry(
             row,
             textvariable=qty_var,
-            width=4,
+            width=7,
             bg="#21262d",
             fg="#c9d1d9",
             insertbackground="#c9d1d9",
@@ -1476,32 +1480,64 @@ class CraftQueuePanel:
         alt_prefs = get_alt_prefs()
         all_raw: dict = {}
         all_crafted: dict = {}
-        for _qid, recipe_id, _rname, output_name, qty in jobs:
+        per_job = []
+        for qid, recipe_id, rname, output_name, qty in jobs:
             node = resolve_recipe_tree(
                 output_name,
                 qty_needed=qty,
                 _root_recipe_id=recipe_id,
                 _alt_prefs=alt_prefs,
             )
-            for iname, raw_qty in Overlay.collect_totals(node).items():
+            job_raw = Overlay.collect_totals(node)
+            job_crafted = Overlay.collect_basic_crafted(node)
+            per_job.append((qid, rname, qty, job_crafted, job_raw))
+            for iname, raw_qty in job_raw.items():
                 all_raw[iname] = all_raw.get(iname, 0) + raw_qty
-            for iname, info in Overlay.collect_intermediates(node).items():
-                if iname not in all_crafted:
-                    all_crafted[iname] = {"qty": 0.0, "output_qty": info["output_qty"]}
-                all_crafted[iname]["qty"] += info["qty"]
+            for iname, info in job_crafted.items():
+                entry = all_crafted.setdefault(
+                    iname,
+                    {"qty": 0.0, "output_qty": info["output_qty"], "raw_names": set()},
+                )
+                entry["qty"] += info["qty"]
+                entry["raw_names"].update(info["raw_names"])
 
-        checked = get_queue_checked(self._TOTALS_QID)
         header = tree.insert(
             "", "end", text=f"◆  All Jobs  ({len(jobs)})", open=True, tags=("root",)
         )
         self._bd_iid_info[header] = {"type": "root"}
+        self._insert_totals_sections(
+            tree, header, self._TOTALS_QID, all_crafted, all_raw
+        )
 
-        if all_crafted:
+        if len(jobs) > 1:
+            per_hdr = tree.insert(
+                "", "end", text="── Per Recipe ──", open=False, tags=("section",)
+            )
+            self._bd_iid_info[per_hdr] = {"type": "root"}
+            for qid, rname, qty, job_crafted, job_raw in per_job:
+                job_root = tree.insert(
+                    per_hdr,
+                    "end",
+                    text=f"◆  {rname}  ×{qty:g}",
+                    open=False,
+                    tags=("root",),
+                )
+                self._bd_iid_info[job_root] = {"type": "root"}
+                self._insert_totals_sections(tree, job_root, qid, job_crafted, job_raw)
+
+    def _insert_totals_sections(self, tree, parent_iid, queue_id, crafted, raw):
+        """Crafted section lists only the most basic crafted items — recipes
+        built entirely from raw materials — with assembly recipes collapsed
+        past (see Overlay.collect_basic_crafted). Each entry has a dropdown
+        to the raw materials/locations it's built from."""
+        checked = get_queue_checked(queue_id)
+
+        if crafted:
             craft_hdr = tree.insert(
-                header, "end", text="── Crafted ──", open=True, tags=("section",)
+                parent_iid, "end", text="── Crafted ──", open=True, tags=("section",)
             )
             self._bd_iid_info[craft_hdr] = {"type": "root"}
-            for iname, info in sorted(all_crafted.items(), key=lambda x: x[0].lower()):
+            for iname, info in sorted(crafted.items(), key=lambda x: x[0].lower()):
                 qty = info["qty"]
                 oq = info["output_qty"]
                 crafts = math.ceil(qty / oq)
@@ -1518,21 +1554,46 @@ class CraftQueuePanel:
                     "end",
                     text=f"{qty:g}×  {iname}{suffix}",
                     image=img,
-                    open=True,
+                    open=False,
                     tags=("done" if is_done else "ingredient",),
                 )
                 self._bd_iid_info[iid] = {
                     "type": "ingredient",
-                    "queue_id": self._TOTALS_QID,
+                    "queue_id": queue_id,
                     "path_key": path_key,
                     "checked": is_done,
                 }
+                for raw_name in sorted(info.get("raw_names", [])):
+                    raw_iid = tree.insert(
+                        iid, "end", text=f"    {raw_name}", tags=("location",)
+                    )
+                    self._bd_iid_info[raw_iid] = {"type": "location"}
+                    for (
+                        sector,
+                        system_name,
+                        planet,
+                        status,
+                    ) in get_deposits_for_ingredient(raw_name):
+                        parts = [p for p in (sector, system_name, planet) if p]
+                        loc_text = " / ".join(parts)
+                        if status and status not in ("Unknown", ""):
+                            loc_text += f"  [{status}]"
+                        loc_iid = tree.insert(
+                            raw_iid,
+                            "end",
+                            text=f"      📍 {loc_text}",
+                            tags=("location",),
+                        )
+                        self._bd_iid_info[loc_iid] = {"type": "location"}
 
+        self._insert_raw_totals(tree, parent_iid, queue_id, raw, checked)
+
+    def _insert_raw_totals(self, tree, parent_iid, queue_id, raw, checked):
         raw_hdr = tree.insert(
-            header, "end", text="── Raw Materials ──", open=True, tags=("section",)
+            parent_iid, "end", text="── Raw Materials ──", open=True, tags=("section",)
         )
         self._bd_iid_info[raw_hdr] = {"type": "root"}
-        for iname, qty in sorted(all_raw.items(), key=lambda x: x[0].lower()):
+        for iname, qty in sorted(raw.items(), key=lambda x: x[0].lower()):
             path_key = f"__total__|{iname}"
             is_done = path_key in checked
             img = self._overlay.img_checked if is_done else self._overlay.img_unchecked
@@ -1546,7 +1607,7 @@ class CraftQueuePanel:
             )
             self._bd_iid_info[iid] = {
                 "type": "ingredient",
-                "queue_id": self._TOTALS_QID,
+                "queue_id": queue_id,
                 "path_key": path_key,
                 "checked": is_done,
             }
@@ -1725,6 +1786,7 @@ class Overlay(tk.Tk):
         self._recipe_iid_info: dict = {}
         self._bd_toggled: bool = False
         self._queue_panel: "CraftQueuePanel | None" = None
+        self._queue_panel_was_visible = False
         self.tray_icon: object = None
         self.img_unchecked: tk.PhotoImage
         self.img_checked: tk.PhotoImage
@@ -2810,11 +2872,16 @@ class Overlay(tk.Tk):
         if self.state() == "withdrawn":
             self.deiconify()
             self.attributes("-topmost", True)
-            if self._queue_panel and not self._queue_panel.pinned:
+            if (
+                self._queue_panel
+                and not self._queue_panel.pinned
+                and self._queue_panel_was_visible
+            ):
                 self._queue_panel.show()
         else:
             self.withdraw()
             if self._queue_panel and not self._queue_panel.pinned:
+                self._queue_panel_was_visible = self._queue_panel.is_visible()
                 self._queue_panel.hide()
 
     def toggle_queue_panel(self):
@@ -3654,9 +3721,11 @@ class Overlay(tk.Tk):
             return
         for rid, rname, qty, output_name, output_qty in rows:
             label = f"×{qty:g}  →  {rname}"
+            oq_suffix = f"  ×{output_qty:g}" if output_qty != 1 else ""
             if output_name != rname:
-                oq_suffix = f"  ×{output_qty:g}" if output_qty != 1 else ""
                 label += f"  [{output_name}{oq_suffix}]"
+            elif oq_suffix:
+                label += oq_suffix
             iid = tree.insert(
                 header, "end", text=label, open=False, tags=("ingredient",)
             )
@@ -3678,22 +3747,30 @@ class Overlay(tk.Tk):
         return totals
 
     @staticmethod
-    def collect_intermediates(node, totals=None):
-        """Aggregate sub-recipe quantities across the whole tree (excluding root)."""
+    def collect_basic_crafted(node, totals=None):
+        """Aggregate only the most basic crafted items across the whole tree —
+        recipes built entirely from raw materials, with no recipe of their
+        own among their ingredients. Assembly recipes (built from other
+        recipes) are transparently collapsed past so only the base crafting
+        tier surfaces, instead of every intermediate level."""
         if totals is None:
             totals = {}
         for child in node["children"]:
-            if child["is_recipe"]:
+            if not child["is_recipe"]:
+                continue
+            if any(c["is_recipe"] for c in child["children"]):
+                Overlay.collect_basic_crafted(child, totals)
+            else:
                 entry = totals.setdefault(
                     child["name"],
                     {
                         "qty": 0.0,
                         "output_qty": child.get("output_qty", 1.0),
                         "alts": child.get("alts", []),
+                        "raw_names": sorted({c["name"] for c in child["children"]}),
                     },
                 )
                 entry["qty"] += child["qty"]
-            Overlay.collect_intermediates(child, totals)
         return totals
 
     def _refresh_totals_view(
@@ -3743,15 +3820,13 @@ class Overlay(tk.Tk):
                 )
                 self._recipe_iid_info[loc_iid] = {"type": "location"}
 
-        intermediates = self.collect_intermediates(node)
-        if intermediates:
+        basic = self.collect_basic_crafted(node)
+        if basic:
             craft_hdr = tree.insert(
                 header, "end", text="── Crafted ──", open=True, tags=("section",)
             )
             self._recipe_iid_info[craft_hdr] = {"type": "root"}
-            for res_name, info in sorted(
-                intermediates.items(), key=lambda x: x[0].lower()
-            ):
+            for res_name, info in sorted(basic.items(), key=lambda x: x[0].lower()):
                 qty = info["qty"]
                 oq = info["output_qty"]
                 crafts = math.ceil(qty / oq)
@@ -3764,7 +3839,7 @@ class Overlay(tk.Tk):
                     "end",
                     text=f"{qty:g}×  {res_name}{suffix}",
                     image=img,
-                    open=True,
+                    open=False,
                     tags=("done" if is_done else "ingredient",),
                 )
                 self._recipe_iid_info[iid] = {
@@ -3773,6 +3848,22 @@ class Overlay(tk.Tk):
                     "path_key": path_key,
                     "checked": is_done,
                 }
+                for raw_name in info["raw_names"]:
+                    raw_iid = tree.insert(
+                        iid, "end", text=f"    {raw_name}", tags=("location",)
+                    )
+                    self._recipe_iid_info[raw_iid] = {"type": "location"}
+                    for sector, system_name, planet, status in get_deposits_for_ingredient(
+                        raw_name
+                    ):
+                        parts = [p for p in (sector, system_name, planet) if p]
+                        loc_text = " / ".join(parts)
+                        if status and status not in ("Unknown", ""):
+                            loc_text += f"  [{status}]"
+                        loc_iid = tree.insert(
+                            raw_iid, "end", text=f"      📍 {loc_text}", tags=("location",)
+                        )
+                        self._recipe_iid_info[loc_iid] = {"type": "location"}
                 for alt in info.get("alts", []):
                     alt_iid = tree.insert(
                         iid,
