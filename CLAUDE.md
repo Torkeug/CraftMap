@@ -105,7 +105,32 @@ Each part has `id`, `name`, `group`, `kind`, `mount`, `dims`, `stats`, `shapes`,
 - `kind: 'build'` — hull frames, cockpits, wings, engines (77 parts). Each provides **1 internal module slot**.
 - `kind: 'module'` — cargo, FTL, shields, batteries, etc. (59 parts).
   - `mount: 'inside'` — placed into a hull slot via the slot sprite system.
-  - `mount: 'surface'` — placed on the grid surface like hull pieces.
+  - `mount: 'outside'` — placed on the grid surface like hull pieces.
+
+**`dims` axis convention is NOT uniform, and NOT even consistent within a single
+part kind — this has caused real bugs.** `partDims()` in `main.js` converts each
+part's raw `dims` array into Three.js [X, Y, Z] extents:
+- Hull frames (the general fallback case): raw `dims` is `[L, W, H]` in a "game"
+  convention where W and H are NOT already in Three.js order — `partDims` swaps
+  them (`[l, w, h] → [l, h, w]`) to get Three.js X/Y/Z. Confirmed correct for
+  hull frames.
+- Cockpits: raw `dims` is destructured as `[l, h, w]` (already Three.js-ish
+  order) and reordered for the 90°Y rotation `fitGeom` applies to cockpit meshes.
+- Outside-mount modules: `partDims` uses raw `dims` **directly, no swap** — but
+  the *stored data itself* was authored inconsistently. Most outside modules'
+  `dims` are literal `[X, Y, Z]` matching the inspector's "WxHxD" text (applying
+  the hull swap to these was a real, confirmed bug — it silently reinterpreted
+  Large Solar Panel's `[5, 1, 4]` as a tall 5×4×1 box instead of the intended
+  flat 5×1×4 one). But at least two items (Simple Hose Pump, Hi-Pi Laser) were
+  entered using the hull `[L, W, H]` convention instead, and needed their stored
+  `dims` corrected in place (`[3,14,4]`→`[3,4,14]`, `[4,2,3]`→`[4,3,2]`) rather
+  than a code-level swap, since a uniform swap rule broke the majority that were
+  already correct. **Determined per-item which convention was used by comparing
+  the part's actual extracted mesh bounding-box aspect ratio (post `rotateX(
+  -90°)`, i.e. threeX=hmdX, threeY=hmdZ, threeZ=hmdY) against both possible
+  readings of `dims` and picking the closer match** — this is the reliable way
+  to check, not assumption. If a new outside module looks wrong-shaped in its
+  bounding box, check this before suspecting the mesh extraction itself.
 
 ### Module slot system (`main.js`)
 
