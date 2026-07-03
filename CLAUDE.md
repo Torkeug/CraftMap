@@ -181,7 +181,7 @@ See [`tools/hmd_format_notes.md`](tools/hmd_format_notes.md) for full format doc
 
 **All tools must be saved to `tools/`** — never write a tool only in memory or in a code block. Save every script immediately after writing it, even if incomplete.
 
-**Do not use .har files as reference — use only the in-game extracted files from pak_out.**
+**Use only the in-game extracted files from `pak_out` as reference for reverse-engineering.**
 
 #### Current state
 
