@@ -116,21 +116,20 @@ part's raw `dims` array into Three.js [X, Y, Z] extents:
   hull frames.
 - Cockpits: raw `dims` is destructured as `[l, h, w]` (already Three.js-ish
   order) and reordered for the 90°Y rotation `fitGeom` applies to cockpit meshes.
-- Outside-mount modules: `partDims` uses raw `dims` **directly, no swap** — but
-  the *stored data itself* was authored inconsistently. Most outside modules'
-  `dims` are literal `[X, Y, Z]` matching the inspector's "WxHxD" text (applying
-  the hull swap to these was a real, confirmed bug — it silently reinterpreted
-  Large Solar Panel's `[5, 1, 4]` as a tall 5×4×1 box instead of the intended
-  flat 5×1×4 one). But at least two items (Simple Hose Pump, Hi-Pi Laser) were
-  entered using the hull `[L, W, H]` convention instead, and needed their stored
-  `dims` corrected in place (`[3,14,4]`→`[3,4,14]`, `[4,2,3]`→`[4,3,2]`) rather
-  than a code-level swap, since a uniform swap rule broke the majority that were
-  already correct. **Determined per-item which convention was used by comparing
-  the part's actual extracted mesh bounding-box aspect ratio (post `rotateX(
-  -90°)`, i.e. threeX=hmdX, threeY=hmdZ, threeZ=hmdY) against both possible
-  readings of `dims` and picking the closer match** — this is the reliable way
-  to check, not assumption. If a new outside module looks wrong-shaped in its
-  bounding box, check this before suspecting the mesh extraction itself.
+- Outside-mount modules: `partDims` uses raw `dims` **directly, no swap**, and
+  `dims` is derived as `[hmdX, hmdZ, hmdY]` from the mesh's own bounding box
+  (matching the `rotateX(-90°)` mapping threeX=hmdX, threeY=hmdZ, threeZ=hmdY).
+  For compound multi-part tool/module meshes, that bounding box must come from
+  applying each part's *real* per-model transform (position/rotation/scale read
+  from the HMD file's own `models[]` hierarchy — see finding 8 in
+  `tools/hmd_format_notes.md`), not from raw, untransformed geometry. An earlier
+  attempt to fix per-item dims by manually guessing an axis swap or eyeballed
+  scale (e.g. for Simple Hose Pump, Hi-Pi Laser) was **fully superseded** once
+  the real per-model transforms were read correctly — those items' current
+  `dims` values come from the mesh's own stored transform data, not a guess.
+  If a new outside module looks wrong-shaped or wrong-sized, first re-derive
+  its `dims` from `tools/hmd_convert_v2.py`'s output bbox (which applies real
+  transforms) rather than guessing an axis swap or scale factor by eye.
 
 ### Module slot system (`main.js`)
 
@@ -188,8 +187,10 @@ See [`tools/hmd_format_notes.md`](tools/hmd_format_notes.md) for full format doc
 
 - Production HMD format (magic `HMD\x06`, disc=0x02): fully decoded. Three ring-buffer variants documented in `hmd_format_notes.md`.
 - **129 of 130 shapes from pak_out.** All 11 hull sizes complete. Only 8x3x1_N remains HAR-sourced (anomalous format — raw index data at byte 0, no parseable HMD header).
-- `shipbuilder/ship_editor_data.json` — complete with all hull sizes and all material variants. No edits needed there.
+- `shipbuilder/ship_editor_data.json` — complete with all hull sizes and all material variants. No edits needed there for hull data; outside-module `dims` are being recalibrated as real per-part transform data is confirmed (see below).
 - `shipbuilder/ship_shapes/` — missing H.webp, I.webp, L.webp, M.webp shape thumbnails.
+- **All 14 Tools-category mesh files (covering 15 of the 18 outside-mount parts; `Scanner` is shared by 2 parts) convert with real per-part transforms** via `hmd_convert_v2.py`/`hmd_parse_heaps.py` (see finding 8 in `hmd_format_notes.md`) — this is the current, correct pipeline for any compound tool/module mesh. The 3 Decoratives_Parts items (Spot_Light_01, Spot_Light_Barrel, Aerator_Spot_01) still use the older `hmd_to_bin.py` path because the new reader doesn't yet handle an animation/skin section present in those files — not reported broken, but worth porting if a Decoratives item ever needs fixing.
+- **Known open issue:** `RadarMK1`'s source file mapping (`Tools/Radar.fbx`) is an unconfirmed guess (no file matches its actual part id in the pak) — confirmed likely wrong now that real transforms are applied (produces an elongated 0.33×0.4×1.7 shape, contradicting the known in-game ~1×1×1 size). Left at `dims: [1,1,1]` pending a real source file; do not "fix" this by guessing a scale/rotation, the underlying mesh is probably just the wrong asset. `Simple_Mining_Laser` and `Scanner` have the same unconfirmed-mapping caveat but produced plausible-looking dims, so they're lower priority.
 
 #### Conversion tools
 
