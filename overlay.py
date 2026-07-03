@@ -974,6 +974,20 @@ def _autohide_yscroll(sb):
     return _cmd
 
 
+def _toplevel_focused(win) -> bool:
+    """True if the OS input focus is currently on a widget that belongs to win."""
+    try:
+        focused = win.focus_get()
+    except Exception:
+        return False
+    if focused is None:
+        return False
+    try:
+        return focused.winfo_toplevel() is win
+    except Exception:
+        return False
+
+
 class CraftQueuePanel:
     """
     Pinnable always-on-top floating window for the persistent crafting queue.
@@ -998,6 +1012,7 @@ class CraftQueuePanel:
         self._drag_x = self._drag_y = 0
         self._resize_x = self._resize_y = 0
         self._resize_w = self._resize_h = 0
+        self._cursor_hidden = False
         self.on_hide_cb = lambda: None
 
         cfg = load_config()
@@ -1740,6 +1755,23 @@ class CraftQueuePanel:
         else:
             self.show()
 
+    def has_os_focus(self):
+        return _toplevel_focused(self._win)
+
+    def set_cursor_hidden(self, hidden: bool):
+        """Hide/show the cursor over this window. Driven by the overlay's
+        combined focus state (see Overlay._sync_all_cursor_visibility) so
+        that focusing either the main window or the queue panel counts as
+        the whole app being focused, rather than tracked independently."""
+        if self._win.state() == "withdrawn":
+            return
+        if hidden and not self._cursor_hidden:
+            self._cursor_hidden = True
+            self._win.config(cursor="none")
+        elif not hidden and self._cursor_hidden:
+            self._cursor_hidden = False
+            self._win.config(cursor="")
+
     @property
     def pinned(self):
         return self._pinned
@@ -1793,6 +1825,7 @@ class Overlay(tk.Tk):
         self._recipe_breakdown_mode: str = "breakdown"
         self._usedin_recipe_id: "int | None" = None
         self._usedin_navigated_away: bool = False
+        self._cursor_hidden = False
 
         _x, _y = cfg.get("window_x", 60), cfg.get("window_y", 60)
         _w, _h = cfg.get("window_w"), cfg.get("window_h")
@@ -1816,6 +1849,48 @@ class Overlay(tk.Tk):
         self._enable_composited()
 
         self.bind("<Escape>", lambda _e: self.withdraw())
+
+        self.bind_all("<FocusIn>", self._on_focus_event, add="+")
+        self.bind_all("<FocusOut>", self._on_focus_event, add="+")
+        self.after(200, self._sync_all_cursor_visibility)
+
+    # ----- cursor visibility (hidden while unfocused, to match the game's
+    # own hidden cursor and avoid a mismatched arrow appearing over it) -----
+    def _on_focus_event(self, _event=None):
+        self.after(50, self._sync_all_cursor_visibility)
+
+    def _sync_all_cursor_visibility(self):
+        # Focusing either the main window or the queue panel counts as the
+        # whole app being focused, so both reveal/hide their cursor together.
+        focused = _toplevel_focused(self)
+        if not focused and self._queue_panel is not None:
+            focused = self._queue_panel.has_os_focus()
+
+        if self.state() != "withdrawn":
+            if focused and self._cursor_hidden:
+                self._cursor_hidden = False
+                self.config(cursor="")
+            elif not focused and not self._cursor_hidden:
+                self._cursor_hidden = True
+                self.config(cursor="none")
+
+        if self._queue_panel is not None:
+            self._queue_panel.set_cursor_hidden(not focused)
+
+    def _grab_os_focus(self):
+        """Pull real OS input focus onto the overlay so it's ready to use and
+        its cursor is revealed immediately, without needing a blind click."""
+        self.focus_force()
+        if sys.platform == "win32":
+            try:
+                user32 = ctypes.windll.user32
+                user32.GetAncestor.restype = ctypes.c_void_p
+                user32.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_int]
+                user32.SetForegroundWindow.argtypes = [ctypes.c_void_p]
+                hwnd = user32.GetAncestor(self.winfo_id(), 2)  # GA_ROOT
+                user32.SetForegroundWindow(hwnd)
+            except Exception:
+                pass
 
     # ----- drag handling (since title bar is removed) -----
     def _build_drag_bar(self):
@@ -2872,6 +2947,8 @@ class Overlay(tk.Tk):
         if self.state() == "withdrawn":
             self.deiconify()
             self.attributes("-topmost", True)
+            self._grab_os_focus()
+            self._sync_all_cursor_visibility()
             if (
                 self._queue_panel
                 and not self._queue_panel.pinned
