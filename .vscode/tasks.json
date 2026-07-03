@@ -14,16 +14,6 @@
                 "panel": "shared"
             },
             "problemMatcher": []
-        },
-        {
-            "label": "Start Ship Builder",
-            "type": "shell",
-            "command": "${workspaceFolder}\\shipbuilder\\start.bat",
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
-            },
-            "problemMatcher": []
         }
     ]
 }

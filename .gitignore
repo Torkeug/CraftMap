@@ -21,15 +21,3 @@ config.json
 __pycache__/
 *.pyc
 *.pyo
-
-# Large extracted game data (not committed)
-pak_out/
-pak_out_full/
-
-# Cloned upstream reference source (Heaps/hxbit/hide/hashlink/hlbc) - not our code
-tools/heaps_ref/
-tools/full_extract_log.txt
-
-# Archive files
-*.har
-*.7z
