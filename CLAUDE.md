@@ -195,16 +195,22 @@ See [`tools/hmd_format_notes.md`](tools/hmd_format_notes.md) for full format doc
 
 | Tool                          | Purpose                                                            |
 |-------------------------------|--------------------------------------------------------------------|
-| `tools/hmd_parse_prod.py`     | Parser for production HMD v0x06: `parse_prod_hmd()`, `parse_material_groups()`, `_parse_attr_blocks()`, `read_verts_f16()`, `read_indices_le_u16()` |
-| `tools/hmd_to_bin.py`         | CLI converter: auto-detects format and writes .bin; entry point for all conversions |
+| `tools/hmd_parse_prod.py`     | Legacy heuristic parser for production HMD v0x06 (hull frames/engines): `parse_prod_hmd()`, `parse_material_groups()`, `_parse_attr_blocks()`, `read_verts_f16()`, `read_indices_le_u16()` — does NOT read the real model-node hierarchy (see finding 8 in `hmd_format_notes.md`); superseded by `hmd_parse_heaps.py` for anything with per-part transforms |
+| `tools/hmd_parse_heaps.py`    | **Authoritative** HMD reader — faithful port of Heaps' own `hxd/fmt/hmd/Reader.hx`. Reads the real `models[]` scene-node hierarchy (each node's position/quaternion rotation/scale, separate from raw geometry) plus `stride_bytes()` (real per-vertex byte stride — the raw file `stride` byte is a component count, not a byte size) |
+| `tools/hmd_to_bin.py`         | CLI converter: auto-detects format and writes .bin; entry point for hull/engine conversions |
+| `tools/hmd_convert_v2.py`     | Transform-aware converter for compound multi-part meshes (tools/modules): applies each real model node's scale→rotate→translate before merging, using the file's own material index per group |
 | `tools/batch_convert_hulls.py`| Batch converter: converts all Main_Structures sizes from pak_out, updates `_manifest.json` |
+| `tools/batch_convert_modules.py` | Batch converter for outside-mount modules using the old heuristic path (superseded by v2 below, kept for its `MODULE_SOURCES` mapping) |
+| `tools/batch_convert_modules_v2.py` | Batch converter for outside-mount modules using `hmd_convert_v2.py`; falls back to `hmd_to_bin.py` for the 3 Decoratives_Parts files whose animation/skin section isn't ported yet |
 | `tools/hmd_parse.py`          | Legacy parser for TestPE (disc=0x00) files — no longer primary focus |
-| `tools/pak_extract.py`        | Extracts both disc=0x00 and disc=0x02 files from res.pak using cumulative offset calculation for disc=0x02 |
+| `tools/pak_extract.py`        | Extracts both disc=0x00 and disc=0x02 files from res.pak using cumulative offset calculation for disc=0x02; `--all` extracts every file in the pak (used to build a full local mirror for reverse-engineering) |
 
 **Running the converter:**
 ```
-python tools/hmd_to_bin.py <input.hmd> <output.bin>
-python tools/batch_convert_hulls.py   # converts all sizes, updates _manifest.json
+python tools/hmd_to_bin.py <input.hmd> <output.bin>            # hull frames / engines
+python tools/hmd_convert_v2.py <input.hmd> <output.bin>        # compound tools/modules (real transforms)
+python tools/batch_convert_hulls.py         # converts all sizes, updates _manifest.json
+python tools/batch_convert_modules_v2.py    # converts all outside modules, updates _manifest.json
 ```
 
 #### Remaining work
