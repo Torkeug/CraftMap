@@ -1034,7 +1034,6 @@ class CraftQueuePanel:
 
         self._build_ui()
         self._refresh_job_list()
-        self._enable_composited()
         self._win.bind("<Escape>", lambda _e: self.dismiss())
 
     def _build_ui(self):
@@ -1257,12 +1256,6 @@ class CraftQueuePanel:
         grip.bind("<ButtonPress-1>", self._start_resize)
         grip.bind("<B1-Motion>", self._do_resize)
         grip.bind("<ButtonRelease-1>", self._end_resize)
-
-    def _enable_composited(self):
-        if sys.platform != "win32":
-            return
-        self._win.update_idletasks()
-        win32util.enable_composited(self._win.winfo_id())
 
     def _start_resize(self, event):
         self._resize_x = event.x_root
@@ -1876,7 +1869,6 @@ class Overlay(tk.Tk):
         self._apply_view_visibility()
         self.refresh()
         self.auto_size()
-        self._enable_composited()
 
         self.bind("<Escape>", lambda _e: self.hide())
 
@@ -2213,12 +2205,6 @@ class Overlay(tk.Tk):
         grip.bind("<ButtonPress-1>", self._start_resize)
         grip.bind("<B1-Motion>", self._do_resize)
         grip.bind("<ButtonRelease-1>", self._end_resize)
-
-    def _enable_composited(self):
-        if sys.platform != "win32":
-            return
-        self.update_idletasks()
-        win32util.enable_composited(self.winfo_id())
 
     def _start_resize(self, event):
         self._resize_x = event.x_root

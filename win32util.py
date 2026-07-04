@@ -18,7 +18,6 @@ GA_ROOT = 2
 GWL_EXSTYLE = -20
 WS_EX_TRANSPARENT = 0x00000020
 WS_EX_LAYERED = 0x00080000
-WS_EX_COMPOSITED = 0x02000000
 # SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE|SWP_FRAMECHANGED
 _SWP_FLAGS = 0x0001 | 0x0002 | 0x0004 | 0x0010 | 0x0020
 # RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN|RDW_UPDATENOW
@@ -115,12 +114,6 @@ def set_click_through(hwnd, enabled: bool):
         # focus back, immediately undoing the very unfocus transition that
         # triggered it.
         _user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, _SWP_FLAGS)
-
-
-def enable_composited(hwnd):
-    """Set WS_EX_COMPOSITED to reduce resize/redraw flicker."""
-    style = _user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-    _user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style | WS_EX_COMPOSITED)
 
 
 def redraw_window(hwnd):
