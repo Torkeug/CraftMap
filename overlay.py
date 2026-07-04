@@ -804,6 +804,11 @@ class _LiveDropdown:
         box.bind("<Return>", self._on_return, add=True)
         box.bind("<Configure>", self._reposition_arrow, add=True)
         box.bind("<Destroy>", lambda _: self._arrow_btn.destroy(), add=True)
+        # The popup is a separate Toplevel positioned in screen coordinates,
+        # so dragging the window it belongs to doesn't move it along -
+        # <Configure> on the toplevel fires for every move/resize, so use it
+        # to keep the popup glued to the combobox while open.
+        box.winfo_toplevel().bind("<Configure>", self._on_toplevel_configure, add=True)
         _remove_combobox_arrow(box)
         self._arrow_btn = tk.Button(
             box.master,
@@ -923,6 +928,10 @@ class _LiveDropdown:
         w = max(b.winfo_width(), min(longest + 24, 520), 120)
         h = min(8, self._lb.size()) * 20 + 4  # type: ignore[union-attr]
         self._win.geometry(f"{w}x{h}+{x}+{y}")  # type: ignore[union-attr]
+
+    def _on_toplevel_configure(self, _event=None):
+        if self._win is not None and self._win.winfo_exists() and self._win.winfo_ismapped():
+            self._reposition()
 
     def _on_lb_click(self, event):
         idx = self._lb.nearest(event.y)  # type: ignore[union-attr]
@@ -1106,9 +1115,10 @@ class CraftQueuePanel:
         )
         self._btn_queue.pack(side="right", padx=(0, 2))
 
-        drag.bind("<ButtonPress-1>", self._start_move)
-        drag.bind("<B1-Motion>", self._do_move)
-        drag.bind("<ButtonRelease-1>", lambda _e: self._save_pos())
+        for widget in (drag, self._title_label):
+            widget.bind("<ButtonPress-1>", self._start_move)
+            widget.bind("<B1-Motion>", self._do_move)
+            widget.bind("<ButtonRelease-1>", lambda _e: self._save_pos())
 
         # Bottom items must be packed before the expanding PanedWindow so the
         # pack manager reserves their space before distributing the remainder.
