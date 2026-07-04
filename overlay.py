@@ -15,6 +15,7 @@ Run:
 import json
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkinter import font as tkfont
 import sqlite3
 import os
 import sys
@@ -911,7 +912,15 @@ class _LiveDropdown:
         b = self._box
         b.update_idletasks()
         x, y = b.winfo_rootx(), b.winfo_rooty() + b.winfo_height()
-        w = max(b.winfo_width(), 120)
+        # Size to the longest visible entry, not just the combobox's own
+        # width - otherwise long/similar names (e.g. "...Output I" vs
+        # "...Output II") get truncated identically and can't be told apart.
+        lb_font = tkfont.Font(font=self._lb.cget("font"))  # type: ignore[union-attr]
+        longest = max(
+            (lb_font.measure(v) for v in self._lb.get(0, "end")),  # type: ignore[union-attr]
+            default=0,
+        )
+        w = max(b.winfo_width(), min(longest + 24, 520), 120)
         h = min(8, self._lb.size()) * 20 + 4  # type: ignore[union-attr]
         self._win.geometry(f"{w}x{h}+{x}+{y}")  # type: ignore[union-attr]
 
@@ -1113,7 +1122,10 @@ class CraftQueuePanel:
         self._add_recipe_cb = ttk.Combobox(
             add_row, textvariable=self._add_recipe_var, width=20
         )
-        self._add_recipe_cb.pack(side="left", padx=(0, 4))
+        # Expand into whatever width the (resizable) queue panel has, rather
+        # than a fixed 20-char box - long/similar recipe names (e.g.
+        # "...Output I" vs "...Output II") are indistinguishable when cut off.
+        self._add_recipe_cb.pack(side="left", padx=(0, 4), fill="x", expand=True)
         self._add_recipe_cb.configure(values=[n for _, n in get_all_recipes()])
         self._add_recipe_cb.bind(
             "<FocusIn>",
