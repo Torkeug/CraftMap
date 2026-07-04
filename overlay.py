@@ -16,25 +16,33 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
-import ctypes
 import os
 import sys
 import math
 import threading
 import datetime
 
-if (
-    sys.platform == "win32"
-    and not getattr(sys, "frozen", False)
-    and not sys.executable.lower().endswith("pythonw.exe")
-):
-    import shutil
-    import subprocess
+import win32util
 
-    _pythonw = shutil.which("pythonw.exe") or shutil.which("pythonw")
-    if _pythonw:
-        subprocess.Popen([_pythonw, os.path.abspath(__file__)] + sys.argv[1:])
-        sys.exit(0)
+
+def _relaunch_via_pythonw_if_needed():
+    """Suppress the console window by re-exec'ing under pythonw.exe.
+    Guarded behind __main__ (not run at import time) so importing this
+    module - e.g. from a test suite - doesn't spawn a second process and
+    exit."""
+    if (
+        sys.platform == "win32"
+        and not getattr(sys, "frozen", False)
+        and not sys.executable.lower().endswith("pythonw.exe")
+    ):
+        import shutil
+        import subprocess
+
+        pythonw = shutil.which("pythonw.exe") or shutil.which("pythonw")
+        if pythonw:
+            subprocess.Popen([pythonw, os.path.abspath(__file__)] + sys.argv[1:])
+            sys.exit(0)
+
 
 try:
     import keyboard  # global hotkey support
@@ -974,101 +982,10 @@ def _autohide_yscroll(sb):
     return _cmd
 
 
-def _root_hwnd(widget):
-    """winfo_id() on Windows returns an inner content-window handle, not the
-    real top-level HWND Windows uses for Z-order/hit-testing/activation -
-    walk up to the actual root."""
-    hwnd = widget.winfo_id()
-    user32 = ctypes.windll.user32
-    user32.GetAncestor.restype = ctypes.c_void_p
-    user32.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_int]
-    root = user32.GetAncestor(hwnd, 2)  # GA_ROOT
-    return root or hwnd
-
-
-def _hwnd_is_foreground(hwnd) -> bool:
-    """True if hwnd currently owns the OS foreground/keyboard focus.
-
-    Deliberately a raw Win32 check rather than Tk's own focus_get(): Tk's
-    focus tracking is Tcl-internal bookkeeping that gets updated the moment
-    something calls focus()/focus_force(), regardless of whether the OS
-    actually granted that window the focus. For an overrideredirect popup
-    whose focus is grabbed programmatically (see _force_foreground_window)
-    instead of by a normal user click, that bookkeeping can drift from
-    reality and never correct itself, silently leaving click-through stuck.
-    Comparing against GetForegroundWindow() has no such gap - it always
-    reflects what Windows itself considers focused."""
-    if not hwnd:
-        return False
-    try:
-        user32 = ctypes.windll.user32
-        user32.GetForegroundWindow.restype = ctypes.c_void_p
-        return user32.GetForegroundWindow() == hwnd
-    except Exception:
-        return False
-
-
-def _force_foreground_window(hwnd) -> bool:
-    """Robustly make hwnd the OS foreground window, and report whether it
-    actually worked.
-
-    A plain SetForegroundWindow() call is routinely ignored by Windows'
-    foreground-lock heuristic unless it originates from the thread that
-    currently owns the input focus - which is exactly what happens here,
-    since the global hotkey fires on a background hook thread and is
-    marshalled onto the Tk loop via `after`, several steps removed from the
-    original keypress. Temporarily attaching our input queue to the current
-    foreground thread's is the standard workaround, and is why this - not
-    Tk's focus_force() - is the real mechanism behind "F1 to focus"."""
-    user32 = ctypes.windll.user32
-    kernel32 = ctypes.windll.kernel32
-    user32.GetForegroundWindow.restype = ctypes.c_void_p
-    user32.GetWindowThreadProcessId.restype = ctypes.c_uint32
-    user32.GetWindowThreadProcessId.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-    user32.AttachThreadInput.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_int]
-    user32.SetForegroundWindow.argtypes = [ctypes.c_void_p]
-    user32.BringWindowToTop.argtypes = [ctypes.c_void_p]
-
-    fg_hwnd = user32.GetForegroundWindow()
-    fg_thread = user32.GetWindowThreadProcessId(fg_hwnd, None) if fg_hwnd else 0
-    cur_thread = kernel32.GetCurrentThreadId()
-
-    attached = False
-    try:
-        if fg_thread and fg_thread != cur_thread:
-            attached = bool(user32.AttachThreadInput(fg_thread, cur_thread, True))
-        user32.BringWindowToTop(hwnd)
-        user32.SetForegroundWindow(hwnd)
-    except Exception:
-        pass
-    finally:
-        if attached:
-            user32.AttachThreadInput(fg_thread, cur_thread, False)
-
-    return _hwnd_is_foreground(hwnd)
-
-
-def _set_click_through(hwnd, enabled: bool):
-    """Toggle WS_EX_TRANSPARENT on a window so mouse input (including which
-    cursor the OS displays) passes through to whatever is beneath it instead
-    of being intercepted by this window."""
-    gwl_exstyle = -20
-    ws_ex_transparent = 0x00000020
-    ws_ex_layered = 0x00080000
-    style = ctypes.windll.user32.GetWindowLongW(hwnd, gwl_exstyle)
-    if enabled:
-        new_style = style | ws_ex_transparent | ws_ex_layered
-    else:
-        new_style = style & ~ws_ex_transparent
-    if new_style != style:
-        ctypes.windll.user32.SetWindowLongW(hwnd, gwl_exstyle, new_style)
-        # Nudge Windows to re-evaluate hit-testing for the new extended
-        # style immediately, instead of waiting on some unrelated message.
-        # NOSIZE|NOMOVE|NOZORDER|NOACTIVATE|FRAMECHANGED - NOACTIVATE is
-        # essential here: without it this call itself steals focus back,
-        # immediately undoing the very unfocus transition that triggered it.
-        swp_flags = 0x0001 | 0x0002 | 0x0004 | 0x0010 | 0x0020
-        ctypes.windll.user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, swp_flags)
+_root_hwnd = win32util.root_hwnd
+_hwnd_is_foreground = win32util.hwnd_is_foreground
+_force_foreground_window = win32util.force_foreground_window
+_set_click_through = win32util.set_click_through
 
 
 class CraftQueuePanel:
@@ -1344,9 +1261,7 @@ class CraftQueuePanel:
         if sys.platform != "win32":
             return
         self._win.update_idletasks()
-        hwnd = self._win.winfo_id()
-        style = ctypes.windll.user32.GetWindowLongW(hwnd, -20)
-        ctypes.windll.user32.SetWindowLongW(hwnd, -20, style | 0x02000000)
+        win32util.enable_composited(self._win.winfo_id())
 
     def _start_resize(self, event):
         self._resize_x = event.x_root
@@ -1362,7 +1277,7 @@ class CraftQueuePanel:
         self._win.geometry(f"{new_w}x{new_h}+{self._win.winfo_x()}+{self._win.winfo_y()}")
         self._win.update_idletasks()
         if sys.platform == "win32":
-            ctypes.windll.user32.RedrawWindow(self._win.winfo_id(), None, None, 0x0185)
+            win32util.redraw_window(self._win.winfo_id())
 
     def _end_resize(self, _):
         self._save_pos()
@@ -2270,9 +2185,7 @@ class Overlay(tk.Tk):
         if sys.platform != "win32":
             return
         self.update_idletasks()
-        hwnd = self.winfo_id()
-        style = ctypes.windll.user32.GetWindowLongW(hwnd, -20)
-        ctypes.windll.user32.SetWindowLongW(hwnd, -20, style | 0x02000000)
+        win32util.enable_composited(self.winfo_id())
 
     def _start_resize(self, event):
         self._resize_x = event.x_root
@@ -2291,8 +2204,7 @@ class Overlay(tk.Tk):
         self.geometry(f"{new_w}x{new_h}+{self.winfo_x()}+{self.winfo_y()}")
         self.update_idletasks()
         if sys.platform == "win32":
-            # RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN|RDW_UPDATENOW
-            ctypes.windll.user32.RedrawWindow(self.winfo_id(), None, None, 0x0185)
+            win32util.redraw_window(self.winfo_id())
 
     def _end_resize(self, _event):
         self._user_sized = True
@@ -4099,9 +4011,7 @@ def _make_tray_image():
 
 
 def main():
-    # Prevent multiple instances via a Windows named mutex.
-    ctypes.windll.kernel32.CreateMutexW(None, True, "CraftMapOverlay_SingleInstance")
-    if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+    if not win32util.check_single_instance():
         _r = tk.Tk()
         _r.withdraw()
         messagebox.showwarning("CraftMap", "CraftMap is already running.")
@@ -4145,4 +4055,5 @@ def main():
 
 
 if __name__ == "__main__":
+    _relaunch_via_pythonw_if_needed()
     main()

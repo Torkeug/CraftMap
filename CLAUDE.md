@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**CraftMap** is a Windows desktop overlay that tracks in-game resource deposits and crafting recipes. It sits always-on-top over a game window (borderless mode) and can be toggled visible/hidden via a global hotkey (default: F1). It is a single-file Python/tkinter application.
+**CraftMap** is a Windows desktop overlay that tracks in-game resource deposits and crafting recipes. It sits always-on-top over a game window (borderless mode) and can be toggled visible/hidden via a global hotkey (default: F1). It is a Python/tkinter application: almost everything lives in `overlay.py`, with Win32 interop split out into `win32util.py` (see Architecture).
 
 ## Commands
 
@@ -25,9 +25,16 @@ build.bat
 ```
 This runs PyInstaller (`--onefile --noconsole`) and copies the output to `CraftMap.exe` in the project root.
 
+**Run tests:**
+```
+pip install pytest
+python -m pytest tests/
+```
+Tests cover `resolve_recipe_tree` only (the one part of the app with real logic to regress: ceil-based craft counts, cycle detection, alternate-recipe selection). There is no UI test coverage — `win32util.py`'s hwnd/focus behavior is Windows-interop that's verified manually (see the "F1 to focus" note below), not unit tested.
+
 ## Architecture
 
-Everything lives in [overlay.py](overlay.py) (~2480 lines). There are no modules, packages, or tests.
+Almost everything lives in [overlay.py](overlay.py) (~4000 lines): config, both databases, recipe resolution, and the entire tkinter UI. [win32util.py](win32util.py) holds all Win32/ctypes interop (hwnd resolution, OS focus detection/grabbing, click-through, composited-window flicker reduction, single-instance mutex) — it used to be scattered across overlay.py as ad-hoc `ctypes.windll` calls at each call site, which is how a real bug shipped: two call sites assumed different hwnd semantics (an inner content window vs. the actual top-level ancestor) for what was supposed to be the same window. `tests/` has pytest coverage for recipe resolution only.
 
 **Layers (top to bottom in the file):**
 
@@ -59,7 +66,8 @@ Everything lives in [overlay.py](overlay.py) (~2480 lines). There are no modules
    - `HOTKEY_AVAILABLE` flag gates all `keyboard` library usage; the app degrades gracefully if the library is absent.
    - The global hotkey fires on a daemon thread and posts back to the main thread via `self.after(0, self.toggle)`.
    - `quit_app` calls `os._exit(0)` after `destroy()` to forcibly terminate the daemon hotkey thread.
-   - `_enable_composited` sets the WS_EX_COMPOSITED style flag on Windows to reduce resize flicker.
+   - `_enable_composited` calls `win32util.enable_composited` to set the WS_EX_COMPOSITED style flag on Windows, reducing resize flicker.
+   - **Focus / click-through**: the overlay is click-through (`WS_EX_TRANSPARENT`) whenever it doesn't have real OS focus, so clicks and the cursor pass to the game underneath; `_poll_input_passthrough` re-checks this every 250ms via `win32util.hwnd_is_foreground` (a raw `GetForegroundWindow()` comparison — deliberately not Tk's own `focus_get()`, which is Tcl-internal bookkeeping that can drift from what Windows actually considers focused). F1 regains focus via `_grab_os_focus`, which calls `win32util.force_foreground_window` — a plain `SetForegroundWindow()` is silently ignored by Windows' foreground-lock heuristic when called (as here) from a background hotkey thread marshalled onto the Tk loop, so it uses the `AttachThreadInput` workaround.
 
    **Recipe panel** (`_build_recipe_panel`):
    - Selector row: recipe combobox + New button + quantity multiplier + Breakdown/Totals/Used In mode toggle.
