@@ -988,6 +988,41 @@ def _toplevel_focused(win) -> bool:
         return False
 
 
+def _root_hwnd(widget):
+    """winfo_id() on Windows returns an inner content-window handle, not the
+    real top-level HWND Windows uses for Z-order/hit-testing - walk up to the
+    actual root (same trick _grab_os_focus uses for SetForegroundWindow)."""
+    hwnd = widget.winfo_id()
+    user32 = ctypes.windll.user32
+    user32.GetAncestor.restype = ctypes.c_void_p
+    user32.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    root = user32.GetAncestor(hwnd, 2)  # GA_ROOT
+    return root or hwnd
+
+
+def _set_click_through(hwnd, enabled: bool):
+    """Toggle WS_EX_TRANSPARENT on a window so mouse input (including which
+    cursor the OS displays) passes through to whatever is beneath it instead
+    of being intercepted by this window."""
+    gwl_exstyle = -20
+    ws_ex_transparent = 0x00000020
+    ws_ex_layered = 0x00080000
+    style = ctypes.windll.user32.GetWindowLongW(hwnd, gwl_exstyle)
+    if enabled:
+        new_style = style | ws_ex_transparent | ws_ex_layered
+    else:
+        new_style = style & ~ws_ex_transparent
+    if new_style != style:
+        ctypes.windll.user32.SetWindowLongW(hwnd, gwl_exstyle, new_style)
+        # Nudge Windows to re-evaluate hit-testing for the new extended
+        # style immediately, instead of waiting on some unrelated message.
+        # NOSIZE|NOMOVE|NOZORDER|NOACTIVATE|FRAMECHANGED - NOACTIVATE is
+        # essential here: without it this call itself steals focus back,
+        # immediately undoing the very unfocus transition that triggered it.
+        swp_flags = 0x0001 | 0x0002 | 0x0004 | 0x0010 | 0x0020
+        ctypes.windll.user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, swp_flags)
+
+
 class CraftQueuePanel:
     """
     Pinnable always-on-top floating window for the persistent crafting queue.
@@ -1012,7 +1047,7 @@ class CraftQueuePanel:
         self._drag_x = self._drag_y = 0
         self._resize_x = self._resize_y = 0
         self._resize_w = self._resize_h = 0
-        self._cursor_hidden = False
+        self._passthrough = False
         self.on_hide_cb = lambda: None
 
         cfg = load_config()
@@ -1758,19 +1793,20 @@ class CraftQueuePanel:
     def has_os_focus(self):
         return _toplevel_focused(self._win)
 
-    def set_cursor_hidden(self, hidden: bool):
-        """Hide/show the cursor over this window. Driven by the overlay's
-        combined focus state (see Overlay._sync_all_cursor_visibility) so
+    def set_input_passthrough(self, enabled: bool):
+        """Make this window click-through (or not). Driven by the overlay's
+        combined focus state (see Overlay._sync_all_input_passthrough) so
         that focusing either the main window or the queue panel counts as
-        the whole app being focused, rather than tracked independently."""
+        the whole app being focused, rather than tracked independently.
+        While click-through, mouse clicks and the OS cursor pass straight
+        to whatever is beneath (the game) instead of this window."""
         if self._win.state() == "withdrawn":
             return
-        if hidden and not self._cursor_hidden:
-            self._cursor_hidden = True
-            self._win.config(cursor="none")
-        elif not hidden and self._cursor_hidden:
-            self._cursor_hidden = False
-            self._win.config(cursor="")
+        if sys.platform != "win32":
+            return
+        if enabled != self._passthrough:
+            self._passthrough = enabled
+            _set_click_through(_root_hwnd(self._win), enabled)
 
     @property
     def pinned(self):
@@ -1825,7 +1861,7 @@ class Overlay(tk.Tk):
         self._recipe_breakdown_mode: str = "breakdown"
         self._usedin_recipe_id: "int | None" = None
         self._usedin_navigated_away: bool = False
-        self._cursor_hidden = False
+        self._passthrough = False
 
         _x, _y = cfg.get("window_x", 60), cfg.get("window_y", 60)
         _w, _h = cfg.get("window_w"), cfg.get("window_h")
@@ -1852,34 +1888,36 @@ class Overlay(tk.Tk):
 
         self.bind_all("<FocusIn>", self._on_focus_event, add="+")
         self.bind_all("<FocusOut>", self._on_focus_event, add="+")
-        self.after(200, self._sync_all_cursor_visibility)
+        self.after(200, self._sync_all_input_passthrough)
 
-    # ----- cursor visibility (hidden while unfocused, to match the game's
-    # own hidden cursor and avoid a mismatched arrow appearing over it) -----
+    # ----- input passthrough (click-through while unfocused, so mouse
+    # clicks and the OS cursor go straight to the game underneath instead of
+    # being intercepted by the overlay - the overlay only ever intercepts
+    # them while it actually has OS focus) -----
     def _on_focus_event(self, _event=None):
-        self.after(50, self._sync_all_cursor_visibility)
+        self.after(50, self._sync_all_input_passthrough)
 
-    def _sync_all_cursor_visibility(self):
+    def _sync_all_input_passthrough(self):
         # Focusing either the main window or the queue panel counts as the
-        # whole app being focused, so both reveal/hide their cursor together.
+        # whole app being focused, so both toggle passthrough together.
         focused = _toplevel_focused(self)
         if not focused and self._queue_panel is not None:
             focused = self._queue_panel.has_os_focus()
 
-        if self.state() != "withdrawn":
-            if focused and self._cursor_hidden:
-                self._cursor_hidden = False
-                self.config(cursor="")
-            elif not focused and not self._cursor_hidden:
-                self._cursor_hidden = True
-                self.config(cursor="none")
+        if self.state() != "withdrawn" and sys.platform == "win32":
+            if self._passthrough != (not focused):
+                self._passthrough = not focused
+                _set_click_through(_root_hwnd(self), self._passthrough)
+                self._update_title_bar()
 
         if self._queue_panel is not None:
-            self._queue_panel.set_cursor_hidden(not focused)
+            self._queue_panel.set_input_passthrough(not focused)
 
     def _grab_os_focus(self):
-        """Pull real OS input focus onto the overlay so it's ready to use and
-        its cursor is revealed immediately, without needing a blind click."""
+        """Pull real OS input focus onto the overlay so it's ready to use
+        (this also disables click-through on the next passthrough sync),
+        without needing a blind click - clicking no longer focuses the
+        overlay once it's click-through, so F1 is the way back in."""
         self.focus_force()
         if sys.platform == "win32":
             try:
@@ -1986,7 +2024,8 @@ class Overlay(tk.Tk):
             widget.bind("<ButtonRelease-1>", lambda _e: self._save_position())
 
     def _title_text(self):
-        return f"⠿  CraftMap Resources   ({self.toggle_key} to hide)"
+        action = "focus" if self._passthrough else "hide"
+        return f"⠿  CraftMap Resources   ({self.toggle_key} to {action})"
 
     def _update_title_bar(self):
         self._title_label.config(text=self._title_text())
@@ -2948,18 +2987,30 @@ class Overlay(tk.Tk):
             self.deiconify()
             self.attributes("-topmost", True)
             self._grab_os_focus()
-            self._sync_all_cursor_visibility()
+            self._sync_all_input_passthrough()
             if (
                 self._queue_panel
                 and not self._queue_panel.pinned
                 and self._queue_panel_was_visible
             ):
                 self._queue_panel.show()
-        else:
-            self.withdraw()
-            if self._queue_panel and not self._queue_panel.pinned:
-                self._queue_panel_was_visible = self._queue_panel.is_visible()
-                self._queue_panel.hide()
+            return
+
+        focused = _toplevel_focused(self)
+        if not focused and self._queue_panel is not None:
+            focused = self._queue_panel.has_os_focus()
+
+        if not focused:
+            # Visible but click-through (unfocused) - the hotkey's job here
+            # is to hand focus back, not hide a window the user can still see.
+            self._grab_os_focus()
+            self._sync_all_input_passthrough()
+            return
+
+        self.withdraw()
+        if self._queue_panel and not self._queue_panel.pinned:
+            self._queue_panel_was_visible = self._queue_panel.is_visible()
+            self._queue_panel.hide()
 
     def toggle_queue_panel(self):
         if self._queue_panel is None:
