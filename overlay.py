@@ -974,30 +974,78 @@ def _autohide_yscroll(sb):
     return _cmd
 
 
-def _toplevel_focused(win) -> bool:
-    """True if the OS input focus is currently on a widget that belongs to win."""
-    try:
-        focused = win.focus_get()
-    except Exception:
-        return False
-    if focused is None:
-        return False
-    try:
-        return focused.winfo_toplevel() is win
-    except Exception:
-        return False
-
-
 def _root_hwnd(widget):
     """winfo_id() on Windows returns an inner content-window handle, not the
-    real top-level HWND Windows uses for Z-order/hit-testing - walk up to the
-    actual root (same trick _grab_os_focus uses for SetForegroundWindow)."""
+    real top-level HWND Windows uses for Z-order/hit-testing/activation -
+    walk up to the actual root."""
     hwnd = widget.winfo_id()
     user32 = ctypes.windll.user32
     user32.GetAncestor.restype = ctypes.c_void_p
     user32.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_int]
     root = user32.GetAncestor(hwnd, 2)  # GA_ROOT
     return root or hwnd
+
+
+def _hwnd_is_foreground(hwnd) -> bool:
+    """True if hwnd currently owns the OS foreground/keyboard focus.
+
+    Deliberately a raw Win32 check rather than Tk's own focus_get(): Tk's
+    focus tracking is Tcl-internal bookkeeping that gets updated the moment
+    something calls focus()/focus_force(), regardless of whether the OS
+    actually granted that window the focus. For an overrideredirect popup
+    whose focus is grabbed programmatically (see _force_foreground_window)
+    instead of by a normal user click, that bookkeeping can drift from
+    reality and never correct itself, silently leaving click-through stuck.
+    Comparing against GetForegroundWindow() has no such gap - it always
+    reflects what Windows itself considers focused."""
+    if not hwnd:
+        return False
+    try:
+        user32 = ctypes.windll.user32
+        user32.GetForegroundWindow.restype = ctypes.c_void_p
+        return user32.GetForegroundWindow() == hwnd
+    except Exception:
+        return False
+
+
+def _force_foreground_window(hwnd) -> bool:
+    """Robustly make hwnd the OS foreground window, and report whether it
+    actually worked.
+
+    A plain SetForegroundWindow() call is routinely ignored by Windows'
+    foreground-lock heuristic unless it originates from the thread that
+    currently owns the input focus - which is exactly what happens here,
+    since the global hotkey fires on a background hook thread and is
+    marshalled onto the Tk loop via `after`, several steps removed from the
+    original keypress. Temporarily attaching our input queue to the current
+    foreground thread's is the standard workaround, and is why this - not
+    Tk's focus_force() - is the real mechanism behind "F1 to focus"."""
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+    user32.GetForegroundWindow.restype = ctypes.c_void_p
+    user32.GetWindowThreadProcessId.restype = ctypes.c_uint32
+    user32.GetWindowThreadProcessId.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    user32.AttachThreadInput.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_int]
+    user32.SetForegroundWindow.argtypes = [ctypes.c_void_p]
+    user32.BringWindowToTop.argtypes = [ctypes.c_void_p]
+
+    fg_hwnd = user32.GetForegroundWindow()
+    fg_thread = user32.GetWindowThreadProcessId(fg_hwnd, None) if fg_hwnd else 0
+    cur_thread = kernel32.GetCurrentThreadId()
+
+    attached = False
+    try:
+        if fg_thread and fg_thread != cur_thread:
+            attached = bool(user32.AttachThreadInput(fg_thread, cur_thread, True))
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+    except Exception:
+        pass
+    finally:
+        if attached:
+            user32.AttachThreadInput(fg_thread, cur_thread, False)
+
+    return _hwnd_is_foreground(hwnd)
 
 
 def _set_click_through(hwnd, enabled: bool):
@@ -1791,7 +1839,7 @@ class CraftQueuePanel:
             self.show()
 
     def has_os_focus(self):
-        return _toplevel_focused(self._win)
+        return _hwnd_is_foreground(_root_hwnd(self._win))
 
     def set_input_passthrough(self, enabled: bool):
         """Make this window click-through (or not). Driven by the overlay's
@@ -1888,7 +1936,7 @@ class Overlay(tk.Tk):
 
         self.bind_all("<FocusIn>", self._on_focus_event, add="+")
         self.bind_all("<FocusOut>", self._on_focus_event, add="+")
-        self.after(200, self._sync_all_input_passthrough)
+        self.after(200, self._poll_input_passthrough)
 
     # ----- input passthrough (click-through while unfocused, so mouse
     # clicks and the OS cursor go straight to the game underneath instead of
@@ -1897,10 +1945,28 @@ class Overlay(tk.Tk):
     def _on_focus_event(self, _event=None):
         self.after(50, self._sync_all_input_passthrough)
 
+    def _poll_input_passthrough(self):
+        """Periodically re-check focus state, since this is an
+        overrideredirect popup: Windows doesn't reliably deliver
+        WM_KILLFOCUS/<FocusOut> to it when a foreign window steals the OS
+        foreground (e.g. clicking the game behind it), so the <FocusOut>
+        binding above alone can miss the transition and leave the overlay
+        stuck intercepting clicks. Polling is the only reliable fallback.
+        Wrapped in try/except so one bad tick (e.g. a widget mid-teardown)
+        can't silently kill this self-rescheduling loop forever."""
+        try:
+            self._sync_all_input_passthrough()
+        except Exception:
+            pass
+        self.after(250, self._poll_input_passthrough)
+
     def _sync_all_input_passthrough(self):
         # Focusing either the main window or the queue panel counts as the
         # whole app being focused, so both toggle passthrough together.
-        focused = _toplevel_focused(self)
+        # Checked at the Win32 level (see _hwnd_is_foreground), not via Tk's
+        # own focus_get() bookkeeping, which can drift from what Windows
+        # actually considers focused.
+        focused = _hwnd_is_foreground(_root_hwnd(self))
         if not focused and self._queue_panel is not None:
             focused = self._queue_panel.has_os_focus()
 
@@ -1917,18 +1983,21 @@ class Overlay(tk.Tk):
         """Pull real OS input focus onto the overlay so it's ready to use
         (this also disables click-through on the next passthrough sync),
         without needing a blind click - clicking no longer focuses the
-        overlay once it's click-through, so F1 is the way back in."""
-        self.focus_force()
+        overlay once it's click-through, so F1 is the way back in.
+
+        The Win32 foreground grab (_force_foreground_window) is what
+        actually matters here, not Tk's focus_force(): the hotkey fires on
+        a background thread and reaches here via `after`, well removed from
+        the original keypress, which is exactly the case Windows' foreground
+        -lock heuristic is designed to block. A plain SetForegroundWindow()
+        call in that situation is routinely a no-op - it doesn't error, it
+        just silently does nothing, leaving the window looking focused to
+        our own bookkeeping while Windows itself never moved focus at all.
+        focus_force() is still called after, so Tk hands keyboard input to
+        the right widget once the window is genuinely foreground."""
         if sys.platform == "win32":
-            try:
-                user32 = ctypes.windll.user32
-                user32.GetAncestor.restype = ctypes.c_void_p
-                user32.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_int]
-                user32.SetForegroundWindow.argtypes = [ctypes.c_void_p]
-                hwnd = user32.GetAncestor(self.winfo_id(), 2)  # GA_ROOT
-                user32.SetForegroundWindow(hwnd)
-            except Exception:
-                pass
+            _force_foreground_window(_root_hwnd(self))
+        self.focus_force()
 
     # ----- drag handling (since title bar is removed) -----
     def _build_drag_bar(self):
@@ -2996,7 +3065,7 @@ class Overlay(tk.Tk):
                 self._queue_panel.show()
             return
 
-        focused = _toplevel_focused(self)
+        focused = _hwnd_is_foreground(_root_hwnd(self))
         if not focused and self._queue_panel is not None:
             focused = self._queue_panel.has_os_focus()
 
