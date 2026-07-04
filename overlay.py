@@ -1042,13 +1042,14 @@ class CraftQueuePanel:
         drag = tk.Frame(self._win, bg="#161b22", height=28)
         drag.pack(fill="x")
 
-        tk.Label(
+        self._title_label = tk.Label(
             drag,
-            text="⠿  Craft Queue",
+            text=self._title_text(),
             bg="#161b22",
             fg="#c9d1d9",
             font=("Segoe UI", 9),
-        ).pack(side="left", padx=8)
+        )
+        self._title_label.pack(side="left", padx=8)
 
         tk.Button(
             drag,
@@ -1756,6 +1757,14 @@ class CraftQueuePanel:
     def has_os_focus(self):
         return _hwnd_is_foreground(_root_hwnd(self._win))
 
+    def grab_os_focus(self):
+        """Pull real OS input focus onto this window - see
+        Overlay._grab_os_focus for why the raw Win32 foreground grab (not
+        Tk's focus_force()) is what actually matters here."""
+        if sys.platform == "win32":
+            _force_foreground_window(_root_hwnd(self._win))
+        self._win.focus_force()
+
     def set_input_passthrough(self, enabled: bool):
         """Make this window click-through (or not). Driven by the overlay's
         combined focus state (see Overlay._sync_all_input_passthrough) so
@@ -1770,6 +1779,15 @@ class CraftQueuePanel:
         if enabled != self._passthrough:
             self._passthrough = enabled
             _set_click_through(_root_hwnd(self._win), enabled)
+            self.update_title_bar()
+
+    def _title_text(self):
+        if self._passthrough:
+            return f"⠿  Craft Queue   ({self._overlay.toggle_key} to focus)"
+        return "⠿  Craft Queue   (Esc to hide)"
+
+    def update_title_bar(self):
+        self._title_label.config(text=self._title_text())
 
     @property
     def pinned(self):
@@ -1847,7 +1865,7 @@ class Overlay(tk.Tk):
         self.auto_size()
         self._enable_composited()
 
-        self.bind("<Escape>", lambda _e: self.withdraw())
+        self.bind("<Escape>", lambda _e: self.hide())
 
         self.bind_all("<FocusIn>", self._on_focus_event, add="+")
         self.bind_all("<FocusOut>", self._on_focus_event, add="+")
@@ -2132,6 +2150,8 @@ class Overlay(tk.Tk):
             self._hotkey_handle = keyboard.add_hotkey(new_key, self._on_hotkey)
         self.toggle_key = new_key
         self._update_title_bar()
+        if self._queue_panel is not None:
+            self._queue_panel.update_title_bar()
         cfg = load_config()
         cfg["toggle_key"] = new_key
         save_config(cfg)
@@ -2965,6 +2985,20 @@ class Overlay(tk.Tk):
 
     def toggle(self):
         if self.state() == "withdrawn":
+            if (
+                self._queue_panel
+                and self._queue_panel.pinned
+                and self._queue_panel.is_visible()
+                and not self._queue_panel.has_os_focus()
+            ):
+                # The pinned queue panel is still up on its own with the
+                # main window hidden - the first F1 press should hand it
+                # focus, not also unhide the main overlay. A second press
+                # (queue now focused, main still hidden) falls through below.
+                self._queue_panel.grab_os_focus()
+                self._sync_all_input_passthrough()
+                return
+
             self.deiconify()
             self.attributes("-topmost", True)
             self._grab_os_focus()
@@ -2988,6 +3022,9 @@ class Overlay(tk.Tk):
             self._sync_all_input_passthrough()
             return
 
+        self.hide()
+
+    def hide(self):
         self.withdraw()
         if self._queue_panel and not self._queue_panel.pinned:
             self._queue_panel_was_visible = self._queue_panel.is_visible()
