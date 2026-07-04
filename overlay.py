@@ -1035,7 +1035,7 @@ class CraftQueuePanel:
         self._build_ui()
         self._refresh_job_list()
         self._enable_composited()
-        self._win.bind("<Escape>", lambda _e: self.hide())
+        self._win.bind("<Escape>", lambda _e: self.dismiss())
 
     def _build_ui(self):
         # --- drag bar ---
@@ -1288,6 +1288,7 @@ class CraftQueuePanel:
     def _toggle_pin(self):
         self._pinned = not self._pinned
         self._pin_btn.config(fg="#f0883e" if self._pinned else "#6e7681")
+        self.update_title_bar()
         cfg: dict = load_config()
         cfg["queue_pinned"] = self._pinned
         save_config(cfg)
@@ -1745,6 +1746,16 @@ class CraftQueuePanel:
         self._win.withdraw()
         self.on_hide_cb()
 
+    def dismiss(self):
+        """Hide this window the way an ambient dismiss gesture should -
+        this window's own Escape binding and Overlay.hide() (when it takes
+        the unpinned queue down with it) both call this, so "pin means stay
+        visible" is enforced in exactly one place. The X button and
+        explicit show/hide toggles still call hide()/show() directly, since
+        those are deliberate actions that should override the pin."""
+        if not self._pinned:
+            self.hide()
+
     def is_visible(self):
         return self._win.state() != "withdrawn"
 
@@ -1784,7 +1795,9 @@ class CraftQueuePanel:
     def _title_text(self):
         if self._passthrough:
             return f"⠿  Craft Queue   ({self._overlay.toggle_key} to focus)"
-        return "⠿  Craft Queue   (Esc to hide)"
+        if self._pinned:
+            return "⠿  Craft Queue"
+        return f"⠿  Craft Queue   ({self._overlay.toggle_key} to hide)"
 
     def update_title_bar(self):
         self._title_label.config(text=self._title_text())
@@ -3026,9 +3039,9 @@ class Overlay(tk.Tk):
 
     def hide(self):
         self.withdraw()
-        if self._queue_panel and not self._queue_panel.pinned:
+        if self._queue_panel:
             self._queue_panel_was_visible = self._queue_panel.is_visible()
-            self._queue_panel.hide()
+            self._queue_panel.dismiss()
 
     def toggle_queue_panel(self):
         if self._queue_panel is None:
