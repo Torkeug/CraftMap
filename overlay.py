@@ -797,6 +797,16 @@ class _LiveDropdown:
         self._lb: tk.Listbox | None = None
         self._padding_applied = False
 
+        self._readonly = "readonly" in str(box.cget("state"))
+        if self._readonly:
+            # Fixed-choice picker (e.g. Status): there's no text to
+            # position a cursor in or select, so any click just toggles
+            # the popup, same as clicking the arrow button.
+            box.bind("<ButtonPress-1>", self._on_readonly_press)
+        else:
+            box.bind("<ButtonPress-1>", self._on_box_press)
+            box.bind("<Double-Button-1>", self._on_box_double)
+            box.bind("<Triple-Button-1>", self._on_box_triple)
         box.bind("<KeyRelease>", self._on_key, add=True)
         box.bind("<FocusOut>", lambda _e: box.after(150, self._maybe_hide), add=True)
         box.bind("<Escape>", lambda _e: self.hide(), add=True)
@@ -842,6 +852,55 @@ class _LiveDropdown:
             self._padding_applied = True
             ttk.Style(b).configure(b.cget("style"), padding=[0, 0, btn_w, 0])
 
+    def _on_readonly_press(self, _event):
+        self._on_arrow_click()
+        return "break"
+
+    def _on_box_press(self, event):
+        # ttk's own <ButtonPress-1> class binding posts the native dropdown
+        # list when it thinks the click landed on the (visually removed)
+        # arrow element - on Windows this hit-test is theme-driven and can
+        # misfire a pixel or two off from where the arrow overlay button
+        # actually is (e.g. right at the bottom edge of the field), popping
+        # the ugly native list instead of ours. Replicate plain entry-click
+        # behavior ourselves and swallow the event so that class binding
+        # (and its native post) never runs; opening our popup stays the
+        # overlay arrow button's job (see _on_arrow_click).
+        box = self._box
+        box.focus_set()
+        try:
+            box.icursor(box.index(f"@{event.x}"))
+            box.selection_clear()
+        except tk.TclError:
+            pass
+        return "break"
+
+    def _on_box_double(self, event):
+        # Word-select on double-click, replicated for the same reason as
+        # _on_box_press: it must live on the widget-level bindtag so it
+        # pre-empts (and its "break" doesn't get skipped by) the plain
+        # <ButtonPress-1> override above.
+        box = self._box
+        box.focus_set()
+        text = box.get()
+        idx = box.index(f"@{event.x}")
+        start = idx
+        while start > 0 and text[start - 1] not in " \t":
+            start -= 1
+        end = idx
+        while end < len(text) and text[end] not in " \t":
+            end += 1
+        box.icursor(end)
+        box.selection_range(start, end)
+        return "break"
+
+    def _on_box_triple(self, _event):
+        box = self._box
+        box.focus_set()
+        box.selection_range(0, "end")
+        box.icursor("end")
+        return "break"
+
     def _on_arrow_click(self):
         if self._win and self._win.winfo_exists() and self._win.winfo_ismapped():
             self.hide()
@@ -859,9 +918,14 @@ class _LiveDropdown:
         self._box.after(60, self._refresh)
 
     def _refresh(self):
-        typed = self._box.get()
         vals = list(self._box["values"])
-        shown = [v for v in vals if typed.lower() in v.lower()] if typed else vals
+        if "readonly" in str(self._box.cget("state")):
+            # Fixed-choice picker (e.g. Status): always offer every option
+            # rather than filtering by the already-selected value.
+            shown = vals
+        else:
+            typed = self._box.get()
+            shown = [v for v in vals if typed.lower() in v.lower()] if typed else vals
         if shown:
             self._show(shown)
         else:
@@ -901,12 +965,14 @@ class _LiveDropdown:
         self._lb.pack(side="left", fill="both", expand=True)
         vsb.config(command=self._lb.yview)
         lb = self._lb
+
         def _yscroll(first, last):
             if float(first) <= 0.0 and float(last) >= 1.0:
                 vsb.pack_forget()
             else:
                 vsb.pack(side="right", fill="y", before=lb)
             vsb.set(first, last)
+
         lb.configure(yscrollcommand=_yscroll)
         self._lb.bind("<ButtonRelease-1>", self._on_lb_click)
         self._lb.bind("<Return>", lambda _e: self._lb_pick())
@@ -930,7 +996,11 @@ class _LiveDropdown:
         self._win.geometry(f"{w}x{h}+{x}+{y}")  # type: ignore[union-attr]
 
     def _on_toplevel_configure(self, _event=None):
-        if self._win is not None and self._win.winfo_exists() and self._win.winfo_ismapped():
+        if (
+            self._win is not None
+            and self._win.winfo_exists()
+            and self._win.winfo_ismapped()
+        ):
             self._reposition()
 
     def _on_lb_click(self, event):
@@ -991,12 +1061,14 @@ class _LiveDropdown:
 
 def _autohide_yscroll(sb):
     """yscrollcommand callback that hides the scrollbar when all content is visible."""
+
     def _cmd(first, last):
         if float(first) <= 0.0 and float(last) >= 1.0:
             sb.grid_remove()
         else:
             sb.grid()
         sb.set(first, last)
+
     return _cmd
 
 
@@ -1186,9 +1258,14 @@ class CraftQueuePanel:
 
         # --- PanedWindow: job list (top pane) + breakdown tree (bottom pane) ---
         self._pw = tk.PanedWindow(
-            self._win, orient=tk.VERTICAL,
-            bg="#21262d", sashwidth=5, sashrelief="flat",
-            sashpad=0, handlesize=0, bd=0,
+            self._win,
+            orient=tk.VERTICAL,
+            bg="#21262d",
+            sashwidth=5,
+            sashrelief="flat",
+            sashpad=0,
+            handlesize=0,
+            bd=0,
         )
         self._pw.pack(fill="both", expand=True, padx=6, pady=(6, 0))
         self._pw.bind("<ButtonRelease-1>", self._save_split)
@@ -1201,12 +1278,18 @@ class CraftQueuePanel:
         job_frame.grid_columnconfigure(0, weight=1)
         self._job_canvas = tk.Canvas(job_frame, bg="#0d1117", highlightthickness=0)
         self._job_canvas.grid(row=0, column=0, sticky="nsew")
-        jvsb = ttk.Scrollbar(job_frame, orient="vertical", style="Thin.Vertical.TScrollbar",
-                              command=self._job_canvas.yview)
+        jvsb = ttk.Scrollbar(
+            job_frame,
+            orient="vertical",
+            style="Thin.Vertical.TScrollbar",
+            command=self._job_canvas.yview,
+        )
         jvsb.grid(row=0, column=1, sticky="ns")
         self._job_canvas.configure(yscrollcommand=_autohide_yscroll(jvsb))
         self._job_inner = tk.Frame(self._job_canvas, bg="#0d1117")
-        _jwin = self._job_canvas.create_window((0, 0), window=self._job_inner, anchor="nw")
+        _jwin = self._job_canvas.create_window(
+            (0, 0), window=self._job_inner, anchor="nw"
+        )
         self._job_inner.bind(
             "<Configure>",
             lambda _e: self._job_canvas.configure(
@@ -1227,8 +1310,12 @@ class CraftQueuePanel:
         bd_frame.grid_columnconfigure(0, weight=1)
         self._bd_tree = ttk.Treeview(bd_frame, show="tree")
         self._bd_tree.grid(row=0, column=0, sticky="nsew")
-        bd_vsb = ttk.Scrollbar(bd_frame, orient="vertical", style="Thin.Vertical.TScrollbar",
-                                command=self._bd_tree.yview)
+        bd_vsb = ttk.Scrollbar(
+            bd_frame,
+            orient="vertical",
+            style="Thin.Vertical.TScrollbar",
+            command=self._bd_tree.yview,
+        )
         bd_vsb.grid(row=0, column=1, sticky="ns")
         self._bd_tree.configure(yscrollcommand=_autohide_yscroll(bd_vsb))
         self._bd_tree.bind("<ButtonRelease-1>", self._on_bd_click)
@@ -1272,8 +1359,14 @@ class CraftQueuePanel:
     def _build_resize_grip(self):
         btm = tk.Frame(self._win, bg="#0d1117")
         btm.pack(side="bottom", fill="x")
-        grip = tk.Label(btm, text="◢", bg="#0d1117", fg="#3b434d",
-                        font=("Segoe UI", 7), cursor="size_nw_se")
+        grip = tk.Label(
+            btm,
+            text="◢",
+            bg="#0d1117",
+            fg="#3b434d",
+            font=("Segoe UI", 7),
+            cursor="size_nw_se",
+        )
         grip.pack(side="right", padx=2, pady=1)
         grip.bind("<ButtonPress-1>", self._start_resize)
         grip.bind("<B1-Motion>", self._do_resize)
@@ -1290,7 +1383,9 @@ class CraftQueuePanel:
         dh = event.y_root - self._resize_y
         new_w = max(320, self._resize_w + dw)
         new_h = max(380, self._resize_h + dh)
-        self._win.geometry(f"{new_w}x{new_h}+{self._win.winfo_x()}+{self._win.winfo_y()}")
+        self._win.geometry(
+            f"{new_w}x{new_h}+{self._win.winfo_x()}+{self._win.winfo_y()}"
+        )
         self._win.update_idletasks()
         if sys.platform == "win32":
             win32util.redraw_window(self._win.winfo_id())
@@ -1653,7 +1748,9 @@ class CraftQueuePanel:
                 )
                 self._bd_iid_info[loc_iid] = {"type": "location"}
 
-    def _insert_node(self, tree, parent_iid, node, queue_id, path_parts, checked, depth=0):
+    def _insert_node(
+        self, tree, parent_iid, node, queue_id, path_parts, checked, depth=0
+    ):
         name = node["name"]
         qty = node["qty"]
         used_recipe = node.get("recipe_name", name)
@@ -2369,11 +2466,23 @@ class Overlay(tk.Tk):
         )
         style.map("Treeview", background=[("selected", "#1f6feb")])
 
-        style.layout("Thin.Vertical.TScrollbar", [  # type: ignore[arg-type]
-            ("Vertical.TScrollbar.trough", {"sticky": "ns", "children": [
-                ("Vertical.TScrollbar.thumb", {"expand": "1", "sticky": "nswe"}),
-            ]}),
-        ])
+        style.layout(
+            "Thin.Vertical.TScrollbar",
+            [  # type: ignore[arg-type]
+                (
+                    "Vertical.TScrollbar.trough",
+                    {
+                        "sticky": "ns",
+                        "children": [
+                            (
+                                "Vertical.TScrollbar.thumb",
+                                {"expand": "1", "sticky": "nswe"},
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        )
         style.configure(
             "Thin.Vertical.TScrollbar",
             background="#30363d",
@@ -2382,7 +2491,8 @@ class Overlay(tk.Tk):
             relief="flat",
             width=6,
         )
-        style.map("Thin.Vertical.TScrollbar",
+        style.map(
+            "Thin.Vertical.TScrollbar",
             background=[("active", "#484f58"), ("pressed", "#58a6ff")],
         )
 
@@ -2393,8 +2503,12 @@ class Overlay(tk.Tk):
         self._tree_frame.grid_columnconfigure(0, weight=1)
         self.tree = ttk.Treeview(self._tree_frame, show="tree")
         self.tree.grid(row=0, column=0, sticky="nsew")
-        vsb = ttk.Scrollbar(self._tree_frame, orient="vertical",
-                             style="Thin.Vertical.TScrollbar", command=self.tree.yview)
+        vsb = ttk.Scrollbar(
+            self._tree_frame,
+            orient="vertical",
+            style="Thin.Vertical.TScrollbar",
+            command=self.tree.yview,
+        )
         vsb.grid(row=0, column=1, sticky="ns")
         self.tree.configure(yscrollcommand=_autohide_yscroll(vsb))
 
@@ -2441,6 +2555,7 @@ class Overlay(tk.Tk):
             state="readonly",
         )
         status_menu.grid(row=1, column=5, sticky="ew", padx=2)
+        _LiveDropdown(status_menu)
 
         for i in range(6):
             grid.columnconfigure(i, weight=1)
@@ -3190,10 +3305,16 @@ class Overlay(tk.Tk):
         self._sel_left = tk.Frame(sel, bg="#0d1117")
         self._sel_left.pack(side="left")
         tk.Label(
-            self._sel_left, text="Recipe:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+            self._sel_left,
+            text="Recipe:",
+            bg="#0d1117",
+            fg="#8b949e",
+            font=("Segoe UI", 8),
         ).pack(side="left", padx=(0, 4))
         self._recipe_var = tk.StringVar()
-        self._recipe_combo = ttk.Combobox(self._sel_left, textvariable=self._recipe_var, width=28)
+        self._recipe_combo = ttk.Combobox(
+            self._sel_left, textvariable=self._recipe_var, width=28
+        )
         self._recipe_combo.pack(side="left", padx=(0, 6))
         self._recipe_combo.bind("<<ComboboxSelected>>", self._on_recipe_combo_select)
         self._recipe_combo.bind("<Return>", self._on_recipe_combo_select)
@@ -3216,9 +3337,9 @@ class Overlay(tk.Tk):
             padx=8,
             font=("Segoe UI", 8),
         ).pack(side="left", padx=(0, 8))
-        tk.Label(self._sel_left, text="×", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 9)).pack(
-            side="left"
-        )
+        tk.Label(
+            self._sel_left, text="×", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 9)
+        ).pack(side="left")
         self._recipe_qty_var = tk.StringVar(value="1")
         qty_entry = tk.Entry(
             self._sel_left,
@@ -3272,31 +3393,42 @@ class Overlay(tk.Tk):
         )
         self._btn_bd_usedin.pack(side="right", padx=(0, 2))
 
-
         # --- PanedWindow: breakdown tree (top) + edit form (bottom) ---
         self._pw_recipe = tk.PanedWindow(
-            self._recipe_frame, orient=tk.VERTICAL,
-            bg="#21262d", sashwidth=5, sashrelief="flat",
-            sashpad=0, handlesize=0, bd=0,
+            self._recipe_frame,
+            orient=tk.VERTICAL,
+            bg="#21262d",
+            sashwidth=5,
+            sashrelief="flat",
+            sashpad=0,
+            handlesize=0,
+            bd=0,
         )
         self._pw_recipe.pack(fill="both", expand=True, pady=(2, 4))
         self._pw_recipe.bind("<ButtonRelease-1>", self._save_recipe_split)
 
         # Top pane: breakdown tree
         self._bd_frame = tk.Frame(self._pw_recipe, bg="#0d1117")
-        self._pw_recipe.add(self._bd_frame, height=self._recipe_split, minsize=40, stretch="always")
+        self._pw_recipe.add(
+            self._bd_frame, height=self._recipe_split, minsize=40, stretch="always"
+        )
         bd_frame = self._bd_frame
         bd_frame.grid_rowconfigure(0, weight=1)
         bd_frame.grid_columnconfigure(0, weight=1)
         self._recipe_breakdown_tree = ttk.Treeview(bd_frame, show="tree")
         self._recipe_breakdown_tree.grid(row=0, column=0, sticky="nsew")
-        bd_vsb = ttk.Scrollbar(bd_frame, orient="vertical",
-                                style="Thin.Vertical.TScrollbar",
-                                command=self._recipe_breakdown_tree.yview)
+        bd_vsb = ttk.Scrollbar(
+            bd_frame,
+            orient="vertical",
+            style="Thin.Vertical.TScrollbar",
+            command=self._recipe_breakdown_tree.yview,
+        )
         bd_vsb.grid(row=0, column=1, sticky="ns")
         self._recipe_breakdown_tree.configure(yscrollcommand=_autohide_yscroll(bd_vsb))
         self._recipe_breakdown_tree.bind("<ButtonRelease-1>", self._on_breakdown_click)
-        self._recipe_breakdown_tree.bind("<Double-Button-1>", self._on_breakdown_double_click)
+        self._recipe_breakdown_tree.bind(
+            "<Double-Button-1>", self._on_breakdown_double_click
+        )
         self._recipe_breakdown_tree.bind("<<TreeviewOpen>>", self._on_bd_toggled)
         self._recipe_breakdown_tree.bind("<<TreeviewClose>>", self._on_bd_toggled)
 
@@ -3366,18 +3498,25 @@ class Overlay(tk.Tk):
         # scrollable ingredient rows
         ing_outer = tk.Frame(form, bg="#0d1117")
         ing_outer.pack(fill="x")
-        self._ing_canvas = tk.Canvas(ing_outer, bg="#0d1117", highlightthickness=0, height=110)
-        ing_vsb = ttk.Scrollbar(ing_outer, orient="vertical",
-                                 style="Thin.Vertical.TScrollbar",
-                                 command=self._ing_canvas.yview)
+        self._ing_canvas = tk.Canvas(
+            ing_outer, bg="#0d1117", highlightthickness=0, height=110
+        )
+        ing_vsb = ttk.Scrollbar(
+            ing_outer,
+            orient="vertical",
+            style="Thin.Vertical.TScrollbar",
+            command=self._ing_canvas.yview,
+        )
         self._ing_inner = tk.Frame(self._ing_canvas, bg="#0d1117")
         self._ing_canvas.pack(side="left", fill="x", expand=True)
+
         def _ing_yscroll(first, last):
             if float(first) <= 0.0 and float(last) >= 1.0:
                 ing_vsb.pack_forget()
             else:
                 ing_vsb.pack(side="right", fill="y", before=self._ing_canvas)
             ing_vsb.set(first, last)
+
         self._ing_canvas.configure(yscrollcommand=_ing_yscroll)
         self._ing_window = self._ing_canvas.create_window(
             (0, 0), window=self._ing_inner, anchor="nw"
@@ -3863,12 +4002,15 @@ class Overlay(tk.Tk):
     def _refresh_usedin_view(self, tree):
         view_id = self._usedin_recipe_id
         item_name = (
-            get_recipe_output_name(view_id)
-            if view_id is not None
-            else None
+            get_recipe_output_name(view_id) if view_id is not None else None
         ) or ""
         if not item_name:
-            tree.insert("", "end", text="Select a recipe above to see where it's used.", tags=("section",))
+            tree.insert(
+                "",
+                "end",
+                text="Select a recipe above to see where it's used.",
+                tags=("section",),
+            )
             return
         rows = get_recipes_using_ingredient(item_name)
         header = tree.insert(
@@ -4020,15 +4162,21 @@ class Overlay(tk.Tk):
                         iid, "end", text=f"    {raw_name}", tags=("location",)
                     )
                     self._recipe_iid_info[raw_iid] = {"type": "location"}
-                    for sector, system_name, planet, status in get_deposits_for_ingredient(
-                        raw_name
-                    ):
+                    for (
+                        sector,
+                        system_name,
+                        planet,
+                        status,
+                    ) in get_deposits_for_ingredient(raw_name):
                         parts = [p for p in (sector, system_name, planet) if p]
                         loc_text = " / ".join(parts)
                         if status and status not in ("Unknown", ""):
                             loc_text += f"  [{status}]"
                         loc_iid = tree.insert(
-                            raw_iid, "end", text=f"      📍 {loc_text}", tags=("location",)
+                            raw_iid,
+                            "end",
+                            text=f"      📍 {loc_text}",
+                            tags=("location",),
                         )
                         self._recipe_iid_info[loc_iid] = {"type": "location"}
                 for alt in info.get("alts", []):
