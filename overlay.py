@@ -1926,6 +1926,42 @@ class CraftQueuePanel:
             self._refresh_breakdown()
 
 
+# Tk keysym -> modifier name used in `keyboard` library hotkey strings
+# (e.g. "ctrl+shift+r"), for the press-to-capture hotkey recorder below.
+_MODIFIER_KEYSYMS = {
+    "Control_L": "ctrl", "Control_R": "ctrl",
+    "Shift_L": "shift", "Shift_R": "shift",
+    "Alt_L": "alt", "Alt_R": "alt",
+    "Super_L": "windows", "Super_R": "windows",
+    "Win_L": "windows", "Win_R": "windows",
+}
+_MODIFIER_ORDER = ["ctrl", "alt", "shift", "windows"]
+
+# Tk keysyms whose `keyboard` library name isn't just the lowercased keysym.
+_KEYSYM_TO_KEY_NAME = {
+    "Return": "enter", "KP_Enter": "enter",
+    "space": "space",
+    "BackSpace": "backspace",
+    "Tab": "tab",
+    "Delete": "delete",
+    "Insert": "insert",
+    "Home": "home",
+    "End": "end",
+    "Prior": "page up",
+    "Next": "page down",
+    "Up": "up", "Down": "down", "Left": "left", "Right": "right",
+    "Caps_Lock": "caps lock",
+    "Scroll_Lock": "scroll lock",
+    "Num_Lock": "num lock",
+    "Print": "print screen",
+    "Pause": "pause",
+}
+
+
+def _keysym_to_key_name(keysym):
+    return _KEYSYM_TO_KEY_NAME.get(keysym, keysym.lower())
+
+
 class Overlay(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -1937,6 +1973,7 @@ class Overlay(tk.Tk):
         self.selected_id = None
         self.type_filter_vars = {}  # res_type -> tk.BooleanVar, rebuilt dynamically
         self._hotkey_handle = None
+        self._hotkey_suppressed = False
         self._drag_x = 0
         self._drag_y = 0
         self._resize_x = 0
@@ -2158,75 +2195,196 @@ class Overlay(tk.Tk):
 
     def _open_hotkey_settings(self):
         win = tk.Toplevel(self)
-        win.title("Hotkey Settings")
         win.configure(bg="#0d1117")
+        win.overrideredirect(True)  # match the app: no native title bar
         win.attributes("-topmost", True)
-        win.resizable(False, False)
+
+        def _bring_to_front():
+            # Two topmost overrideredirect windows (this dialog and the
+            # main overlay) don't have a guaranteed relative order in
+            # Windows' topmost band - the main overlay's own periodic
+            # focus/passthrough bookkeeping can end up re-asserting itself
+            # above this dialog. Force it back after every action that's
+            # been observed to trigger that (open, entering listen mode,
+            # and re-registering the global hotkey via change_hotkey).
+            win.lift()
+            win32util.force_foreground_window(win32util.root_hwnd(win))
+
+        drag_bar = tk.Frame(win, bg="#161b22", height=28)
+        drag_bar.pack(fill="x", side="top")
+
+        title_label = tk.Label(
+            drag_bar,
+            text="Hotkey Settings",
+            bg="#161b22",
+            fg="#c9d1d9",
+            font=("Segoe UI", 9),
+        )
+        title_label.pack(side="left", padx=8)
+
+        def _restore_hotkey():
+            # If listening was in progress (or a rebind attempt failed to
+            # register), the current hotkey may currently be un-registered
+            # - make sure the app doesn't end up with none at all.
+            if HOTKEY_AVAILABLE and self._hotkey_handle is None:
+                self._hotkey_handle = keyboard.add_hotkey(self.toggle_key, self._on_hotkey)
+
+        def _close_dialog():
+            _restore_hotkey()
+            win.destroy()
+
+        tk.Button(
+            drag_bar,
+            text="✕",
+            bg="#161b22",
+            fg="#c9d1d9",
+            bd=0,
+            command=_close_dialog,
+            font=("Segoe UI", 9),
+        ).pack(side="right", padx=4)
+
+        drag = {"x": 0, "y": 0}
+
+        def _start_move(event):
+            drag["x"], drag["y"] = event.x, event.y
+
+        def _do_move(_event):
+            x = win.winfo_pointerx() - drag["x"]
+            y = win.winfo_pointery() - drag["y"]
+            win.geometry(f"+{x}+{y}")
+
+        for widget in (drag_bar, title_label):
+            widget.bind("<ButtonPress-1>", _start_move)
+            widget.bind("<B1-Motion>", _do_move)
+
+        win.bind("<Escape>", lambda _e: _close_dialog())
+
+        body = tk.Frame(win, bg="#0d1117")
+        body.pack(fill="both", expand=True)
 
         tk.Label(
-            win,
-            text="Hide/show key  (e.g. F1, F2, ctrl+shift+r):",
+            body,
+            text="Hide/show key",
             bg="#0d1117",
             fg="#c9d1d9",
             font=("Segoe UI", 9),
         ).pack(padx=16, pady=(14, 4), anchor="w")
 
-        entry = tk.Entry(
-            win,
+        display = tk.Label(
+            body,
+            text=self.toggle_key,
             bg="#161b22",
             fg="#c9d1d9",
-            insertbackground="#c9d1d9",
-            relief="flat",
-            font=("Segoe UI", 9),
-            width=24,
+            font=("Segoe UI", 11, "bold"),
+            anchor="center",
+            padx=8,
+            pady=10,
         )
-        entry.insert(0, self.toggle_key)
-        entry.pack(padx=16, pady=4, fill="x")
-        entry.focus_set()
-        entry.select_range(0, "end")
+        display.pack(padx=16, pady=4, fill="x")
 
-        msg = tk.Label(win, text="", bg="#0d1117", fg="#da3633", font=("Segoe UI", 8))
-        msg.pack(padx=16, pady=(0, 4))
+        msg = tk.Label(body, text="", bg="#0d1117", fg="#da3633", font=("Segoe UI", 8))
+        msg.pack(padx=16, pady=(2, 4), anchor="w")
 
-        def apply():
-            new_key = entry.get().strip()
-            if not new_key:
-                msg.config(text="Key cannot be empty.")
-                return
+        mods: list[str] = []
+
+        def _combo(extra=None):
+            parts = [m for m in _MODIFIER_ORDER if m in mods]
+            if extra:
+                parts.append(extra)
+            return "+".join(parts)
+
+        def _stop_listening():
+            win.unbind("<KeyPress>")
+            win.unbind("<KeyRelease>")
+            rebind_btn.config(text="Rebind", bg="#21262d")
+
+        def _on_key_press(event):
+            mod = _MODIFIER_KEYSYMS.get(event.keysym)
+            if mod:
+                if mod not in mods:
+                    mods.append(mod)
+                display.config(text=_combo() + "+...")
+                _bring_to_front()
+                return "break"
+            new_key = _combo(_keysym_to_key_name(event.keysym))
+            mods.clear()
+            _stop_listening()
             try:
                 self.change_hotkey(new_key)
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 msg.config(text=f"Invalid key: {exc}")
-                return
-            win.destroy()
+                display.config(text=self.toggle_key)
+                _restore_hotkey()
+            else:
+                msg.config(text="")
+                display.config(text=new_key)
+            _bring_to_front()
+            return "break"
 
-        entry.bind("<Return>", lambda _e: apply())
+        def _on_key_release(event):
+            mod = _MODIFIER_KEYSYMS.get(event.keysym)
+            if mod and mod in mods:
+                mods.remove(mod)
+                display.config(text=_combo() + "+..." if mods else "Press a key...")
+            # Releasing any key while listening (even ones we don't track,
+            # e.g. the combo's own final key) has been observed to let the
+            # main overlay's focus/passthrough polling re-assert itself
+            # above this dialog - pull it back every time.
+            _bring_to_front()
+            return "break"
 
-        btns = tk.Frame(win, bg="#0d1117")
-        btns.pack(pady=(4, 12), padx=16, fill="x")
-        tk.Button(
-            btns,
-            text="Apply",
-            command=apply,
-            bg="#1f6feb",
-            fg="white",
-            relief="flat",
-            padx=10,
-        ).pack(side="left", padx=(0, 6))
-        tk.Button(
-            btns,
-            text="Cancel",
-            command=win.destroy,
+        def _start_listening():
+            # Stop listening to the *current* global hotkey while capturing
+            # a new one - otherwise pressing keys that happen to match it
+            # (an easy edge case: rebinding onto the same combo, or just
+            # habit) fires it mid-capture, which shows/focuses the main
+            # overlay and buries this dialog under it.
+            if HOTKEY_AVAILABLE and self._hotkey_handle is not None:
+                try:
+                    keyboard.remove_hotkey(self._hotkey_handle)
+                except Exception:  # pylint: disable=broad-exception-caught
+                    pass
+                self._hotkey_handle = None
+            mods.clear()
+            msg.config(text="")
+            display.config(text="Press a key...")
+            rebind_btn.config(text="Press a key... (Esc to cancel)", bg="#1f6feb")
+            win.bind("<KeyPress>", _on_key_press)
+            win.bind("<KeyRelease>", _on_key_release)
+            win.focus_set()
+            _bring_to_front()
+
+        btn_row = tk.Frame(body, bg="#0d1117")
+        btn_row.pack(padx=16, pady=(4, 12), fill="x")
+
+        rebind_btn = tk.Button(
+            btn_row,
+            text="Rebind",
+            command=_start_listening,
             bg="#21262d",
             fg="#c9d1d9",
             relief="flat",
             padx=10,
-        ).pack(side="left")
+        )
+        rebind_btn.pack(side="left", fill="x", expand=True)
+
+        tk.Button(
+            btn_row,
+            text="Close",
+            command=_close_dialog,
+            bg="#21262d",
+            fg="#c9d1d9",
+            relief="flat",
+            padx=10,
+        ).pack(side="left", padx=(6, 0))
 
         win.update_idletasks()
-        x = self.winfo_x() + (self.winfo_width() - win.winfo_reqwidth()) // 2
-        y = self.winfo_y() + (self.winfo_height() - win.winfo_reqheight()) // 2
-        win.geometry(f"+{x}+{y}")
+        w = max(300, win.winfo_reqwidth())
+        h = win.winfo_reqheight()
+        x = self.winfo_x() + (self.winfo_width() - w) // 2
+        y = self.winfo_y() + (self.winfo_height() - h) // 2
+        win.geometry(f"{w}x{h}+{x}+{y}")
+        _bring_to_front()
 
     def _on_tree_open(self, _event):
         iid = self.tree.focus()
@@ -2261,6 +2419,8 @@ class Overlay(tk.Tk):
         self._save_position()
 
     def _on_hotkey(self):
+        if self._hotkey_suppressed:
+            return
         self.after(0, self.toggle)
 
     def change_hotkey(self, new_key):
@@ -2272,6 +2432,14 @@ class Overlay(tk.Tk):
                 except Exception:  # pylint: disable=broad-exception-caught
                     pass
             self._hotkey_handle = keyboard.add_hotkey(new_key, self._on_hotkey)
+            # The keys making up new_key are still physically held right
+            # now (the user just pressed them to capture this combo) - the
+            # `keyboard` library can treat that as an immediate trigger the
+            # instant it's registered, firing toggle() and stealing OS focus
+            # out from under the settings dialog that's still open. Ignore
+            # hotkey fires for a short guard window after every rebind.
+            self._hotkey_suppressed = True
+            self.after(500, lambda: setattr(self, "_hotkey_suppressed", False))
         self.toggle_key = new_key
         self._update_title_bar()
         if self._queue_panel is not None:
