@@ -22,6 +22,7 @@ import sys
 import math
 import threading
 import datetime
+import weakref
 
 import win32util
 
@@ -538,13 +539,27 @@ def get_craft_queue():
 
 
 def add_to_queue(recipe_id, quantity=1.0):
+    """Add a job, merging into an existing queue entry for the same recipe
+    (bumping its quantity) instead of creating a duplicate row - queuing a
+    recipe that's already queued should read as "craft more of it", not a
+    second identical entry, and this also preserves that entry's checked
+    ingredient state instead of resetting it in a fresh row."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute(
-        "INSERT INTO craft_queue (recipe_id, quantity) VALUES (?, ?)",
-        (recipe_id, quantity),
-    )
-    queue_id = c.lastrowid
+    c.execute("SELECT id, quantity FROM craft_queue WHERE recipe_id=?", (recipe_id,))
+    existing = c.fetchone()
+    if existing:
+        queue_id, existing_qty = existing
+        c.execute(
+            "UPDATE craft_queue SET quantity=? WHERE id=?",
+            (existing_qty + quantity, queue_id),
+        )
+    else:
+        c.execute(
+            "INSERT INTO craft_queue (recipe_id, quantity) VALUES (?, ?)",
+            (recipe_id, quantity),
+        )
+        queue_id = c.lastrowid
     conn.commit()
     conn.close()
     return queue_id
@@ -789,6 +804,11 @@ class _LiveDropdown:
     on_select_fn(val)  — called after the user picks an item
     """
 
+    # Tracked so an open popup can be force-closed from outside (e.g. when
+    # switching view-mode tabs pack_forgets the combobox's frame - that
+    # unmaps the box itself but not this separately-toplevel'd popup).
+    _instances: "weakref.WeakSet[_LiveDropdown]" = weakref.WeakSet()
+
     def __init__(self, box: ttk.Combobox, pre_fn=None, on_select_fn=None):
         self._box = box
         self._pre_fn = pre_fn
@@ -796,6 +816,7 @@ class _LiveDropdown:
         self._win: tk.Toplevel | None = None
         self._lb: tk.Listbox | None = None
         self._padding_applied = False
+        _LiveDropdown._instances.add(self)
 
         self._readonly = "readonly" in str(box.cget("state"))
         if self._readonly:
@@ -1057,6 +1078,11 @@ class _LiveDropdown:
     def hide(self):
         if self._win and self._win.winfo_exists():
             self._win.withdraw()
+
+    @classmethod
+    def hide_all(cls):
+        for inst in list(cls._instances):
+            inst.hide()
 
 
 def _autohide_yscroll(sb):
@@ -1929,17 +1955,23 @@ class CraftQueuePanel:
 # Tk keysym -> modifier name used in `keyboard` library hotkey strings
 # (e.g. "ctrl+shift+r"), for the press-to-capture hotkey recorder below.
 _MODIFIER_KEYSYMS = {
-    "Control_L": "ctrl", "Control_R": "ctrl",
-    "Shift_L": "shift", "Shift_R": "shift",
-    "Alt_L": "alt", "Alt_R": "alt",
-    "Super_L": "windows", "Super_R": "windows",
-    "Win_L": "windows", "Win_R": "windows",
+    "Control_L": "ctrl",
+    "Control_R": "ctrl",
+    "Shift_L": "shift",
+    "Shift_R": "shift",
+    "Alt_L": "alt",
+    "Alt_R": "alt",
+    "Super_L": "windows",
+    "Super_R": "windows",
+    "Win_L": "windows",
+    "Win_R": "windows",
 }
 _MODIFIER_ORDER = ["ctrl", "alt", "shift", "windows"]
 
 # Tk keysyms whose `keyboard` library name isn't just the lowercased keysym.
 _KEYSYM_TO_KEY_NAME = {
-    "Return": "enter", "KP_Enter": "enter",
+    "Return": "enter",
+    "KP_Enter": "enter",
     "space": "space",
     "BackSpace": "backspace",
     "Tab": "tab",
@@ -1949,7 +1981,10 @@ _KEYSYM_TO_KEY_NAME = {
     "End": "end",
     "Prior": "page up",
     "Next": "page down",
-    "Up": "up", "Down": "down", "Left": "left", "Right": "right",
+    "Up": "up",
+    "Down": "down",
+    "Left": "left",
+    "Right": "right",
     "Caps_Lock": "caps lock",
     "Scroll_Lock": "scroll lock",
     "Num_Lock": "num lock",
@@ -2227,7 +2262,9 @@ class Overlay(tk.Tk):
             # register), the current hotkey may currently be un-registered
             # - make sure the app doesn't end up with none at all.
             if HOTKEY_AVAILABLE and self._hotkey_handle is None:
-                self._hotkey_handle = keyboard.add_hotkey(self.toggle_key, self._on_hotkey)
+                self._hotkey_handle = keyboard.add_hotkey(
+                    self.toggle_key, self._on_hotkey
+                )
 
         def _close_dialog():
             _restore_hotkey()
@@ -2454,6 +2491,7 @@ class Overlay(tk.Tk):
             self._hotkey_handle = keyboard.add_hotkey(self.toggle_key, self._on_hotkey)
 
     def _set_view(self, mode: str):
+        _LiveDropdown.hide_all()
         self._view_mode = mode
         for btn, key in (
             (self._btn_resource, "resource"),
