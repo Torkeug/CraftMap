@@ -1367,21 +1367,18 @@ class CraftQueuePanel:
         )
         self._pin_btn.pack(side="right", padx=2)
 
-        self._btn_totals = tk.Button(
-            drag,
-            text="Totals",
-            bg="#1f6feb" if self._mode == "totals" else "#21262d",
-            fg="white" if self._mode == "totals" else "#8b949e",
-            relief="flat",
-            bd=0,
-            padx=6,
-            font=("Segoe UI", 8),
-            command=lambda: self._set_mode("totals"),
-        )
-        self._btn_totals.pack(side="right", padx=(0, 2))
+        for widget in (drag, self._title_label):
+            widget.bind("<ButtonPress-1>", self._start_move)
+            widget.bind("<B1-Motion>", self._do_move)
+            widget.bind("<ButtonRelease-1>", lambda _e: self._save_pos())
+
+        # --- mode tabs (own row, not the titlebar - a long "(F1 to hide)"
+        # title-state suffix can otherwise grow enough to hide these) ---
+        tab_row = tk.Frame(self._win, bg="#0d1117")
+        tab_row.pack(fill="x", padx=6, pady=(4, 0))
 
         self._btn_queue = tk.Button(
-            drag,
+            tab_row,
             text="Queue",
             bg="#1f6feb" if self._mode == "queue" else "#21262d",
             fg="white" if self._mode == "queue" else "#8b949e",
@@ -1391,12 +1388,20 @@ class CraftQueuePanel:
             font=("Segoe UI", 8),
             command=lambda: self._set_mode("queue"),
         )
-        self._btn_queue.pack(side="right", padx=(0, 2))
+        self._btn_queue.pack(side="left", padx=(0, 2))
 
-        for widget in (drag, self._title_label):
-            widget.bind("<ButtonPress-1>", self._start_move)
-            widget.bind("<B1-Motion>", self._do_move)
-            widget.bind("<ButtonRelease-1>", lambda _e: self._save_pos())
+        self._btn_totals = tk.Button(
+            tab_row,
+            text="Totals",
+            bg="#1f6feb" if self._mode == "totals" else "#21262d",
+            fg="white" if self._mode == "totals" else "#8b949e",
+            relief="flat",
+            bd=0,
+            padx=6,
+            font=("Segoe UI", 8),
+            command=lambda: self._set_mode("totals"),
+        )
+        self._btn_totals.pack(side="left", padx=(0, 2))
 
         # Bottom items must be packed before the expanding PanedWindow so the
         # pack manager reserves their space before distributing the remainder.
@@ -2372,47 +2377,19 @@ class Overlay(tk.Tk):
         )
         settings_btn.pack(side="right", padx=2)
 
-        self._btn_queue_panel = tk.Button(
-            drag_bar,
-            text="Queue",
-            bg="#21262d",
-            fg="#8b949e",
-            bd=0,
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
-            command=self.toggle_queue_panel,
-        )
-        self._btn_queue_panel.pack(side="right", padx=(0, 2))
+        for widget in (drag_bar, self._title_label):
+            widget.bind("<ButtonPress-1>", self._start_move)
+            widget.bind("<B1-Motion>", self._do_move)
+            widget.bind("<ButtonRelease-1>", lambda _e: self._save_position())
 
-        self._btn_recipe = tk.Button(
-            drag_bar,
-            text="Recipe",
-            bg="#1f6feb" if self._view_mode == "recipe" else "#21262d",
-            fg="white" if self._view_mode == "recipe" else "#8b949e",
-            bd=0,
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
-            command=lambda: self._set_view("recipe"),
-        )
-        self._btn_recipe.pack(side="right", padx=(0, 2))
-
-        self._btn_location = tk.Button(
-            drag_bar,
-            text="Location",
-            bg="#1f6feb" if self._view_mode == "location" else "#21262d",
-            fg="white" if self._view_mode == "location" else "#8b949e",
-            bd=0,
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
-            command=lambda: self._set_view("location"),
-        )
-        self._btn_location.pack(side="right", padx=(0, 2))
+        # --- view/panel tabs (own row, not the titlebar - a long
+        # "(F1 to hide)" title-state suffix can otherwise grow enough to
+        # hide these) ---
+        tab_row = tk.Frame(self, bg="#0d1117")
+        tab_row.pack(fill="x", side="top", padx=8, pady=(4, 0))
 
         self._btn_resource = tk.Button(
-            drag_bar,
+            tab_row,
             text="Resource",
             bg="#1f6feb" if self._view_mode == "resource" else "#21262d",
             fg="white" if self._view_mode == "resource" else "#8b949e",
@@ -2422,12 +2399,46 @@ class Overlay(tk.Tk):
             font=("Segoe UI", 8),
             command=lambda: self._set_view("resource"),
         )
-        self._btn_resource.pack(side="right", padx=(8, 0))
+        self._btn_resource.pack(side="left", padx=(0, 2))
 
-        for widget in (drag_bar, self._title_label):
-            widget.bind("<ButtonPress-1>", self._start_move)
-            widget.bind("<B1-Motion>", self._do_move)
-            widget.bind("<ButtonRelease-1>", lambda _e: self._save_position())
+        self._btn_location = tk.Button(
+            tab_row,
+            text="Location",
+            bg="#1f6feb" if self._view_mode == "location" else "#21262d",
+            fg="white" if self._view_mode == "location" else "#8b949e",
+            bd=0,
+            relief="flat",
+            padx=6,
+            font=("Segoe UI", 8),
+            command=lambda: self._set_view("location"),
+        )
+        self._btn_location.pack(side="left", padx=(0, 2))
+
+        self._btn_recipe = tk.Button(
+            tab_row,
+            text="Recipe",
+            bg="#1f6feb" if self._view_mode == "recipe" else "#21262d",
+            fg="white" if self._view_mode == "recipe" else "#8b949e",
+            bd=0,
+            relief="flat",
+            padx=6,
+            font=("Segoe UI", 8),
+            command=lambda: self._set_view("recipe"),
+        )
+        self._btn_recipe.pack(side="left", padx=(0, 2))
+
+        self._btn_queue_panel = tk.Button(
+            tab_row,
+            text="Queue",
+            bg="#21262d",
+            fg="#8b949e",
+            bd=0,
+            relief="flat",
+            padx=6,
+            font=("Segoe UI", 8),
+            command=self.toggle_queue_panel,
+        )
+        self._btn_queue_panel.pack(side="left", padx=(8, 2))
 
     def _title_text(self):
         action = "focus" if self._passthrough else "hide"
