@@ -1,0 +1,554 @@
+{
+  "AnyResource": {
+    "name": "Component",
+    "parent": null
+  },
+  "Automate": {
+    "name": "Robotic Agents",
+    "parent": "FactoredMaterial"
+  },
+  "BaseBuilding": {
+    "name": "Base Building",
+    "parent": "Building"
+  },
+  "BaseBuilding_Command": {
+    "name": "Command",
+    "parent": "BaseBuilding"
+  },
+  "BaseBuilding_Crafting": {
+    "name": "Crafter",
+    "parent": "BaseBuilding"
+  },
+  "BaseBuilding_Deco": {
+    "name": "Decor",
+    "parent": "BaseBuilding"
+  },
+  "BaseBuilding_Gathering": {
+    "name": "Gatherer",
+    "parent": "BaseBuilding"
+  },
+  "BaseBuilding_Logistic": {
+    "name": "Logistics",
+    "parent": "BaseBuilding"
+  },
+  "BaseBuilding_Power": {
+    "name": "Power",
+    "parent": "BaseBuilding"
+  },
+  "BaseBuilding_Storage": {
+    "name": "Storage",
+    "parent": "BaseBuilding"
+  },
+  "BeaconData": {
+    "name": "Beacon Data",
+    "parent": null
+  },
+  "Biological_Extra": {
+    "name": "Organic Byproduct",
+    "parent": "Minerals"
+  },
+  "Biological_Fruit": {
+    "name": "Germ",
+    "parent": "Minerals"
+  },
+  "Blueprint": {
+    "name": "Blueprint",
+    "parent": null
+  },
+  "Bottles": {
+    "name": "Bottle",
+    "parent": "FactoredMaterial"
+  },
+  "BottlesFull": {
+    "name": "Bottle",
+    "parent": "Bottles"
+  },
+  "Building": {
+    "name": "Building",
+    "parent": null
+  },
+  "Casings": {
+    "name": "Kit and Casing",
+    "parent": "FactoredMaterial"
+  },
+  "Category_All": {
+    "name": "All",
+    "parent": null
+  },
+  "Category_Blueprint": {
+    "name": "Blueprint",
+    "parent": null
+  },
+  "Category_Craft": {
+    "name": "Craft",
+    "parent": null
+  },
+  "Category_Decals": {
+    "name": "Decal",
+    "parent": null
+  },
+  "Category_InStorage": {
+    "name": "Storage",
+    "parent": null
+  },
+  "Category_Others": {
+    "name": "Other",
+    "parent": null
+  },
+  "Clothes": {
+    "name": "Clothes",
+    "parent": null
+  },
+  "ComplexFactoredMaterial": {
+    "name": "Contraption",
+    "parent": "FactoredMaterial"
+  },
+  "Craft_Alloy": {
+    "name": "Alloy",
+    "parent": null
+  },
+  "Craft_BottleIn": {
+    "name": "Bottling",
+    "parent": null
+  },
+  "Craft_BottleOut": {
+    "name": "Unbottling",
+    "parent": null
+  },
+  "Craft_BuildingKit": {
+    "name": "Factory Kit",
+    "parent": null
+  },
+  "Craft_Casings": {
+    "name": "Ship Component",
+    "parent": null
+  },
+  "Craft_Crystal": {
+    "name": "Crystallization",
+    "parent": null
+  },
+  "Craft_CrystalLattice": {
+    "name": "Crystal Geometry",
+    "parent": null
+  },
+  "Craft_CrystalSmelting": {
+    "name": "Crystal Processing",
+    "parent": null
+  },
+  "Craft_Dismantle": {
+    "name": "Dismantle",
+    "parent": null
+  },
+  "Craft_IntermediaryComponent": {
+    "name": "Material",
+    "parent": null
+  },
+  "Craft_Mixing": {
+    "name": "Mix",
+    "parent": null
+  },
+  "Craft_Modules": {
+    "name": "Internal Module",
+    "parent": null
+  },
+  "Craft_Other": {
+    "name": "Other",
+    "parent": null
+  },
+  "Craft_Parts": {
+    "name": "Ship Part",
+    "parent": null
+  },
+  "Craft_Parts_Plating": {
+    "name": "Ship Part Plating",
+    "parent": null
+  },
+  "Craft_Patch": {
+    "name": "Patch",
+    "parent": null
+  },
+  "Craft_PlayerItem": {
+    "name": "Contractor Equipment",
+    "parent": null
+  },
+  "Craft_RawResource": {
+    "name": "Mineral Processing",
+    "parent": null
+  },
+  "Craft_Recycle": {
+    "name": "Recycle",
+    "parent": null
+  },
+  "Craft_Seed": {
+    "name": "Seed Shattering",
+    "parent": null
+  },
+  "Craft_StudyCrystal": {
+    "name": "Crystal Sample",
+    "parent": null
+  },
+  "Craft_StudyMineral": {
+    "name": "Mineral Sample",
+    "parent": null
+  },
+  "Craft_StudyOrganic": {
+    "name": "Biological Sample",
+    "parent": null
+  },
+  "Craft_StudyQuest": {
+    "name": "Contract Item",
+    "parent": null
+  },
+  "Craft_Tools": {
+    "name": "External Module",
+    "parent": null
+  },
+  "Crystal": {
+    "name": "Crystal",
+    "parent": "Minerals"
+  },
+  "CrystalMatrix": {
+    "name": "Crystal Matrix",
+    "parent": "PureComponents"
+  },
+  "Custo_Building": {
+    "name": "Decorative Building",
+    "parent": null
+  },
+  "Custo_Decal": {
+    "name": "Ship Decal",
+    "parent": null
+  },
+  "Custo_Material": {
+    "name": "Ship Material",
+    "parent": null
+  },
+  "Custo_Parts": {
+    "name": "Decorative Part",
+    "parent": null
+  },
+  "Custo_Suit": {
+    "name": "Character Suit",
+    "parent": null
+  },
+  "Custo_Trail": {
+    "name": "Ship Trail",
+    "parent": null
+  },
+  "DataDisc": {
+    "name": "Data disc",
+    "parent": null
+  },
+  "Drone": {
+    "name": "Drone",
+    "parent": "FactoredMaterial"
+  },
+  "Empty": {
+    "name": "",
+    "parent": null
+  },
+  "FactoredMaterial": {
+    "name": "Manufactured",
+    "parent": "AnyResource"
+  },
+  "FarmPlant": {
+    "name": "Farm Plant",
+    "parent": null
+  },
+  "Fluid": {
+    "name": "Fluid",
+    "parent": "PureComponents"
+  },
+  "Gas": {
+    "name": "Gas",
+    "parent": "Fluid"
+  },
+  "Ingots": {
+    "name": "Ingot",
+    "parent": "PureComponents"
+  },
+  "InstanceItem": {
+    "name": "Instance Item",
+    "parent": "QuestItem"
+  },
+  "Knowledge": {
+    "name": "Knowledge",
+    "parent": null
+  },
+  "Knowledge_Factions": {
+    "name": "Factions",
+    "parent": "Knowledge"
+  },
+  "Knowledge_Tuto": {
+    "name": "Tutorial",
+    "parent": "Knowledge"
+  },
+  "Liquid": {
+    "name": "Liquid",
+    "parent": "Fluid"
+  },
+  "Luxuries": {
+    "name": "Luxury Item",
+    "parent": "MetalOre"
+  },
+  "Metal": {
+    "name": "Metal Ore",
+    "parent": "Minerals"
+  },
+  "MetalNugget": {
+    "name": "Nugget",
+    "parent": "Metal"
+  },
+  "MetalOre": {
+    "name": "Ore",
+    "parent": "Metal"
+  },
+  "MetalShavings": {
+    "name": "Shaving",
+    "parent": "Metal"
+  },
+  "MineralNugget": {
+    "name": "Nugget",
+    "parent": "MineralParent"
+  },
+  "MineralOre": {
+    "name": "Ore",
+    "parent": "MineralParent"
+  },
+  "MineralParent": {
+    "name": "Mineral Ore",
+    "parent": "Minerals"
+  },
+  "MineralShavings": {
+    "name": "Shaving",
+    "parent": "MineralParent"
+  },
+  "Minerals": {
+    "name": "Gathering",
+    "parent": "AnyResource"
+  },
+  "MiningTool": {
+    "name": "Mining Tool",
+    "parent": "ShipGatheringTools"
+  },
+  "Patch": {
+    "name": "Patch",
+    "parent": null
+  },
+  "PlanetResource": {
+    "name": "Resource",
+    "parent": null
+  },
+  "PlanetResource_Deposit": {
+    "name": "Deposit",
+    "parent": "PlanetResource"
+  },
+  "PlanetResource_Exploration": {
+    "name": "World Discovery",
+    "parent": "PlanetResource"
+  },
+  "PlanetResource_Geyser": {
+    "name": "Geyser",
+    "parent": "PlanetResource"
+  },
+  "PlanetResource_RegularNode": {
+    "name": "Cluster",
+    "parent": "PlanetResource"
+  },
+  "PlanetResource_Shell": {
+    "name": "Shell",
+    "parent": "PlanetResource"
+  },
+  "Plasma": {
+    "name": "Plasma",
+    "parent": "Fluid"
+  },
+  "PlayerConsumable": {
+    "name": "Contractor Gadget",
+    "parent": "PlayerItem"
+  },
+  "PlayerHands": {
+    "name": "Hand Tool",
+    "parent": "PlayerItem"
+  },
+  "PlayerItem": {
+    "name": "Contractor Equipment",
+    "parent": null
+  },
+  "PlayerSuitChip": {
+    "name": "Contractor Suit Chip",
+    "parent": "PlayerItem"
+  },
+  "PureComponents": {
+    "name": "Material",
+    "parent": "AnyResource"
+  },
+  "Pylon": {
+    "name": "Pylon",
+    "parent": "BaseBuilding_Power"
+  },
+  "QuestItem": {
+    "name": "Contract Item",
+    "parent": null
+  },
+  "Readable": {
+    "name": "Readable Item",
+    "parent": "QuestItem"
+  },
+  "Region": {
+    "name": "Region",
+    "parent": null
+  },
+  "Scrap": {
+    "name": "Scrap",
+    "parent": "Minerals"
+  },
+  "ShipAmmunition": {
+    "name": "Ammunition",
+    "parent": "FactoredMaterial"
+  },
+  "ShipBattery": {
+    "name": "Battery",
+    "parent": "ShipModule"
+  },
+  "ShipBooster": {
+    "name": "Booster",
+    "parent": "ShipTool"
+  },
+  "ShipCockpit": {
+    "name": "Cockpit",
+    "parent": "ShipPart"
+  },
+  "ShipControlModule": {
+    "name": "Control Mod",
+    "parent": "ShipModule"
+  },
+  "ShipDecorative": {
+    "name": "Decorative",
+    "parent": "ShipPart"
+  },
+  "ShipElement": {
+    "name": "Ship Element",
+    "parent": null
+  },
+  "ShipEngine": {
+    "name": "Thruster",
+    "parent": "ShipPart"
+  },
+  "ShipFTLModules": {
+    "name": "FTL Module",
+    "parent": "ShipModule"
+  },
+  "ShipGatheringTools": {
+    "name": "Gathering",
+    "parent": "ShipTool"
+  },
+  "ShipHeatModule": {
+    "name": "Heat Module",
+    "parent": "ShipModule"
+  },
+  "ShipHeatTools": {
+    "name": "Heat Panel",
+    "parent": "ShipTool"
+  },
+  "ShipHull": {
+    "name": "Hull Part",
+    "parent": "ShipPart"
+  },
+  "ShipHull_AlloyX": {
+    "name": "Alloy X Hull Part",
+    "parent": "ShipHull"
+  },
+  "ShipHull_Levinium": {
+    "name": "Levinium Hull Part",
+    "parent": "ShipHull"
+  },
+  "ShipHull_Platinum": {
+    "name": "Solid Frame Hull Part",
+    "parent": "ShipHull"
+  },
+  "ShipHull_Steel": {
+    "name": "Steel Hull Part",
+    "parent": "ShipHull"
+  },
+  "ShipHull_Steel_AluK": {
+    "name": "Alu-K-plated Steel Hull Part",
+    "parent": "ShipHull"
+  },
+  "ShipHull_Titanium": {
+    "name": "Titanium Hull Part",
+    "parent": "ShipHull"
+  },
+  "ShipHull_Titanium_AluK": {
+    "name": "Alu-K-plated Titanium Hull Part",
+    "parent": "ShipHull"
+  },
+  "ShipHull_WreckOnly": {
+    "name": "[DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "parent": "ShipHull"
+  },
+  "ShipInventoryModules": {
+    "name": "Storage Module",
+    "parent": "ShipModule"
+  },
+  "ShipLight": {
+    "name": "Light",
+    "parent": "ShipTool"
+  },
+  "ShipModule": {
+    "name": "Internal Module",
+    "parent": "ShipElement"
+  },
+  "ShipPart": {
+    "name": "Ship Part",
+    "parent": "ShipElement"
+  },
+  "ShipPowerGenerators": {
+    "name": "Power Module",
+    "parent": "ShipModule"
+  },
+  "ShipPowerTools": {
+    "name": "Solar Panel",
+    "parent": "ShipTool"
+  },
+  "ShipRadars": {
+    "name": "Radar",
+    "parent": "ShipTool"
+  },
+  "ShipShields": {
+    "name": "Shield",
+    "parent": "ShipModule"
+  },
+  "ShipTool": {
+    "name": "External Module",
+    "parent": "ShipElement"
+  },
+  "ShipToolSpecial": {
+    "name": "Specialized Tools",
+    "parent": "ShipTool"
+  },
+  "ShipWeapon": {
+    "name": "Weapon",
+    "parent": "ShipTool"
+  },
+  "ShipWing": {
+    "name": "Wing",
+    "parent": "ShipPart"
+  },
+  "Shuttle": {
+    "name": "Shuttle",
+    "parent": "Automate"
+  },
+  "SimpleFactoredMaterial": {
+    "name": "Simple Product",
+    "parent": "FactoredMaterial"
+  },
+  "SpaceStation": {
+    "name": "Space Station",
+    "parent": "Building"
+  },
+  "Virtual": {
+    "name": "Virtual Item",
+    "parent": null
+  }
+}

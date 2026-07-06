@@ -1,0 +1,201 @@
+{
+  "AutoBoost": {},
+  "AutoMine": {},
+  "Battery": {},
+  "Booster": {
+    "label": "Booster"
+  },
+  "Cistern": {},
+  "ConstructionTool": {},
+  "DepositExtractor": {},
+  "DropWeapon": {},
+  "Engine": {
+    "label": "Engine"
+  },
+  "FTLEngine": {
+    "flags": 1,
+    "label": "FTL Engine"
+  },
+  "FTOilCistern": {},
+  "Factory": {},
+  "Farm": {},
+  "FarmLiquid": {},
+  "FarmSeed": {},
+  "FarmSupplement": {},
+  "FastTracking": {},
+  "Generator": {},
+  "Heater": {
+    "label": "Heater"
+  },
+  "Imprecise": {},
+  "InstanceBuilding": {},
+  "InstanceEntrance": {},
+  "LandingPad": {},
+  "Light": {
+    "label": "Light"
+  },
+  "LiquidExtractor": {},
+  "MainBaseBuilding": {},
+  "Material_Alloy": {
+    "color": 5524820
+  },
+  "Material_Default": {
+    "color": 16777215
+  },
+  "Material_Default_Secondary": {
+    "color": 9868693
+  },
+  "Material_Levinum": {
+    "color": 5989976
+  },
+  "Material_Platinum": {
+    "color": 7374466
+  },
+  "Material_Steel": {
+    "color": 7241094
+  },
+  "Material_Steel_AluK": {
+    "color": 7241094
+  },
+  "Material_Titanium": {
+    "color": 7763306
+  },
+  "Material_Titanium_AluK": {
+    "color": 7763306
+  },
+  "MissionBase": {
+    "label": "Spacebase"
+  },
+  "MissionBureau": {
+    "label": "Mining Bureau"
+  },
+  "MissionCorpo": {
+    "label": "Corpos"
+  },
+  "MissionExploration": {
+    "label": "Exploration"
+  },
+  "MissionProgress": {
+    "label": "Advanced Training"
+  },
+  "MissionScience": {
+    "label": "Science"
+  },
+  "MissionTuto": {
+    "label": "Basic Training"
+  },
+  "MissionTuto2": {
+    "label": "Orientation"
+  },
+  "PathwayHolder": {},
+  "PermitCorpoLicense": {
+    "label": "Corpo Licenses"
+  },
+  "PermitCorpoPermit": {
+    "label": "Corpo Permits"
+  },
+  "PermitExperience": {
+    "label": "Experience Progression"
+  },
+  "PermitOrganic": {
+    "label": "Xenotic Research"
+  },
+  "PermitPermit": {
+    "label": "Permits"
+  },
+  "PermitScience": {
+    "label": "Laboratory"
+  },
+  "PointBlank": {},
+  "PowerStorage": {},
+  "PowerTransmitter": {},
+  "Pylon": {},
+  "Radiator": {
+    "label": "Radiator"
+  },
+  "Recycler": {},
+  "Region": {},
+  "Seeker": {},
+  "Shield": {
+    "flags": 1,
+    "label": "Shield"
+  },
+  "ShipSolarPanel": {
+    "label": "Solar Panel"
+  },
+  "Shipyard": {},
+  "ShortRange": {},
+  "ShuttlePad": {},
+  "SolarPanel": {},
+  "Station": {},
+  "UniqueBuilding": {},
+  "Warehouse": {},
+  "Workshop_Antimatter": {
+    "craftAction": "SynthetizeButton",
+    "craftIndex": 6,
+    "label": "Anti-matter Machine"
+  },
+  "Workshop_Atelier": {
+    "autoCraftTime": 180,
+    "craftAction": "CraftButton",
+    "craftIndex": 2,
+    "label": "Workshop",
+    "manualCraftTime": 2
+  },
+  "Workshop_Bottle": {
+    "autoCraftTime": 5,
+    "craftAction": "CraftButton",
+    "craftIndex": 4,
+    "label": "Bottling Plant"
+  },
+  "Workshop_Building": {
+    "label": "Construction"
+  },
+  "Workshop_Chemical": {
+    "autoCraftTime": 180,
+    "craftAction": "CraftButton",
+    "craftIndex": 3,
+    "label": "Chemical Factory"
+  },
+  "Workshop_Crystalizer": {
+    "craftAction": "CrystalizeButton",
+    "craftIndex": 5,
+    "label": "Crystallizer"
+  },
+  "Workshop_Factory": {
+    "autoCraftTime": 180,
+    "craftAction": "CraftButton",
+    "label": "Assembler"
+  },
+  "Workshop_Factory2": {
+    "autoCraftTime": 180,
+    "craftAction": "CraftButton",
+    "label": "Factory"
+  },
+  "Workshop_Recycle": {
+    "autoCraftTime": 90,
+    "craftAction": "RecycleButton",
+    "craftIndex": 1,
+    "label": "Recycler"
+  },
+  "Workshop_Science": {
+    "craftAction": "StudyButton",
+    "label": "Laboratory"
+  },
+  "Workshop_Seed": {
+    "craftAction": "ExtractSeedsButton",
+    "craftIndex": 7,
+    "label": "Seed Extractor",
+    "manualCraftTime": 2
+  },
+  "Workshop_Smelter": {
+    "autoCraftTime": 180,
+    "craftAction": "SmelterButton",
+    "craftIndex": 0,
+    "label": "Smelter",
+    "manualCraftTime": 5
+  },
+  "Workshop_Uncraftable": {
+    "label": "<bad>Cannot Craft In Beta</bad>"
+  }
+}

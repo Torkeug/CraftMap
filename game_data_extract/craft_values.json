@@ -1,0 +1,154 @@
+[
+  {
+    "id": "PriceRatioAtZero",
+    "values": [
+      {
+        "value": 0.05,
+        "craftKind": "Workshop_Atelier"
+      },
+      {
+        "value": 0.1,
+        "craftKind": "Workshop_Smelter"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Recycle"
+      }
+    ]
+  },
+  {
+    "id": "MinPriceRatio",
+    "values": [
+      {
+        "value": 0.005,
+        "craftKind": "Workshop_Atelier"
+      },
+      {
+        "value": 0.1,
+        "craftKind": "Workshop_Smelter"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Recycle"
+      }
+    ]
+  },
+  {
+    "id": "PriceRatioHalfLife",
+    "values": [
+      {
+        "value": 5,
+        "craftKind": "Workshop_Atelier"
+      },
+      {
+        "value": 1,
+        "craftKind": "Workshop_Smelter"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Recycle"
+      }
+    ]
+  },
+  {
+    "id": "PowerBaseCost",
+    "values": [
+      {
+        "value": 4,
+        "craftKind": "Workshop_Atelier"
+      },
+      {
+        "craftKind": "Workshop_Factory",
+        "value": 4
+      },
+      {
+        "craftKind": "Workshop_Factory2",
+        "value": 10
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Smelter"
+      },
+      {
+        "value": 5,
+        "craftKind": "Workshop_Recycle"
+      },
+      {
+        "craftKind": "Workshop_Chemical",
+        "value": 5
+      },
+      {
+        "craftKind": "Workshop_Bottle",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PowerOutStorageCost",
+    "values": [
+      {
+        "value": 0,
+        "craftKind": "Workshop_Atelier"
+      },
+      {
+        "value": 3,
+        "craftKind": "Workshop_Smelter"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Recycle"
+      }
+    ]
+  },
+  {
+    "id": "PowerInStorageCost",
+    "values": [
+      {
+        "value": 0,
+        "craftKind": "Workshop_Atelier"
+      },
+      {
+        "value": 0.5,
+        "craftKind": "Workshop_Smelter"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Recycle"
+      }
+    ]
+  },
+  {
+    "id": "PowerOutQtyCost",
+    "values": [
+      {
+        "value": 0,
+        "craftKind": "Workshop_Atelier"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Smelter"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Recycle"
+      }
+    ]
+  },
+  {
+    "id": "PowerInQtyCost",
+    "values": [
+      {
+        "value": 0,
+        "craftKind": "Workshop_Atelier"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Smelter"
+      },
+      {
+        "value": 0,
+        "craftKind": "Workshop_Recycle"
+      }
+    ]
+  }
+]

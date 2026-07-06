@@ -1,0 +1,4097 @@
+{
+  "Access_Corpo1": {
+    "desc": "Grants access to the next room.",
+    "guid": "#WQc-5gct-YJT",
+    "name": "CPAF Pass (Test Subject)",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "Access_Corpo2": {
+    "desc": "Grants access to the designers’ offices.",
+    "guid": "#WQc-BMcx-Tul",
+    "name": "CPAF Pass (Designer)",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "Access_Dark2": {
+    "desc": "[TODO] Grants access to the director office.",
+    "guid": "#cCt-7oER-EYS",
+    "name": "[TODO] Director Pass",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "Access_Dark4": {
+    "desc": "[TODO] Maintenance Key",
+    "guid": "#cKw-TwKZ-Yp5",
+    "name": "[TODO] Maintenance Key",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "Access_LabMonsters": {
+    "desc": "Grants access to all areas of the testing facility.",
+    "guid": "#ZTn-eQlK-5PH",
+    "name": "Janitor Pass",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "Access_Mine1": {
+    "desc": "Grants access to the mine's offices.",
+    "guid": "#XPm-L2bb-rNh",
+    "name": "Administrative Quarter Pass",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "Access_Mine2": {
+    "desc": "Grants access to the mine's civilian elevator.",
+    "guid": "#XPm-LYbd-8uB",
+    "name": "Elevator Pass",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "Access_Prospecting": {
+    "desc": "Grants access to the mining bureau's vault.",
+    "guid": "#XKb-FYbr-hZB",
+    "name": "Prospecting Hub Pass",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "Access_Warehouse": {
+    "desc": "Grants access to the monitoring office in the warehouse.",
+    "guid": "#XKJ-FAe&-alr",
+    "name": "Warehouse Pass",
+    "price": null,
+    "type": "InstanceItem"
+  },
+  "ActivatedCoal": {
+    "desc": "A porous form of carbon with outstanding adsorptive properties. Widely used to filter gases and fluids.",
+    "guid": "#Trr-MsDR-PHK",
+    "name": "Activated Charcoal",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Actuator": {
+    "desc": "A device that convert fluid pressure into precise, controlled movements.",
+    "guid": "#aVl-d#jP-ZZh",
+    "name": "Hydraulic Actuator",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "AlloyXCasingMK1": {
+    "desc": null,
+    "guid": "#SOJ-8MUI-QN3",
+    "name": "Small Alloy X Part Casing",
+    "price": null,
+    "type": "Casings"
+  },
+  "AlloyXCasingMK2": {
+    "desc": null,
+    "guid": "#SOJ-8MUN-Moy",
+    "name": "Alloy X Part Casing",
+    "price": null,
+    "type": "Casings"
+  },
+  "Alternator": {
+    "desc": "A device capable of producing a strong Hall effect, allowing ion thrusters to accelerate their propellant.",
+    "guid": "#ZvP-730#-Qn6",
+    "name": "Hall Alternator",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "AluK": {
+    "desc": "An alloy of aluminum, with a low weight and an excellent thermal isolation.",
+    "guid": "#Zkc-#JMV-BZV",
+    "name": "Alu-K Ingot",
+    "price": null,
+    "type": "Ingots"
+  },
+  "AluPowder": {
+    "desc": "[NOT IMPL]",
+    "guid": "#Xd#-0UMR-yA7",
+    "name": "Aluminum Powder",
+    "price": 0.5,
+    "type": "SimpleFactoredMaterial"
+  },
+  "AluScraps": {
+    "desc": "",
+    "guid": "#Sgd-eBPL-Qv7",
+    "name": "Aluminum Scraps",
+    "price": null,
+    "type": "Scrap"
+  },
+  "AluminiumIngot": {
+    "desc": "A material noted for its very low density and high conductivity. Though abundant, it seldom appears naturally in pure form.",
+    "guid": "#SOJ-8MS7-gFr",
+    "name": "Aluminum Ingot",
+    "price": 9.6,
+    "type": "Ingots"
+  },
+  "AluminiumNugget": {
+    "desc": null,
+    "guid": "#SOJ-8MQC-Lxr",
+    "name": "Aluminum Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "AluminiumOre": {
+    "desc": null,
+    "guid": "#SOJ-8MQ9-5&Q",
+    "name": "Aluminum Ore",
+    "price": null,
+    "type": "MetalOre"
+  },
+  "Antimatter_Empty": {
+    "desc": "A container for holding antiparticles. Notoriously hard to produce, antimatter is even harder to store.",
+    "guid": "#SPS-TJBi-6od",
+    "name": "Antimatter Core (empty)",
+    "price": null,
+    "type": "Bottles"
+  },
+  "Antimatter_Full": {
+    "desc": "",
+    "guid": "#SPS-TVBm-AOC",
+    "name": "Antimatter Core (full)",
+    "price": null,
+    "type": "Bottles"
+  },
+  "Aquamarine": {
+    "desc": "A crystal of the beryl family, traded as a gemstone and valued for its characteristic light-blue hue.",
+    "guid": "#SOJ-8MQO-23B",
+    "name": "Aquamarine",
+    "price": 12,
+    "type": "Crystal"
+  },
+  "AutoBoostModule": {
+    "desc": "This small piece of computer improves the control of the thrusters: tap [key.Booster] to toggle the boost.",
+    "guid": "#btf-gIJz-f63",
+    "name": "Booster Control Mod",
+    "price": null,
+    "type": "ShipControlModule"
+  },
+  "AutoMineModule": {
+    "desc": "This small piece of computer improves the control of the mining laser: tap [key.Mine] to toggle the mining skill.",
+    "guid": "#btf-t6K#-ifC",
+    "name": "Mining Laser Control Mod",
+    "price": null,
+    "type": "ShipControlModule"
+  },
+  "AzuriteStone": {
+    "desc": "A carbonate crystal mostly made up of copper and often used as a pigment throughout human history.",
+    "guid": "#SOJ-8MP2-aVU",
+    "name": "Azurite Stone",
+    "price": 45,
+    "type": "Crystal"
+  },
+  "BTitanium": {
+    "desc": "An alloy of titanium and vanadium, valued for the remarkable formability that makes it an excellent welding material.",
+    "guid": "#Xco-W&9d-B1G",
+    "name": "B-Titanium Ingot",
+    "price": null,
+    "type": "Ingots"
+  },
+  "B_AntimatterSynthPH": {
+    "desc": "This building consumes huge amounts of electricity to produce trace amounts of antimatter, which is still rather remarkable.",
+    "guid": "#SPS-JVBf-SUD",
+    "name": "Antimatter Synthesizer",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_AtmoDome": {
+    "desc": "[NOT IMPL] Building that reduces or negates entirely weather pattern and environmental stuff around the base and in a tube above it, up to space, allowing ship that are not equipped for it to interact with the base.",
+    "guid": "#SOJ-8MdQ-3Co",
+    "name": "Atmo-dome Generator",
+    "price": null,
+    "type": "BaseBuilding"
+  },
+  "B_Battery": {
+    "desc": "This building stores chemical energy when the power grid produces excess power. It can then readily convert that energy back to electricity during spikes in consumption.",
+    "guid": "#SOJ-8Mcy-3nX",
+    "name": "Battery Array",
+    "price": null,
+    "type": "BaseBuilding_Power"
+  },
+  "B_BottlingPlant": {
+    "desc": "This building packages liquid or semi-fluid products into standardized containers.",
+    "guid": "#Xrd-Pw2Q-j2n",
+    "name": "Bottling Plant",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_Chemical": {
+    "desc": "This building assembles chemical elements into industrial compounds. It can function continuously with no human input, which makes it appropriate for large-scale production.",
+    "guid": "#Xm5-qwG0-6Ia",
+    "name": "Chemical Factory",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_Chest": {
+    "desc": "This small box let anyone from the same corporation than the base owner leave, or take, gifts.",
+    "guid": "#bkO-ZU9R-iuG",
+    "name": "Trading Box",
+    "price": null,
+    "type": "BaseBuilding_Storage"
+  },
+  "B_Cistern": {
+    "desc": "This building is suitable for storing liquid or semi-fluid materials.",
+    "guid": "#Xm3-uMFw-#hI",
+    "name": "Cistern",
+    "price": null,
+    "type": "BaseBuilding_Storage"
+  },
+  "B_Connector": {
+    "desc": "This simple cable composes the electricty grid that power every settlement in the Atlas galaxy.",
+    "guid": "#SOJ-8Mcb-WOd",
+    "name": "Cable",
+    "price": null,
+    "type": "Building"
+  },
+  "B_ControlBase": {
+    "desc": "This central building provides the basic storage, electric power and administrative systems needed to operate a small land base. Deploying a base constitutes a legal claim over the area and deposits it is placed over. It also comes with basic manual smelting and crafting machines.",
+    "guid": "#SOJ-8Mc0-LDi",
+    "name": "Base Command Center",
+    "price": null,
+    "type": "BaseBuilding_Command"
+  },
+  "B_ControlBase2": {
+    "desc": "This building allows a base to expand over a Level 2 land area, doubling its maximum footprint and unlocking experience thresholds up to 800 points.",
+    "guid": "#Trj-a#Qo-G2n",
+    "name": "Command Tower",
+    "price": null,
+    "type": "BaseBuilding_Command"
+  },
+  "B_ControlBase3PH": {
+    "desc": "This building allows a base to expand over a Level 3 land area, doubling its maximum footprint and unlocking experience thresholds up to 2000 points.",
+    "guid": "#Trj-k#Qs-J#0",
+    "name": "Command Relay",
+    "price": null,
+    "type": "BaseBuilding_Command"
+  },
+  "B_ControlBase_Corpo1": {
+    "desc": "A legally sanctionned corporation of importance often requires a place to centralized its operation. This building increases the maximum size of a single base of the corporation and contains crafting machines, a conference room, and many customizable space.",
+    "guid": "#ZbR-vp9D-o5j",
+    "name": "Corporation Command Center",
+    "price": null,
+    "type": "BaseBuilding_Command"
+  },
+  "B_Crystaliser": {
+    "desc": "This building uses chemical solutions to generate crystals at exceptionally high speeds compared to their natural formation process.",
+    "guid": "#SOJ-8McQ-6ge",
+    "name": "Crystallizer",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_DecoDiver": {
+    "desc": "This building is only a decoration, but style is often the difference between good contractors and great ones.",
+    "guid": "#bUU-dMkm-0aR",
+    "name": "Diver Hologram",
+    "price": null,
+    "type": "BaseBuilding_Deco"
+  },
+  "B_DecoPirate": {
+    "desc": "This building is only a decoration, but style is often the difference between good contractors and great ones.",
+    "guid": "#bS4-QsA9-gpC",
+    "name": "Pirate Hologram",
+    "price": null,
+    "type": "BaseBuilding_Deco"
+  },
+  "B_DecoPlanet": {
+    "desc": "This building is only a decoration, but style is often the difference between good contractors and great ones.",
+    "guid": "#bUU-d#kb-cWW",
+    "name": "Planet Hologram",
+    "price": null,
+    "type": "BaseBuilding_Deco"
+  },
+  "B_DecoSakura": {
+    "desc": "This building is only a decoration, but style is often the difference between good contractors and great ones.",
+    "guid": "#bUU-d6ke-kv3",
+    "name": "Sakura Hologram",
+    "price": null,
+    "type": "BaseBuilding_Deco"
+  },
+  "B_DecoSnake": {
+    "desc": "This building is only a decoration, but style is often the difference between good contractors and great ones.",
+    "guid": "#bUU-dEkg-U4T",
+    "name": "Snake Hologram",
+    "price": null,
+    "type": "BaseBuilding_Deco"
+  },
+  "B_DecoTest": {
+    "desc": "This building is only a decoration, but style is often the difference between good contractors and great ones.",
+    "guid": "#ao4-FceG-EPs",
+    "name": "Test deco",
+    "price": null,
+    "type": "BaseBuilding_Deco"
+  },
+  "B_DecoTranscendance": {
+    "desc": "This building is only a decoration, but style is often the difference between good contractors and great ones.",
+    "guid": "#bUU-cokW-DOy",
+    "name": "Transcendance Hologram",
+    "price": null,
+    "type": "BaseBuilding_Deco"
+  },
+  "B_ElectricPillar": {
+    "desc": "This pole can support electric cables and connect the base's power grid to another building. To plug a cable into it, target the top of the pylon and press E.",
+    "guid": "#SOJ-8Mce-#&d",
+    "name": "Pylon",
+    "price": null,
+    "type": "Pylon"
+  },
+  "B_Extractor": {
+    "desc": "This building can only be assembled over a resource deposit, which it will then drill into to extract raw ore automatically.",
+    "guid": "#SOJ-8Mc5-Ueg",
+    "name": "Extractor",
+    "price": null,
+    "type": "BaseBuilding_Gathering"
+  },
+  "B_Extractor1PH": {
+    "desc": null,
+    "guid": "#SOJ-8Mc8-nlm",
+    "name": "Advanced Extractor",
+    "price": null,
+    "type": "BaseBuilding_Gathering"
+  },
+  "B_FTLCistern": {
+    "desc": "This building is suitable for storing active mag-plasma.",
+    "guid": "#SOJ-8McK-C7A",
+    "name": "Mag-Plasma Cistern",
+    "price": null,
+    "type": "BaseBuilding_Storage"
+  },
+  "B_FTLGatherer": {
+    "desc": "[NOT IMPL] Building that produce mag-plasma slowly, based on some local properties (maybe proximity from other condensator, and space station reduce production)",
+    "guid": "#SOJ-8McM-usB",
+    "name": "Cosmic Condenser",
+    "price": null,
+    "type": "BaseBuilding_Gathering"
+  },
+  "B_Factory1": {
+    "desc": "This building assembles basic resources into industrial compounds. As an automated alternative to the manual workshop, it can function continuously with no human input, which makes it appropriate for large-scale production.",
+    "guid": "#SOJ-8Md1-W1V",
+    "name": "Assembler",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_Factory2": {
+    "desc": "The biggest ship materials can only be built in a custom large-scale factory that consumes a lot of energy.",
+    "guid": "#cIK-NNJy-7j8",
+    "name": "Factory",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_Farm": {
+    "desc": "This building provides an appropriate environment to cultivate living organisms.",
+    "guid": "#SOJ-8McU-Xg8",
+    "name": "Xenic Farm",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_FusionGenerator": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8Mct-Atk",
+    "name": "Fusion Plant",
+    "price": null,
+    "type": "BaseBuilding_Power"
+  },
+  "B_Generator": {
+    "desc": "This building consumes carbon-based fuel to produce electric current, supplying the base's power grid. It is effective and compact, but resource-intensive.",
+    "guid": "#SOJ-8Mcn-2xj",
+    "name": "Fuel Power Plant",
+    "price": null,
+    "type": "BaseBuilding_Power"
+  },
+  "B_Generator2": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8Mcq-6Fy",
+    "name": "Advanced Fuel Power Plant",
+    "price": null,
+    "type": "BaseBuilding_Power"
+  },
+  "B_HeatRecouper": {
+    "desc": "[NOT IMPL] reduce temperature around the base. Produce power based on current temperature",
+    "guid": "#SPT-idBt-QfJ",
+    "name": "Heat Capacitor",
+    "price": null,
+    "type": "BaseBuilding_Power"
+  },
+  "B_Hypergate": {
+    "desc": "[NOT IMPL] Building that allows the creation of a tunnel toward a hypergate beacon from the same corporation. Consume a lot of power.",
+    "guid": "#SOJ-8Mdb-rPZ",
+    "name": "Hypergate",
+    "price": null,
+    "type": "BaseBuilding_Logistic"
+  },
+  "B_LaboPH": {
+    "desc": "This building contains a compact Ninmah laboratory with everything needed to analyze exotic substances.",
+    "guid": "#SPU-BpC5-k#2",
+    "name": "Laboratory",
+    "price": null,
+    "type": "BaseBuilding"
+  },
+  "B_LandingPad": {
+    "desc": "This platform allows a ship to dock on the base and connect to its distribution system to transfer fuel or other fluids.",
+    "guid": "#SOJ-8MdG-Vza",
+    "name": "Landing Pad",
+    "price": null,
+    "type": "BaseBuilding_Logistic"
+  },
+  "B_LiquidExtractor": {
+    "desc": "This building can only be assembled over a geothermal pool, from which it will extract pure fluid automatically.",
+    "guid": "#aug-dcEQ-qe#",
+    "name": "Liquid Extractor",
+    "price": null,
+    "type": "BaseBuilding_Gathering"
+  },
+  "B_Observatory": {
+    "desc": "[NOT IMPL] Building that allow either the owner or its corporation to see invisible FTL pathways and remove the required level to use an FTL pathway, up to a certain range.",
+    "guid": "#SOJ-8MdV-GQI",
+    "name": "Observatory",
+    "price": null,
+    "type": "BaseBuilding"
+  },
+  "B_Organiser": {
+    "desc": "This building can monitor multiple drone routes and merge them into full-fledged production chains. The backbone of a well-organized pipeline.",
+    "guid": "#WtP-G74H-bkB",
+    "name": "Drone Dispatcher",
+    "price": null,
+    "type": "BaseBuilding_Logistic"
+  },
+  "B_PathwayHolder": {
+    "desc": "This towering structure can keep an existing spacetime tunnel stable, even in the gravitational well of a planet. A ship can travel through such a pathway with their regular FTL engine.\nRequires the deployment of a [PathwayAmmo] with a [PathwayPuncher] at the exit point.",
+    "guid": "#bCR-qRPE-lg7",
+    "name": "Pathway Stand",
+    "price": null,
+    "type": "BaseBuilding"
+  },
+  "B_PowerTransmitter": {
+    "desc": "This building exploits cutting-edge shield technology and gravitational spacetime deformation to beam electricity without loss between different bases in the same stellar system.",
+    "guid": "#aCx-GFLv-D&O",
+    "name": "Power Transmitter",
+    "price": null,
+    "type": "BaseBuilding_Power"
+  },
+  "B_RecyclingPlant": {
+    "desc": "This building processes scraps to extract their various components and prepare them for industrial reuse.",
+    "guid": "#SOJ-8Md6-Vx#",
+    "name": "Recycling Plant",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_Shipyard": {
+    "desc": "This platform allows a ship to dock on the base to have its structure modified and its modules replaced. It is similar to the shipyards of space stations.",
+    "guid": "#SOJ-8MdJ-CpV",
+    "name": "Shipyard",
+    "price": null,
+    "type": "BaseBuilding_Logistic"
+  },
+  "B_ShuttlePad": {
+    "desc": "This platform allows a shuttle to dock on the base, transporting goods into and out of it.",
+    "guid": "#SOJ-8MdC-mCU",
+    "name": "Shuttle Landing Pad",
+    "price": null,
+    "type": "BaseBuilding_Logistic"
+  },
+  "B_Smelter": {
+    "desc": "This building converts raw ore into industrial ingots. As an automated alternative to the manual smelter, it can function continuously with no human input, which makes it appropriate for large-scale production.",
+    "guid": "#SOJ-8Md2-jKO",
+    "name": "Smelter",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_SmelterSA": {
+    "desc": "Meitner & Karls have refined the process of turning ore into ingots with this micro-furnace. Smaller and faster than a regular smelter, it's the perfect accessory for your days of heavy manual crafting.",
+    "guid": "#bkL-8k9J-kC5",
+    "name": "Micro-Furnace",
+    "price": null,
+    "type": "BaseBuilding_Crafting"
+  },
+  "B_SolarPanel": {
+    "desc": "This building converts electromagnetic radiation into electric current, supplying the base's power grid. It takes up space and must be oriented correctly, but it operates without fuel.",
+    "guid": "#SOJ-8McB-phm",
+    "name": "Solar Plant",
+    "price": null,
+    "type": "BaseBuilding_Power"
+  },
+  "B_StandaloneFoundation": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MdN-b6o",
+    "name": "Stand-alone Foundation",
+    "price": null,
+    "type": "BaseBuilding"
+  },
+  "B_SunStation": {
+    "desc": "[NOT IMPL] Space Building that produce a huge amount of power from a nearby star. Damage itself when its batteries are full.",
+    "guid": "#SOJ-8Mde-G#W",
+    "name": "Sun Station",
+    "price": null,
+    "type": "BaseBuilding"
+  },
+  "B_Warehouse": {
+    "desc": "This building is suitable for storing solid materials, which can be easily moved in and out by drones.",
+    "guid": "#SOJ-8McG-mE8",
+    "name": "Warehouse",
+    "price": null,
+    "type": "BaseBuilding_Storage"
+  },
+  "BarrierShield1": {
+    "desc": "This plasma shield module has enough charge to protect a spaceship from light man-made weapons, but takes longer to load than regular shields.",
+    "guid": "#Vbv-soEj-H05",
+    "name": "Small Barrier Shield",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "BarrierShield2": {
+    "desc": null,
+    "guid": "#VYt-NR5c-7Fu",
+    "name": "Barrier Shield",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "BarrierShield3": {
+    "desc": null,
+    "guid": "#Vsv-scrp-Q6b",
+    "name": "Large Barrier Shield",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "Battery": {
+    "desc": "A device that can store chemical energy and convert it to electricity. Forms the basis of larger battery RSMs.",
+    "guid": "#Xm3-#wFv-GlG",
+    "name": "Chemical Battery",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "Battery0": {
+    "desc": "",
+    "guid": "#SOJ-8MZL-FRd",
+    "name": "Crude Battery",
+    "price": 65,
+    "type": "ShipBattery"
+  },
+  "Battery1": {
+    "desc": "This module can store chemical energy and readily convert it to electric current to power other RSMs.",
+    "guid": "#SOJ-8MZP-lz2",
+    "name": "Battery Module",
+    "price": null,
+    "type": "ShipBattery"
+  },
+  "Battery2": {
+    "desc": null,
+    "guid": "#SOJ-8MZS-EAk",
+    "name": "BESS Module",
+    "price": null,
+    "type": "ShipBattery"
+  },
+  "Beacon": {
+    "desc": "An experimental method of high-speed communication. This beacon can instantly reveal its position to a quantum signature across the galaxy, no matter where it is.",
+    "guid": "#SOJ-8Mbn-Org",
+    "name": "Quantum Beacon",
+    "price": null,
+    "type": "PlayerConsumable"
+  },
+  "BeaconKey": {
+    "desc": "An experimental method of high-speed communication. This device can instantly pick up the position of the beacon it is paired with.",
+    "guid": "#bMk-mEeb-8Cm",
+    "name": "Quantum Signature",
+    "price": null,
+    "type": "BeaconData"
+  },
+  "Beam1": {
+    "desc": "An elongated piece of metal with an H-shaped cross-section. Commonly used in construction to provide structural resistance.",
+    "guid": "#SOJ-8MTI-u&0",
+    "name": "Structural Beam",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Beam2": {
+    "desc": "",
+    "guid": "#SOJ-8MTP-m1J",
+    "name": "Heavy-Duty Beam",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Beam3": {
+    "desc": "",
+    "guid": "#SOJ-8MTT-b1h",
+    "name": "Unbending Beam",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "BigCrystal": {
+    "desc": null,
+    "guid": "#SOJ-8MR9-sin",
+    "name": "Beautiful Gemstone",
+    "price": 35,
+    "type": "Luxuries"
+  },
+  "BlastMissile0": {
+    "desc": "Explosives are often used in mining operations to access minerals protected by heavy surface materials.",
+    "guid": "#SOJ-8Mbi-mvR",
+    "name": "Blasting Missile",
+    "price": null,
+    "type": "ShipAmmunition"
+  },
+  "Blueprint": {
+    "desc": "This detailed plan contains all the necessary instructions to build a specific ship module. It can be read by a human or by a machine.",
+    "guid": "#Wli-dkjm-3zP",
+    "name": "Blueprint",
+    "price": null,
+    "type": "Blueprint"
+  },
+  "BottlePlasma_Empty": {
+    "desc": "A sturdy mag-plasma container, making it possible to store this substance in regular cargo holds.",
+    "guid": "#YUG-EEVP-HHE",
+    "name": "Confinement Bottle",
+    "price": null,
+    "type": "Bottles"
+  },
+  "BottlePlasma_FToiL": {
+    "desc": null,
+    "guid": "#YUG-F#VS-WjH",
+    "name": "Mag-Plasma Bottle",
+    "price": null,
+    "type": "BottlesFull"
+  },
+  "Bottle_Empty": {
+    "desc": "A rudimentary but reliable container for liquid or semi-fluid substances, making it possible to store them in regular cargo holds.",
+    "guid": "#Xrd-Xo2V-pd9",
+    "name": "Stainless Bottle",
+    "price": null,
+    "type": "Bottles"
+  },
+  "Bottle_Ethanol": {
+    "desc": null,
+    "guid": "#btd-J#Jg-#6Y",
+    "name": "Ethanol Bottle",
+    "price": null,
+    "type": "BottlesFull"
+  },
+  "Bottle_Mercury": {
+    "desc": null,
+    "guid": "#ac9-XkIj-2mj",
+    "name": "Mercury Bottle",
+    "price": null,
+    "type": "BottlesFull"
+  },
+  "Bottle_ThermalPaste": {
+    "desc": null,
+    "guid": "#btd-PcJo-hv3",
+    "name": "Thermal Paste Bottle",
+    "price": null,
+    "type": "BottlesFull"
+  },
+  "Bottle_Vitriol": {
+    "desc": null,
+    "guid": "#Xrd-gw2e-UWG",
+    "name": "Sulphuric Acid Bottle",
+    "price": null,
+    "type": "BottlesFull"
+  },
+  "Bottle_Water": {
+    "desc": null,
+    "guid": "#Xrd-c62Z-oVU",
+    "name": "Water Bottle",
+    "price": null,
+    "type": "BottlesFull"
+  },
+  "Bottle_WaterBrine": {
+    "desc": null,
+    "guid": "#btd-GEJe-5z2",
+    "name": "Brine Water Bottle",
+    "price": null,
+    "type": "BottlesFull"
+  },
+  "Bottle_XenicOil": {
+    "desc": null,
+    "guid": "#btd-LYJm-bva",
+    "name": "Xenic Oil Bottle",
+    "price": null,
+    "type": "BottlesFull"
+  },
+  "BuildingScraps": {
+    "desc": "Rubble is a composite result of industrial disassembly, containing scraps of different metals.",
+    "guid": "#Sgd-eFPO-lWd",
+    "name": "Industrial Rubble",
+    "price": null,
+    "type": "Scrap"
+  },
+  "CalcifiedInvariant": {
+    "desc": "Ancient stones, bathed in the primordial energies of the big bang, sometimes have an energy signature that makes them uniquely identifiable.",
+    "guid": "#a2S-tpKq-Q3E",
+    "name": "Calcified Invariant",
+    "price": 100,
+    "type": "MineralOre"
+  },
+  "Calcite": {
+    "desc": "A carbonate crystal also known as alabaster. As the main component of limestone and marble, it is the ultimate sculpting material.",
+    "guid": "#SOJ-8MPk-WB5",
+    "name": "Calcite",
+    "price": null,
+    "type": "MineralOre"
+  },
+  "Carbon": {
+    "desc": "An essential material in most industries, whether in the form of coal, diamond or graphite. It is also one of only six chemical elements found in all known forms of life.",
+    "guid": "#SOJ-8MOZ-xv2",
+    "name": "a-Carbon",
+    "price": 1.5,
+    "type": "MineralParent"
+  },
+  "CarbonGenerator": {
+    "desc": "This module consumes carbon-based fuel to produce electric current to power other RSMs.",
+    "guid": "#UDb-mdAd-nC0",
+    "name": "Small Fuel Generator",
+    "price": null,
+    "type": "ShipPowerGenerators"
+  },
+  "CarbonGenerator2": {
+    "desc": "",
+    "guid": "#V&P-#Iu0-jte",
+    "name": "Large Fuel Generator",
+    "price": null,
+    "type": "ShipPowerGenerators"
+  },
+  "CarbonicFuel": {
+    "desc": "An ultra-processed derivative of carbon, engineered as a more efficient alternative to natural fossil fuels.",
+    "guid": "#YZq-#lP6-YE6",
+    "name": "Carbonic Superfuel",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Cartridge_Iron": {
+    "desc": "Projectile weapons are still used extensively by the Universal Defense Corps, which developed an array of standards for cartridge calibers.",
+    "guid": "#UgU-1xRl-rYB",
+    "name": "Small Cartridge",
+    "price": null,
+    "type": "ShipAmmunition"
+  },
+  "Cinnabar": {
+    "desc": "A crystal of mercury sulfide, that was widely used as pigment because of its bright red color, before the high toxicity or mercury was recognized.",
+    "guid": "#ac4-1Q8v-OCl",
+    "name": "Cinnabar",
+    "price": null,
+    "type": "MineralNugget"
+  },
+  "Cockpit_AE1": {
+    "desc": "Aegir's individual cockpit is streamlined to reduce the probability of critical damage during FTL jumps. It also comes with a small but highly efficient power battery.",
+    "guid": "#SOJ-8MXC-#TZ",
+    "name": "\"Pathfinder\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_AE2": {
+    "desc": "Aegir's large size cockpit is a technological wonder, capable of saving a precise location to which it can jump back at any time with no mag-plasma use and no risk of damage.",
+    "guid": "#SOJ-8MXG-C1D",
+    "name": "\"Wanderback\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_AE3": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MXK-YCr",
+    "name": "AE \"Skygazer\" Deck",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_DA1": {
+    "desc": "Damona's individual cockpit is a feat of insulation engineering that makes it less vulnerable to outside temperatures, but also slows down laser cooling. It also comes with a small radiator to help the ship evacuate excess heat or generate some when it gets cold.",
+    "guid": "#Zjb-eQqB-13k",
+    "name": "\"Cocoon\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_DA2": {
+    "desc": "[TODO] I don't know the effect, nor the name of this one",
+    "guid": "#Zjd-mQqH-1FF",
+    "name": "\"Reality\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_DA3": {
+    "desc": "[NOT IMPL]",
+    "guid": "#Zjd-o2qK-etg",
+    "name": "DA \"PlaceholderName\" Deck",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_LR1": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MX0-OQe",
+    "name": "LR \"Interceptor\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_LR2": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MX4-vyf",
+    "name": "LR \"Raptor\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_LR3": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MX7-&aC",
+    "name": "LR \"Marauder\" Deck",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_MK1": {
+    "desc": "Meitner & Karls' individual cockpit is optimized for storage space and collision resistance, making it the perfect pick for transporting cargo through asteroid fields.",
+    "guid": "#YK0-HRMy-qMX",
+    "name": "\"Beaver\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_MK2": {
+    "desc": "Meitner & Karls' large size cockpit is massive enough to include an onboard smelter, similar to the ones you could build in a land base.",
+    "guid": "#SOJ-8MXT-qat",
+    "name": "\"Anvil\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_MK3": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MXV-M0l",
+    "name": "M&K \"Foreman\" Deck",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Cockpit_TC1": {
+    "desc": "The Company's entry-level cockpit, mostly equipped on test vehicles.",
+    "guid": "#SOJ-8MXP-Rb5",
+    "name": "\"Brick\" Cockpit",
+    "price": null,
+    "type": "ShipCockpit"
+  },
+  "Coil": {
+    "desc": "A simple device converting magnetic fields into electric current, and vice versa.",
+    "guid": "#SOJ-8MSl-uxq",
+    "name": "Magnetic Coil",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "CombatMissile_AntiMatter": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SPS-jdBq-8Gj",
+    "name": "Anti-matter Torpedo",
+    "price": null,
+    "type": "ShipAmmunition"
+  },
+  "Concrete": {
+    "desc": "An artificial aggregate of minerals held together by a chemical substance known as cement. Mostly used in construction, concrete was the most manufactured material on Earth.",
+    "guid": "#XHg-ucFv-Gdz",
+    "name": "Concrete",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "ControlBaseCore": {
+    "desc": "This device can claim the surrounding area for the user's base and supply it with electric power. Its use is reserved to authorized associates selected by The Company.",
+    "guid": "#Ymm-Lcsb-ahd",
+    "name": "Base Core Drive",
+    "price": 100,
+    "type": "Casings"
+  },
+  "ControlBaseKit": {
+    "desc": "This autonomous device can deploy a planetary base in a matter of seconds. Its use is reserved to authorized associates selected by The Company.",
+    "guid": "#UxT-fYZK-liB",
+    "name": "Base Deploy Kit",
+    "price": null,
+    "type": "Casings"
+  },
+  "CopperIngot": {
+    "desc": "A highly conductive material noted for its versatility. Occurs in nature as a native metal, but can also be found in crystals.",
+    "guid": "#SOJ-8MRs-tMq",
+    "name": "Copper Ingot",
+    "price": 8,
+    "type": "Ingots"
+  },
+  "CopperNugget": {
+    "desc": null,
+    "guid": "#SOJ-8MOz-FiQ",
+    "name": "Copper Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "CopperOre": {
+    "desc": null,
+    "guid": "#SOJ-8MOv-wEB",
+    "name": "Copper Ore",
+    "price": null,
+    "type": "MetalOre"
+  },
+  "CorpoCredits": {
+    "desc": "These credits are owned by a corporation rather than an individual.",
+    "guid": "#WlP-e6aS-Odj",
+    "name": "Corpo Credits",
+    "price": null,
+    "type": "Virtual"
+  },
+  "CorpoReputation": {
+    "desc": "As each Corpo completes its various requests, their reputation across the galaxy improves.",
+    "guid": "#Wlh-0cac-a4x",
+    "name": "Reputation",
+    "price": null,
+    "type": "Virtual"
+  },
+  "Credits": {
+    "desc": "Credits are the shared currency of the Atlas Galaxy, issued by the Interstellar Union Of Banks under The Republic's supervision.",
+    "guid": "#TDz-Vk1k-GOv",
+    "name": "Credits",
+    "price": null,
+    "type": "Virtual"
+  },
+  "Crystal": {
+    "desc": "Gemstones can have different compositions, aspects and properties. Their common trait is an aesthetic appeal that makes them valuable to humans.",
+    "guid": "#SOJ-8MR3-24M",
+    "name": "Fair Gemstone",
+    "price": 10,
+    "type": "Luxuries"
+  },
+  "CrystalLattice_C": {
+    "desc": "A cleanly cut crystal that can be used in an optical device. Its cubic structure is the simplest crystal shape found in nature.",
+    "guid": "#XuE-MAd&-Bon",
+    "name": "c-Crystal Matrix",
+    "price": 2,
+    "type": "CrystalMatrix"
+  },
+  "CrystalLattice_H": {
+    "desc": "A cleanly cut crystal that can be used in an optical device. Its hexagonal structure is the most commonly found in nature.",
+    "guid": "#XuE-Kscz-NMg",
+    "name": "h-Crystal Matrix",
+    "price": 0.5,
+    "type": "CrystalMatrix"
+  },
+  "CrystalLattice_M": {
+    "desc": "A cleanly cut crystal that can be used in an optical device. Its monoclinic structure is remarkably asymmetrical.",
+    "guid": "#XuD-rEcs-3#d",
+    "name": "m-Crystal Matrix",
+    "price": 1.5,
+    "type": "CrystalMatrix"
+  },
+  "Deco_01": {
+    "desc": "This security joint covering an opening of the spaceship can also have some ornamental value. In the absence of wheels, it serves as a decorative rim.",
+    "guid": "#SOJ-8MXq-fAZ",
+    "name": "Round Hatch",
+    "price": null,
+    "type": "ShipDecorative"
+  },
+  "Deco_04": {
+    "desc": "",
+    "guid": "#SOJ-8MXu-UoT",
+    "name": "Intake Vent",
+    "price": null,
+    "type": "ShipDecorative"
+  },
+  "Deco_05": {
+    "desc": "",
+    "guid": "#X65-Lo29-V5V",
+    "name": "Big Intake Vent",
+    "price": null,
+    "type": "ShipDecorative"
+  },
+  "Deprecated": {
+    "desc": "The remnant of an old thing. There is no way to restore it, now, nor to find out what it was. The universe has changed and it is no longer needed.",
+    "guid": "#axO-ohIi-zh8",
+    "name": "Debris",
+    "price": 0.01,
+    "type": "Virtual"
+  },
+  "Diamond": {
+    "desc": "A crystalline form of pure carbon. It remains the hardest and most thermally conductive material ever observed.",
+    "guid": "#SOJ-8MOm-amz",
+    "name": "Diamond",
+    "price": 400,
+    "type": "Crystal"
+  },
+  "Drone0": {
+    "desc": "This autonomous vehicle carries loads from one point to another along a predefined route.",
+    "guid": "#SOJ-8Me4-Q15",
+    "name": "Drone",
+    "price": null,
+    "type": "Automate"
+  },
+  "EditorDecal": {
+    "desc": null,
+    "guid": "#WlJ-tY8E-nM#",
+    "name": "Decal",
+    "price": null,
+    "type": "Category_Decals"
+  },
+  "Elmerium": {
+    "desc": "A relatively poorly understood material whose electromagnetic properties can shape plasma fields. Its discovery during the United Planets era sparked the development of FTL shields.",
+    "guid": "#XmD-WUGB-7yb",
+    "name": "Elmerium Core",
+    "price": 20,
+    "type": "Ingots"
+  },
+  "ElmeriumEngine": {
+    "desc": "A device capable of dispersing a plasma field through a spherical volume. An essential component of most Shield models.",
+    "guid": "#XmF-9wGF-L7R",
+    "name": "Elmerium Engine",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "ElmeriumNugget": {
+    "desc": null,
+    "guid": "#XmD-N#G5-rJ5",
+    "name": "Elmerium Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "ElmeriumShavings": {
+    "desc": "",
+    "guid": "#XmD-QsG8-Z9Q",
+    "name": "Elmerium Dust",
+    "price": null,
+    "type": "MetalShavings"
+  },
+  "Emerald": {
+    "desc": "A crystal of the beryl family, traded as a gemstone and valued for its characteristic dark-green hue.",
+    "guid": "#SOJ-8MQT-PsC",
+    "name": "Emerald",
+    "price": 130,
+    "type": "Crystal"
+  },
+  "EmptyAttachment": {
+    "desc": "No attachment",
+    "guid": "#YYC-YUgF-woc",
+    "name": "",
+    "price": 0,
+    "type": "Virtual"
+  },
+  "EmptyCraft": {
+    "desc": "Click to select recipe",
+    "guid": "#SOJ-8Mez-&Ii",
+    "name": "Select...",
+    "price": 0,
+    "type": "Empty"
+  },
+  "EmptyFuel": {
+    "desc": "Click to select fuel",
+    "guid": "#a7w-8YpH-K#9",
+    "name": "Select...",
+    "price": 0,
+    "type": "Empty"
+  },
+  "EmptyInventory": {
+    "desc": "<i>There is nothing in your ship's hold.</i>",
+    "guid": "#SOJ-8MeT-1Ej",
+    "name": "Empty",
+    "price": 0,
+    "type": "AnyResource"
+  },
+  "EmptyLiquid": {
+    "desc": "Click to select liquid",
+    "guid": "#aQL-lFRa-ioo",
+    "name": "Select...",
+    "price": 0,
+    "type": "Empty"
+  },
+  "EmptyPatch": {
+    "desc": null,
+    "guid": "#Yic-F2ch-J#8",
+    "name": "Add patch...",
+    "price": 0,
+    "type": "Empty"
+  },
+  "EmptySlot": {
+    "desc": "Click to equip",
+    "guid": "#SOJ-8Meo-KA7",
+    "name": "Select...",
+    "price": 0,
+    "type": "Empty"
+  },
+  "EngineBooster": {
+    "desc": "Luo Ri's entry level auxiliary engine module can give a substantial speed advantage to pilots on a budget.",
+    "guid": "#SOJ-8MaX-&8O",
+    "name": "LR \"Speedster\"",
+    "price": null,
+    "type": "ShipBooster"
+  },
+  "Ethanol": {
+    "desc": "While it is well known for its recreative properties, ethanol is also a dense bio-fuel, and an useful solvent for oily stains.",
+    "guid": "#aVl-QwjA-c27",
+    "name": "Ethanol",
+    "price": 2.5,
+    "type": "Liquid"
+  },
+  "ExplodingToolMk1": {
+    "desc": "A module used to deliver a single explosive payload to a remote target.",
+    "guid": "#SOJ-8Mba-bBp",
+    "name": "Single-Tube Missile Launcher",
+    "price": null,
+    "type": "ShipWeapon"
+  },
+  "ExplodingToolMk2": {
+    "desc": "[NOT IMPL]",
+    "guid": "#Vfq-m3QZ-vlB",
+    "name": "8-Tube Missile Launcher",
+    "price": null,
+    "type": "ShipWeapon"
+  },
+  "FPS_Instance_Entrance": {
+    "desc": "",
+    "guid": "#SOJ-8MeJ-GSN",
+    "name": "FPS_Instance_Entrance",
+    "price": null,
+    "type": "Building"
+  },
+  "FTLEngine1": {
+    "desc": "Regarded as the greatest invention of the United Planets era, this category of modules can contract and expand space, making faster-than-light travel possible.",
+    "guid": "#SOJ-8MYk-pDs",
+    "name": "FTL Engine - Eco",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FTLEngine2_Heavy": {
+    "desc": null,
+    "guid": "#SOJ-8MYz-Gh1",
+    "name": "FTL Engine - Heavy",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FTLEngine2_Light": {
+    "desc": null,
+    "guid": "#SOJ-8MYo-7D2",
+    "name": "FTL Engine - Light",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FTLEngine2_Medium": {
+    "desc": null,
+    "guid": "#SOJ-8MYu-Fmo",
+    "name": "FTL Engine - Mid-weight",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FTLEngine3_Solo": {
+    "desc": "Regarded as the greatest invention of the United Planets era, this category of modules can contract and expand space, making faster-than-light travel possible. This model is optimized for a single ship.",
+    "guid": "#SOJ-8MZ#-ukS",
+    "name": "Advanced FTL Engine - Solo",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FTLEngine3_Support": {
+    "desc": "Regarded as the greatest invention of the *United Planets* era, this category of modules can contract and expand space, making faster-than-light travel possible. This model can transport several ships at once.",
+    "guid": "#SOJ-8MZ2-RlY",
+    "name": "Advanced FTL Engine - Support",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FTLTank1": {
+    "desc": "This storage module is suitable for active mag-plasma. Its MACS connections enable it to supply shield RSMs.",
+    "guid": "#SOJ-8MZ9-avg",
+    "name": "Small Mag-Plasma Tank",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FTLTank2": {
+    "desc": "",
+    "guid": "#SOJ-8MZB-QHE",
+    "name": "Mag-Plasma Tank",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FTLTank3": {
+    "desc": null,
+    "guid": "#SOJ-8MZF-NQx",
+    "name": "Big Mag-Plasma Tank",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "FToiL": {
+    "desc": "The discovery of this remarkable fuel is what made the invention of FTL jumps possible.",
+    "guid": "#Yvp-dx#F-J2k",
+    "name": "Mag-Plasma",
+    "price": 0.2,
+    "type": "Plasma"
+  },
+  "Fertilizer_Acidic": {
+    "desc": null,
+    "guid": "#ajz-mN1k-J9w",
+    "name": "Acidic Fertilizer",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Fertilizer_Carbonic": {
+    "desc": null,
+    "guid": "#ajz-w72G-YBe",
+    "name": "Carbonic Fertilizer",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Fertilizer_Metallic": {
+    "desc": null,
+    "guid": "#ak#-#gGJ-qP2",
+    "name": "Metallic Fertilizer",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Fertilizer_Neutral": {
+    "desc": "A powdered supplement that can be administered to alien plants to supply them with specific nutrients.",
+    "guid": "#ajz-aV1i-4&1",
+    "name": "Neutral Fertilizer",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "FluidPumpingTool1": {
+    "desc": "A module designed to gather all kinds of fluid present in the environnement, through a powerful suction.",
+    "guid": "#SOJ-8MbU-gl4",
+    "name": "Simple Hose Pump",
+    "price": null,
+    "type": "MiningTool"
+  },
+  "Focuser": {
+    "desc": "An optical device to concentrate radiation through polished crystals.",
+    "guid": "#SOJ-8MSw-l8g",
+    "name": "Crystalline Focuser",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "Focuser2": {
+    "desc": "",
+    "guid": "#SOJ-8MT#-FAq",
+    "name": "Hyper Lens",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "Focuser3": {
+    "desc": "",
+    "guid": "#blr-utCQ-#qs",
+    "name": "Ciliary Lens",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "ForbiddenLoot": {
+    "desc": null,
+    "guid": "#Zkj-OFNh-boO",
+    "name": "",
+    "price": null,
+    "type": "Virtual"
+  },
+  "Foundation": {
+    "desc": "",
+    "guid": "#SOJ-8Mf#-8pN",
+    "name": "Foundation",
+    "price": null,
+    "type": "Building"
+  },
+  "FusionGenerator": {
+    "desc": "[NOT IMPL] Produce Power and consume hydrogen or something",
+    "guid": "#SOJ-8MZg-JIq",
+    "name": "Fusion Generator",
+    "price": null,
+    "type": "ShipPowerGenerators"
+  },
+  "Graphene": {
+    "desc": "A material composed of interlocked carbon atoms. Its unequaled tensile strength makes it an optimal solution when both lightness and solidity are essential.",
+    "guid": "#SOJ-8MRq-JFL",
+    "name": "Graphene",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Graphenoid": {
+    "desc": "A graphene structure exhibiting quantum molecular effects, essential to the ability of high-end FTL engines to reach negative mass.",
+    "guid": "#ZrQ-m#zf-x0B",
+    "name": "Quantic Graphenoid",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "GraphiteCrystal": {
+    "desc": "A crystal comprising multiple layers of graphene. Although it could be described as an unfinished diamond, it is cheap enough to be used in pencils.",
+    "guid": "#SOJ-8MOi-NPJ",
+    "name": "Graphite Crystal",
+    "price": 9,
+    "type": "Crystal"
+  },
+  "Grating": {
+    "desc": "An optical device that decomposes light into a spectrum of frequencies.",
+    "guid": "#a3h-Lgay-cxf",
+    "name": "Diffraction Grating",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "GraviteDetector": {
+    "desc": "This specialized detector can locate gravite stones with precision. It greatly differs from other detectors, which can locate pretty much everything except gravite.",
+    "guid": "#Tt1-z6CO-EQF",
+    "name": "Gravitron",
+    "price": null,
+    "type": "ShipRadars"
+  },
+  "GunTurretTool": {
+    "desc": null,
+    "guid": "#UgU-R&Rp-YZQ",
+    "name": "Small Gun Turret",
+    "price": null,
+    "type": "ShipWeapon"
+  },
+  "GunTurretTool1": {
+    "desc": null,
+    "guid": "#a2T-SB1M-adv",
+    "name": "Gun Turret",
+    "price": null,
+    "type": "ShipWeapon"
+  },
+  "Gunpowder": {
+    "desc": "A chemical compound that deflagrates when heated.",
+    "guid": "#SOJ-8MTj-V8E",
+    "name": "Solid Explosive",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "HardMoney": {
+    "desc": "PXE can be bought for real money in order to unlock some visuals.\n\nIt is similar to NXT except that visuals unlock this way will be kept forever even if your reset your account.\n\nBuying PXE is not mandatory but helps supporting Shiro Games, the game studio that made SpaceCraft.",
+    "guid": "#bC9-5wp6-vI6",
+    "name": "PXE",
+    "price": null,
+    "type": "Virtual"
+  },
+  "HeatRecouper": {
+    "desc": "[NOT IMPL] Turn heat into power slowly and increase heat capacity alot",
+    "guid": "#SOJ-8Ma1-uzY",
+    "name": "Heat Condenser",
+    "price": null,
+    "type": "ShipHeatModule"
+  },
+  "HeatShield": {
+    "desc": "[NOT IMPL] Improve the shield of the ship, so that, as long as it is active, the ship also benefit from a protection from environmental heat and cold (reduction of the heat interface), and from heat-related weapons",
+    "guid": "#SOJ-8MaG-ZCq",
+    "name": "Thermal Shield",
+    "price": null,
+    "type": "ShipModule"
+  },
+  "Heater": {
+    "desc": "A heater is used to combat the harsh cold exterior by turning electrical power into raw heat.",
+    "guid": "#SOJ-8MZv-GC6",
+    "name": "Electric Heater",
+    "price": null,
+    "type": "ShipHeatModule"
+  },
+  "Heater2": {
+    "desc": null,
+    "guid": "#SOJ-8MZz-PTW",
+    "name": "Boiler Heater",
+    "price": null,
+    "type": "ShipHeatModule"
+  },
+  "HeavyShield2": {
+    "desc": "[NOT IMPL A heavy combat shield, that ignores light damage, at an increased energy cost.]",
+    "guid": "#Vfc-f3QX-66E",
+    "name": "Heavy Shield",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "HeavyShield3": {
+    "desc": null,
+    "guid": "#Vsv-vwrt-rfZ",
+    "name": "Large Heavy Shield",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "Helium": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MRV-NTI",
+    "name": "Helium",
+    "price": null,
+    "type": "Gas"
+  },
+  "Hematite": {
+    "desc": "A crystalline iron oxide, useful in radiation shielding because of its high density. It is also noted for its electric conductivity.",
+    "guid": "#Y1U-ZMbE-#xn",
+    "name": "Hematite",
+    "price": 7,
+    "type": "Crystal"
+  },
+  "HudgeCrystal": {
+    "desc": null,
+    "guid": "#SOJ-8MRB-wXV",
+    "name": "Marvelous Gemstone",
+    "price": 100,
+    "type": "Luxuries"
+  },
+  "HullMK1_001": {
+    "desc": null,
+    "guid": "#SOJ-8MUt-XrB",
+    "name": "Steel 4x3x2",
+    "price": null,
+    "type": "ShipHull_Steel"
+  },
+  "HullMK1_001_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWf-ACj",
+    "name": "Alloy X 4x3x2",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK1_001_Lev": {
+    "desc": null,
+    "guid": "#SOJ-8MWF-RZF",
+    "name": "Levinium 4x3x2",
+    "price": null,
+    "type": "ShipHull_Levinium"
+  },
+  "HullMK1_001_Pla": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MVj-3qE",
+    "name": "Platinium 4x3x2 [DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK1_001_Steel_AluK": {
+    "desc": null,
+    "guid": "#Zlt-rwuO-5A9",
+    "name": "Thermal Steel 4x3x2",
+    "price": null,
+    "type": "ShipHull_Steel_AluK"
+  },
+  "HullMK1_001_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MVE-N1B",
+    "name": "Titanium 4x3x2",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK1_001_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-kAvL-yaJ",
+    "name": "Thermal Titanium 4x3x2",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK1_002": {
+    "desc": null,
+    "guid": "#SOJ-8MUz-ggz",
+    "name": "Steel 6x3x2",
+    "price": null,
+    "type": "ShipHull_Steel"
+  },
+  "HullMK1_002_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWh-jDT",
+    "name": "Alloy X 6x3x2",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK1_002_Lev": {
+    "desc": null,
+    "guid": "#SOJ-8MWL-NiK",
+    "name": "Levinium 6x3x2",
+    "price": null,
+    "type": "ShipHull_Levinium"
+  },
+  "HullMK1_002_Pla": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MVm-6F1",
+    "name": "Platinium 6x3x2 [DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK1_002_Steel_AluK": {
+    "desc": null,
+    "guid": "#Zlt-sEuS-s&I",
+    "name": "Thermal Steel 6x3x2",
+    "price": null,
+    "type": "ShipHull_Steel_AluK"
+  },
+  "HullMK1_002_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MVJ-8FO",
+    "name": "Titanium 6x3x2",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK1_002_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-kIvO-oxI",
+    "name": "Thermal Titanium 6x3x2",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK1_003": {
+    "desc": null,
+    "guid": "#SOJ-8MV0-OaB",
+    "name": "Steel 8x3x2",
+    "price": null,
+    "type": "ShipHull_Steel"
+  },
+  "HullMK1_003_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWm-fhv",
+    "name": "Alloy X 8x3x2",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK1_003_Lev": {
+    "desc": null,
+    "guid": "#SOJ-8MWN-edg",
+    "name": "Levinium 8x3x2",
+    "price": null,
+    "type": "ShipHull_Levinium"
+  },
+  "HullMK1_003_Pla": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MVo-mzM",
+    "name": "Platinium 8x3x2 [DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK1_003_Steel_AluK": {
+    "desc": null,
+    "guid": "#Zlt-sQuU-&Yo",
+    "name": "Thermal Steel 8x3x2",
+    "price": null,
+    "type": "ShipHull_Steel_AluK"
+  },
+  "HullMK1_003_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MVP-wDJ",
+    "name": "Titanium 8x3x2",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK1_003_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-kUvT-oFc",
+    "name": "Thermal Titanium 8x3x2",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK1_004": {
+    "desc": "Space crafts are composed of three main layers: a voidproof outside layer, made of resistant material, a structurally sound internal skeleton of heavy beams, and the internal systems keeping the ship inhabitable and functioning.\n\nStellar Engineering brings together all three layers in its modular part designs to help you build the ship of your dreams.",
+    "guid": "#SOJ-8MUg-lCG",
+    "name": "Steel 4x3x1",
+    "price": null,
+    "type": "ShipHull_Steel"
+  },
+  "HullMK1_004_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWS-j6S",
+    "name": "Alloy X 4x3x1",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK1_004_Lev": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MW4-JJA",
+    "name": "Levinium 4x3x1 [DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK1_004_Plat": {
+    "desc": null,
+    "guid": "#acL-F2JE-8d#",
+    "name": "Solid Frame 4x3x1",
+    "price": null,
+    "type": "ShipHull_Platinum"
+  },
+  "HullMK1_004_Steel_AluK": {
+    "desc": null,
+    "guid": "#Zlt-r6u4-yo#",
+    "name": "Thermal Steel 4x3x1",
+    "price": null,
+    "type": "ShipHull_Steel_AluK"
+  },
+  "HullMK1_004_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MV2-8li",
+    "name": "Titanium 4x3x1",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK1_004_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-jcv6-vGV",
+    "name": "Thermal Titanium 4x3x1",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK1_005": {
+    "desc": null,
+    "guid": "#SOJ-8MUm-5e7",
+    "name": "Steel 6x3x1",
+    "price": null,
+    "type": "ShipHull_Steel"
+  },
+  "HullMK1_005_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWU-GY7",
+    "name": "Alloy X 6x3x1",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK1_005_Lev": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MW6-b8r",
+    "name": "Levinium 6x3x1[DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK1_005_Plat": {
+    "desc": null,
+    "guid": "#acL-KAJK-hvH",
+    "name": "Solid Frame 6x3x1",
+    "price": null,
+    "type": "ShipHull_Platinum"
+  },
+  "HullMK1_005_Steel_AluK": {
+    "desc": null,
+    "guid": "#Zlt-rcuG-c5n",
+    "name": "Thermal Steel 6x3x1",
+    "price": null,
+    "type": "ShipHull_Steel_AluK"
+  },
+  "HullMK1_005_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MV9-f1N",
+    "name": "Titanium 6x3x1",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK1_005_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-jovA-JXj",
+    "name": "Thermal Titanium 6x3x1",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK1_006": {
+    "desc": null,
+    "guid": "#SOJ-8MUr-Pic",
+    "name": "Steel 8x3x1",
+    "price": null,
+    "type": "ShipHull_Steel"
+  },
+  "HullMK1_006_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWY-B68",
+    "name": "Alloy X 8x3x1",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK1_006_Lev": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MWD-C&1",
+    "name": "Levinium 8x3x1[DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK1_006_Plat": {
+    "desc": null,
+    "guid": "#acL-KQJO-TBJ",
+    "name": "Solid Frame 8x3x1",
+    "price": null,
+    "type": "ShipHull_Platinum"
+  },
+  "HullMK1_006_Steel_AluK": {
+    "desc": null,
+    "guid": "#Zlt-rkuL-61K",
+    "name": "Thermal Steel 8x3x1",
+    "price": null,
+    "type": "ShipHull_Steel_AluK"
+  },
+  "HullMK1_006_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MVB-&1d",
+    "name": "Titanium 8x3x1",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK1_006_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-k#vE-dQ6",
+    "name": "Thermal Titanium 8x3x1",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK1_Flat_Steel_Virtual": {
+    "desc": null,
+    "guid": "#SOJ-8MUR-SmW",
+    "name": "Virtual Steel Flat MK1 Part",
+    "price": null,
+    "type": "Virtual"
+  },
+  "HullMK1_Steel_Virtual": {
+    "desc": null,
+    "guid": "#SOJ-8MUW-iL4",
+    "name": "Virtual Steel MK1 Part",
+    "price": null,
+    "type": "Virtual"
+  },
+  "HullMK1_Titanium_Virtual": {
+    "desc": null,
+    "guid": "#SOJ-8MUY-N9S",
+    "name": "Virtual Titanium MK1 Part",
+    "price": null,
+    "type": "Virtual"
+  },
+  "HullMK2_001_Pla": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MVv-u9U",
+    "name": "Platinium 8x6x4 [DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK2_002_Pla": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MVx-zo&",
+    "name": "Platinium 12x6x4 [DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK2_003_Pla": {
+    "desc": "[DEPRECATED]",
+    "guid": "#SOJ-8MW0-aOE",
+    "name": "Platinium 16x6x4 [DEPRECATED BUT STILL USED IN SHIPWRECK]",
+    "price": null,
+    "type": "ShipHull_WreckOnly"
+  },
+  "HullMK2_004_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWo-3Wr",
+    "name": "Alloy X 8x6x2",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK2_004_Plat": {
+    "desc": null,
+    "guid": "#acL-ToJS-d&l",
+    "name": "Solid Frame 8x6x2",
+    "price": null,
+    "type": "ShipHull_Platinum"
+  },
+  "HullMK2_004_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MVS-jkJ",
+    "name": "Titanium 8x6x2",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK2_004_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-kgvW-sSc",
+    "name": "Thermal Titanium 8x6x2",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK2_005_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWv-EE0",
+    "name": "Alloy X 12x6x2",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK2_005_Plat": {
+    "desc": null,
+    "guid": "#acL-U6JX-PPD",
+    "name": "Solid Frame 12x6x2",
+    "price": null,
+    "type": "ShipHull_Platinum"
+  },
+  "HullMK2_005_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MVU-H97",
+    "name": "Titanium 12x6x2",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK2_005_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-l2ve-giI",
+    "name": "Thermal Titanium 12x6x2",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK2_006_AX1": {
+    "desc": "[NOT IMPL]",
+    "guid": "#bRx-yIE1-EZC",
+    "name": "Alloy X 12x6x4",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK2_006_Plat": {
+    "desc": null,
+    "guid": "#acL-UIJa-zon",
+    "name": "Solid Frame 16x6x2",
+    "price": null,
+    "type": "ShipHull_Platinum"
+  },
+  "HullMK2_006_Tit": {
+    "desc": null,
+    "guid": "#SOJ-8MVb-rP9",
+    "name": "Titanium 16x6x2",
+    "price": null,
+    "type": "ShipHull_Titanium"
+  },
+  "HullMK2_006_Tit_AluK": {
+    "desc": null,
+    "guid": "#Zlw-lEvj-JDY",
+    "name": "Thermal Titanium 16x6x2",
+    "price": null,
+    "type": "ShipHull_Titanium_AluK"
+  },
+  "HullMK2_007_AX": {
+    "desc": "[NOT IMPL]",
+    "guid": "#SOJ-8MWz-fPD",
+    "name": "Alloy X 16x6x2",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK2_008_AX1": {
+    "desc": "[NOT IMPL]",
+    "guid": "#bRy-#cE2-0BZ",
+    "name": "Alloy X 16x6x4",
+    "price": null,
+    "type": "ShipHull_AlloyX"
+  },
+  "HullMK2_Titanium_Virtual": {
+    "desc": null,
+    "guid": "#SOJ-8MUd-DAl",
+    "name": "Virtual Titanium MK2 Part",
+    "price": null,
+    "type": "Virtual"
+  },
+  "HypergateBeacon": {
+    "desc": "[NOT IMPL] Exit point for a Hypergate tunnel.",
+    "guid": "#SOJ-8Mbo-DaJ",
+    "name": "Hypergate Beacon",
+    "price": null,
+    "type": "ShipAmmunition"
+  },
+  "InfoItemAliensCommon": {
+    "desc": "This hard disk contains valuable information about intelligent non-human life forms. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-BkP7-wUy",
+    "name": "Data - Non-humans",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemAliensRare": {
+    "desc": "This hard disk contains critical information about intelligent non-human lifeforms. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-T2PZ-zCv",
+    "name": "Data - Non-humans III",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemAliensUnco": {
+    "desc": "This hard disk contains highly sensitive information about intelligent non-human lifeforms. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-C#PE-FeD",
+    "name": "Data - Non-humans II",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemCompanyCommon": {
+    "desc": "This hard disk contains valuable information about *The Company*. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-2AOG-z92",
+    "name": "Data - The Company",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemCompanyRare": {
+    "desc": "This hard disk contains critical information about *The Company*. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-AoOi-mdO",
+    "name": "Data - The Company III",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemCompanyUnco": {
+    "desc": "This hard disk contains highly sensitive information about *The Company*. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-5UOb-1Kn",
+    "name": "Data - The Company II",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemConglomeratesCommon": {
+    "desc": "This hard disk contains highly sensitive information about at least one conglomerate. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-5EOQ-K#I",
+    "name": "Data - Conglomerates",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemConglomeratesRare": {
+    "desc": "This hard disk contains critical information about at least one conglomerate. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-B2Op-tvs",
+    "name": "Data - Conglomerates III",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemConglomeratesUnco": {
+    "desc": "This hard disk contains valuable information about at least one conglomerate. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-56OO-bGN",
+    "name": "Data - Conglomerates II",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemPiratesCommon": {
+    "desc": "This hard disk contains highly sensitive information about pirate factions. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-5gOd-LcX",
+    "name": "Data - Pirates",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemPiratesRare": {
+    "desc": "This hard disk contains critical information about pirate factions. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-BIOw-D8q",
+    "name": "Data - Pirates III",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemPiratesUnco": {
+    "desc": "This hard disk contains valuable information about pirate factions. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-5QOW-Vax",
+    "name": "Data - Pirates II",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemRepublicCommon": {
+    "desc": "This hard disk contains valuable information about *The Republic*. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-4AOK-8a5",
+    "name": "Data - The Republic",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemRepublicRare": {
+    "desc": "This hard disk contains critical information about *The Republic*. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-BcP2-uwr",
+    "name": "Data - The Republic III",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InfoItemRepublicUnco": {
+    "desc": "This hard disk contains highly sensitive information about *The Republic*. That could interest a lot of people, but not all of them would put the same price on it.",
+    "guid": "#XiM-AwOn-f9n",
+    "name": "Data - The Republic II",
+    "price": null,
+    "type": "DataDisc"
+  },
+  "InstanceBuilding": {
+    "desc": null,
+    "guid": "#SOJ-8Meh-AN5",
+    "name": "",
+    "price": null,
+    "type": "Building"
+  },
+  "InstanceEntrance": {
+    "desc": null,
+    "guid": "#SOJ-8Mef-ofQ",
+    "name": "",
+    "price": null,
+    "type": "Building"
+  },
+  "IronIngot": {
+    "desc": "A material closely associated with the advent of human civilization. Widely used in industry, it is one of the most abundant elements on terrestrial planets.",
+    "guid": "#SOJ-8MRm-UV4",
+    "name": "Iron Ingot",
+    "price": 5.8,
+    "type": "Ingots"
+  },
+  "IronNugget": {
+    "desc": null,
+    "guid": "#SOJ-8MOM-Uca",
+    "name": "Iron Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "IronOre": {
+    "desc": null,
+    "guid": "#SOJ-8MOL-8rz",
+    "name": "Iron Ore",
+    "price": null,
+    "type": "MetalOre"
+  },
+  "IronScraps": {
+    "desc": "",
+    "guid": "#TOs-86g&-q22",
+    "name": "Iron Scraps",
+    "price": null,
+    "type": "Scrap"
+  },
+  "IsotopicGenerator": {
+    "desc": "[NOT IMPL] Produce Power but do not require anything (not even light !!!)",
+    "guid": "#SOJ-8MZc-PiF",
+    "name": "Isotopic Generator",
+    "price": null,
+    "type": "ShipPowerGenerators"
+  },
+  "Kaolinite": {
+    "desc": "A very common type of silicate mineral, widely used in the production of paper and paint, and often found in clay shells. Safe to ingest in small quantities, it is also a common ingredient in toothpaste.",
+    "guid": "#Xbp-sIex-jzY",
+    "name": "Kaolinite",
+    "price": 5,
+    "type": "MineralNugget"
+  },
+  "KineticShield1": {
+    "desc": "Using a pair of Tesla coils, this module generates a bubble of charged plasma that can protect a spaceship from radiation and particles.",
+    "guid": "#SOJ-8Ma2-ZB7",
+    "name": "Small Reactive Shield",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "KineticShield2": {
+    "desc": null,
+    "guid": "#SOJ-8Ma8-8LC",
+    "name": "Reactive Shield",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "KineticShield3": {
+    "desc": null,
+    "guid": "#Vsv-pcrl-Yn4",
+    "name": "Hyper Reactive Shield",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "KineticShield_Group": {
+    "desc": "[NOT IMPL] Generate shield for all ships in the group at relatively close proximity.",
+    "guid": "#SOJ-8MaA-Atc",
+    "name": "Kinetic Shield Projector",
+    "price": null,
+    "type": "ShipModule"
+  },
+  "KnowAliens": {
+    "desc": "[TODO]",
+    "guid": "#YdT-2krd-9dz",
+    "name": "Non-human Intelligence",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowCompany1": {
+    "desc": "Most existing space stations in the *Atlas Galaxy* are built and operated by *The Company*. Its affiliate worker program helped it secure a quasi-monopoly on the extraction and processing of natural resources after the buyout of its competitor United Industries. It maintains long-term partnerships with *The Republic* as well as other conglomerates. It is currently headed by *Martin J. Miller*.",
+    "guid": "#YL7-ZlMY-GOR",
+    "name": "The Company",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowCompany2": {
+    "desc": "Founded when humankind still inhabited the *Milky Way*, The Company was originally a contractor for public services. It gained importance during the *Tripod War*, as the *United Planets Federation* grew increasingly incapable of maintaining its grip on threatened territories and started relying more on its private contractors. By the end of the conflict, The Company had extended its control over most vital services in each of the 8 human colonies.",
+    "guid": "#YdV-#Arx-aLM",
+    "name": "The Company: Tripod War",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowCompany3": {
+    "desc": "After *Incident H-378* buried all hopes of a human victory in the *Tripod War*, communication engineers working for The Company deciphered the signal that led to the discovery of the *Atlas Galaxy*. The subsequent move of most surviving human citizens to Atlas offered The Company a clean slate, with no remaining institution to counter its monopoly. As a result, it played a central role in shaping the new human society of the Atlas era.",
+    "guid": "#YL7-mVMc-i1W",
+    "name": "The Company: The Signal",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowCompany4": {
+    "desc": "The Company is creating *artificial shortages* of key resources in order to inflate market prices, while still buying these resources from its affiliate workers at lower rates. A minimum of *167 deadly accidents* have reportedly been caused by companies or contractors having to replace key spaceship materials with cheaper alternatives during shortages. An estimated 19 smaller companies have been forced to shut down as The Company intentionally hoarded a material they heavily relied on.",
+    "guid": "#YL7-mdMj-rBD",
+    "name": "The Company: Artificial Shortages",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowCompany5": {
+    "desc": "The intelligence company *Ophanim*, a subsidiary of banking conglomerate IUOB, was mandated by The Company to provide *surveillance records of all its affiliate workers*. The resulting information is used by The Company to rate their affiliates’ loyalty. The *loyalty score* of an affiliate is kept secret, and determines the rates they are offered by Trading Agents. It can also lead to the termination of their contract, or to their immediate arrest in case of any interactions with pirates.",
+    "guid": "#Yig-ClFy-mpV",
+    "name": "The Company: Affiliate Surveillance",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowCompany6": {
+    "desc": "With an insufficient budget to defend all inhabited sectors from pirate attacks, *The Republic* formed an unofficial law enforcement partnership with The Company, allowing it to conduct its own *military operations under the UDC’s flag*. As part of this agreement, The Company is allowed to claim the cargo and scrap parts of every *pirate ship* it takes down, with no legal requirement to prove the pirate affiliation of the target.",
+    "guid": "#Yig-OJG0-PL2",
+    "name": "The Company: Theft Operations",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowCompanySpecific": {
+    "desc": "The affiliate worker program was first developed by *United Industries*, a former subsidiary of the *Laniakea* conglomerate which was later absorbed by The Company. A serious contender in the race for industrial hegemony in *Atlas*, Laniakea was the first to complete a space station there. At that point, The Company adopted a hybrid strategy of espionage, legislative pressure, sabotage and hostile takeovers, allowing it to absorb its competitor and erase every trace of its existence.",
+    "guid": "#YL7-o3Ml-OZm",
+    "name": "The Company: Laniakea Corp",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowCompanySpecific2": {
+    "desc": "The oldest traces of The Company”s presence in the *Atlas Galaxy* are prior to its official discovery. During the *Tripod War*, The Company started exploiting the resources of Atlas to fuel its industrial dominance while concealing this new galaxy from society at large. All workers in the mines of Atlas were forbidden to return to the Milky Way. It was only three years after *Incident H-378* – as humankind was on the brink of annihilation – that The Company revealed the *Atlas Portal*, allowing the exodus to start.",
+    "guid": "#YdS-u#rS-jW&",
+    "name": "The Company: The Atlas Lie",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates1": {
+    "desc": "Conglomerates are companies with multiple subsidiaries across *multiple industries*. To be recognized as a conglomerate by The Republic, a company must maintain a market share of at least 20% across three or more distinct sectors. Other than *The Company*, only 4 entities are currently considered conglomerates: *IUOB*, *Stellar Engineering*, *Ninmah Group* and *Eris Corp.*",
+    "guid": "#YdT-02rZ-6yP",
+    "name": "Conglomerates",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates2": {
+    "desc": "*IUOB*, the Interstellar Union of Banks, was formed during the Milky Way era. Requisitioned by the United Planets Federation during the war, it later regained its autonomy by forming partnerships with other conglomerates and diversifying its activities. Today, it controls the *QUASR* stock market, the surveillance firm *Ophanim*, and several financial institutions, casino chains and luxury restaurants. It is currently headed by *Edith Wei*.",
+    "guid": "#YdV-DUsL-OFv",
+    "name": "Conglomerates: IUOB",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates3": {
+    "desc": "*Stellar Engineering* was the largest conglomerate of the Milky Way era. Established on all colonies of the United Planets as *Meitner & Karls*, it achieved tremendous growth during the war. Most of its patents, including the *Reliant Spaceship Module*, were made public during this period to diversify the military’s suppliers, but Stellar was later able to absorb its main competitors *Aegir* and *Luori*. Stellar also dominates the transport sector and computer industry. It is currently led by *Jin Yichen*.",
+    "guid": "#YdT-4srk-OS7",
+    "name": "Conglomerates: Stellar Engineering",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates4": {
+    "desc": "*Ninmah* was founded during the Tripod War, offering affordable food and medical support in crisis situations. At the onset of the Atlas era, it grew into a new spiritual movement promoting the idea that *Earth* can and must be rebuilt. Currently dominating the pharmaceutical, medical and hydroponic sectors, it also controls several media giants and major RSM constructor *Damona*. It is currently headed by *Claudia Katavsky*.",
+    "guid": "#YdV-4osF-KpN",
+    "name": "Conglomerates: Ninmah Group",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates5": {
+    "desc": "*Eris Corp.* is the only conglomerate formed after the war. Though not nearly as powerful as older conglomerates, it is the most familiar to the general public. In addition to its dominance over the food market with household brands like *Star Sip* and *Master Soda*, it is also a media empire and the main organizer of sporting events in Atlas. It is currently headed by *Nasim de Beaumont*.",
+    "guid": "#YdV-LcsN-YYF",
+    "name": "Conglomerates: Eris Corp.",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates6": {
+    "desc": "*Eris Corp.* originated from a minor subsidiary of *The Company* formerly known as Star Foods. This branch developed Atlas’s first successful consumer brands, installing vending machines in every public space of the new territory. However, as tensions grew between the subsidiary’s management and The Company’s central authority, a series of conflicts culminated with the complete buyout of *Star Foods* by its own management and workforce. The provenance of the funds that made this buyout possible remains unclear.",
+    "guid": "#Yiw-bYHt-gKQ",
+    "name": "Conglomerates: Disowned Child",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates7": {
+    "desc": "*IUOB*, formerly controlled by The Federation, gained leverage over other conglomerates by conducting espionage operations. By the end of the war, its subsidiary *Ophanim* had uncovered enough compromising secrets to pose a serious threat to each of them, while also proving especially useful as a consultant for their business strategies. By negotiating non-disclosure agreements on key issues, *IUOB* was able to become an essential actor in the industrial landscape of Atlas, and to regain its independence.",
+    "guid": "#Yiw-bkHx-vW3",
+    "name": "Conglomerates: Industrial Espionage",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates8": {
+    "desc": "*Bo Zeya*, the best-known and most wanted figure of the Vox Populi pirate federation, has reportedly been hiding in facilities controlled by *Eris Corp.* The conglomerate’s executives will not disclose any information that could lead to his arrest. The hunt for Bo, extensively covered by Eris’ media subsidiaries, turned him into a subject of public interest. Despite its apparent support for him, the conglomerate often employs violent methods against pirates in the sectors it controls.",
+    "guid": "#Yiw-bsI1-6Ji",
+    "name": "Conglomerates: Pirate Acquaintances",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomerates9": {
+    "desc": "When *Ninmah* emerged as a humanitarian structure during the *Tripods War*, it built its reputation on its ability to produce miraculously effective medical drugs and food supplies at an exceptional pace. In reality, Ninmah’s experiments directly or indirectly caused the fall of *3 out of 8 human colonies* in the Milky Way. In all of these cases, Ninmah managed to hide its responsibility long enough so that the first court cases only emerged shortly before the exodus to Atlas, when all existing institutions disappeared.",
+    "guid": "#Yiw-c2I2-FpO",
+    "name": "Conglomerates: War Crimes",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomeratesSpecific": {
+    "desc": "*Ninmah* never expected any of its *terraforming* projects to succeed. By selling each planet’s land at inflated prices, then buying it back for trivial sums, it raises enough money to finance various new ventures. Each one serves as an open laboratory that bypasses The Republic’s usual regulations on *chemical testing*. In addition, the exoplanet status granted by the Universal Licensing Agency grants Ninmah special authorizations for all mining activities within the surrounding sector.",
+    "guid": "#YdW-HEsZ-#jp",
+    "name": "Conglomerates: Failing Upwards",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomeratesSpecific2": {
+    "desc": "*Ninmah* and its subsidiary *HydroponInc* were aware of the poisoning risks to their employees on *Sirona IV*, but concealed this information to appease the planet’s landowners. They also received the distress signals sent by on-site teams, but saw the critter attack as an opportunity to get rid of witnesses to the disastrous effects of their terraforming efforts. A militia regiment was later sent on a suicide mission to display Ninmah’s eagerness to save its employees.",
+    "guid": "#YdW-I6sc-O2d",
+    "name": "Conglomerates: Sacrificed Workers",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowConglomeratesSpecific3": {
+    "desc": "*Stellar Engineering* bore direct responsibility in *Incident H-378*, which caused the disappearance of the extended fleet of the United Planets. The faulty *FTL modules* built by the conglomerate presented risks that had already been documented by its engineers. Stellar subsequently announced that dozens of its facilities had been struck by the *Tripods*. Every single engineer who had raised concerns about the FTL modules was then found dead.",
+    "guid": "#YdW-Icsj-ACI",
+    "name": "Conglomerates: The Great Incident",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates1": {
+    "desc": "*Pirate factions* are numerous, diverse and *decentralized*. In legal terms, they include all individuals and activities *not recognized* by The Republic or contracted by one of its authorized conglomerates. The interests of factions labeled as pirates don't necessarily overlap, but they often collaborate to build alternative networks of trade, information exchange, and pirate space stations.",
+    "guid": "#YdS-zYrV-3U8",
+    "name": "Pirate Factions",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates2": {
+    "desc": "*Vox Populi* is a political federation that unites a number of pirate *space stations*, mostly organized on a communalist model. Unlike stations controlled by conglomerates, pirate stations are assembled gradually, and individuals can add their own modules to it. After Vox Populi was flagged by The Republic as a terrorist organization, its most renowned spokesperson *Bo Zeya* became a fugitive.",
+    "guid": "#YdT-4krg-QJT",
+    "name": "Pirate Factions: Vox Populi",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates3": {
+    "desc": "*Rallize* is an *armed revolutionary group* whose main purpose is to destabilize the mercantile order of the conglomerates and The Republic. Its guerrilla methods include theft, kidnapping, sabotage, and open conflict with the *Universal Defense Corps*. In the news, the term “pirates” often stands for Rallize, and only its most violent actions are documented. However, it is also a major purveyor of social assistance and protection within pirate sectors.",
+    "guid": "#YdV-4UsC-60R",
+    "name": "Pirate Factions: Rallize",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates4": {
+    "desc": "The *Interspecies Communication Agency* is a former public laboratory founded by Lauren Amaechi to study the self-replicating *Tripods* and the extraterrestrial species which created them. Defunded by *The Republic*, it continues its activities outside any legal framework, which has led to its gradual criminalization.",
+    "guid": "#YdV-MosS-Z&B",
+    "name": "Pirate Factions: ICA",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates5": {
+    "desc": "Although not considered a pirate organization, the *Green Alliance* became increasingly active in pirate sectors after several of its members became fugitives, including the whistleblower *Jeongwol*. Its small presence within *The Republic’s senate* is a frequent subject of controversy, particularly because of its frequent association with *Vox Populi*.",
+    "guid": "#YdV-MwsX-ac4",
+    "name": "Pirate Factions: Green Alliance",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates6": {
+    "desc": "*Rallize* was the first pirate group in Atlas. Upon completing the construction of its first space station, it began dedicating a large part of its industrial capabilities to weaponry. Its long-term ambitions shifted from mere survival to the complete destruction of *The Republic*. It was around this time that *Vox Populi* emerged as a peaceful, reformist branch of the pirate resistance. This group has since tried to reconcile pirate interests and integration within The Republic’s institutions.",
+    "guid": "#Yiw-WgHg-h4Q",
+    "name": "Pirate Factions: Original Schism",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates7": {
+    "desc": "The first pirate groups emerged during uprisings at *The Company*’s mines, after convicts sentenced to forced labor saw their releases indefinitely delayed without explanation. They took control of some of the mines and extracted enough resources to build their own space stations. They later dismantled the old installations, and still recycle parts of them to this day. These events were the main reason that led The Company to stop building large mines, and instead rely on isolated *Associate Workers*.",
+    "guid": "#Yiw-X2Hn-In3",
+    "name": "Pirate Factions: Primeval Mutiny",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates8": {
+    "desc": "Originally founded by *The Republic*’s Universal Defense Corps, the *Interspecies Communication Agency* saw dramatic cuts in its funding after it uncovered abandoned mines in the *Atlas Galaxy*. In the following years, the laboratory was outlawed for undisclosed reasons, and many of its researchers went into exile on pirate stations. It now continues its operations as a pirate institution.",
+    "guid": "#Yiw-XcHp-LjJ",
+    "name": "Pirate Factions: Inconvenient Truths",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPirates9": {
+    "desc": "The *Clousden* pirate station was destroyed after 2 pirate factions competed for control of it. One group associated with *Vox Populi* had provided most of the resources for the station’s construction, while another group linked to *Rallize* initially represented a majority of the inhabitants. To boost its influence, the Vox Populi group encouraged its workers from other stations to move in – leading to overpopulation, but allowing them to secure a majority vote. The conflict culminated with the bombing of the station by Rallize.",
+    "guid": "#Yj#-kgI8-pKK",
+    "name": "Pirate Factions: Lost Station",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowPiratesSpecific": {
+    "desc": "*Vox Populi* deliberately introduced critters on *Sirona IV* in an attempt to delay Ninmah's terraforming efforts on the planet and prevent more workers from being exposed to its increasingly toxic atmosphere. The group failed to anticipate that the critters would consume the poison, leading them to mutate and become more aggressive. Ultimately, the mutant critters attacked *Ninmah*’s employees, and the conglomerate did not send military help to rescue them.",
+    "guid": "#YdT-WMrp-fiG",
+    "name": "Pirate Factions: Terrorist Critters",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowRepublic1": {
+    "desc": "*The Republic* is a political institution serving as the executor of commercial and territorial law in the *Atlas Galaxy*. Its jurisdiction includes administration of working licenses, the enforcement of land and property rules, piracy prevention, and mediation between private companies. Its senate, currently led by Leni Lehman, convenes at the *Sumer* station and includes representatives of all conglomerates.",
+    "guid": "#YdS-iUr8-odQ",
+    "name": "The Republic",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowRepublic2": {
+    "desc": "Founded at the onset of the Atlas era, The Republic is viewed as a successor to the *United Planets Federation* which oversaw the development of the first FTL engines and became the governing body of the *Milky Way* during its colonization. When the self-replicating machines known as the Tripods were awakened, a decades-long conflict known as the *Tripod War* forced humankind to abandon the Milky Way and put an end to the United Planets Federation’s rule.",
+    "guid": "#YdV-3os7-1l4",
+    "name": "The Republic: United Planets Federation",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowRepublic3": {
+    "desc": "Although conglomerates use private militias to enforce their own laws within the space stations or factories they control, The Republic maintains a police force called the *Universal Civilian Guard*, which is mostly mobilized against pirate factions. It also retains a small armed force, the *Universal Defense Corps*, which guards the portal to the Milky Way, maintains defensive measures against a potential return of the Tripods, and conducts R&D on defense technology.",
+    "guid": "#YdS-lErD-w6W",
+    "name": "The Republic: Law Enforcement",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowRepublic4": {
+    "desc": "The Republic was engineered by the major conglomerates, who still provide most of its budget to this day. The purpose of this institution was to protect their interests in the *Atlas Galaxy*, enable them to solve their territorial disputes, suppress the first pirate rebellions in a way that would avoid public outrage, and quell citizens’ demands for a democratic revival. Its first senators were chosen from among former politicians of the *United Planets Federation* who were loyal to the conglomerates and had lost most of their political authority.",
+    "guid": "#YdS-mgrH-Eri",
+    "name": "The Republic: Glorified Cartel",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowRepublic5": {
+    "desc": "The Republic flags as piracy all activities that lack an official license, including in cases where the *Universal Licensing Agency* has provided no reason for the repeated denial of a license request. Licenses are often *revoked* without warning, resulting in the associated institution and individuals being immediately flagged as pirates. Victims include journalists, scientists, artists and social workers, who are then forced to move into *pirate sectors* and associate with more radical entities in order to survive.",
+    "guid": "#YdS-n#rJ-8ln",
+    "name": "The Republic: Masked Repression",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowRepublic6": {
+    "desc": "*The Company*’s public contracts include the operation and maintenance of *labor camps* for convicts serving long-term sentences. Prior to the associate worker program, most of these camps were mines. Today, they are moving spaceships in which The Company’s *space stations* are assembled. No legislation has ever been passed to regulate work conditions aboard these ships. All convicts who were detained before *Incident H-378* and the subsequent collapse of the United Planets Federation were lost.",
+    "guid": "#Yiu-jIHa-Zoe",
+    "name": "The Republic: Forced Labor",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowRepublic7": {
+    "desc": "In the early days of *The Republic*, a coalition of whistleblowers and former *United Planets* legislators voted to establish universal suffrage, make industrial lobbying illegal, establish corporate taxes and remove the conglomerates’ veto powers. Media groups framed this vote as a pirate insurrection, and militias took control of The Republic’s institutions. The senators behind it disappeared, and were later accused of fleeing aboard pirate ships to avoid prosecution.",
+    "guid": "#Yiu-mYHf-Ao7",
+    "name": "The Republic: Failed Revolution",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "KnowRepublicSpecific": {
+    "desc": "The Universal Defense Corps signed a long-term contract with *The Company* securing unprecedented quantities of mineral resources to start construction on an undisclosed mega-project codenamed \"Project Milky Way\". Presented to The Republic’s senate as a defensive measure preparing Atlas for the possibility of a *Tripod* invasion, it is in fact a reproduction of the Tripod’s technology, aimed at reconquering the Milky Way.",
+    "guid": "#YdS-qYrM-&XE",
+    "name": "The Republic: Project Milky Way",
+    "price": null,
+    "type": "Knowledge_Factions"
+  },
+  "Knowledge_BaseBuilding": {
+    "desc": "[TODO explain :\n- Setting the Factory Post\n- building\n- power network\n- drone\n- technology xp",
+    "guid": "#Whf-ch6u-Shj",
+    "name": "Base Building",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Exploration": {
+    "desc": "Exploring a planet is the process of identifying all resource nodes present on its surface.\n\nResource nodes will require the use of a scanner the first time they are encountered to be identified. To scan a resource node, aim toward it and hold [key.Scan], the key assigned to the Scan skill. It will then become available to mine with the proper equipment.\n\nMost planet have natural Landmarks, that can often been seen from space, and may contains unique resource node that cannot be found anywhere else on the planet.\n\nBoth exploring a planet and identifying new resource nodes with the scanalyzer give Exploration Experience, that will eventually unlock a new Contractor Level. Each Exploration level allow the contractor to go farther into the quadrant and unlock new recipes and abilities that helps with exploration.",
+    "guid": "#Whf-XB6l-Z2U",
+    "name": "Planet Exploration",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_FTL": {
+    "desc": "The distance between two star systems is too large to be conveniently crossed by regular means. The FTL engine is a critical ship module that allows a contractor to cross that gap in seconds.\n\nStar that are close enough for a jump appears bigger than star that are further away. To jump there, aim at the star, then hold [key.Travel], the key assigned to the Travel skill.\n\nA FTL jump is a dangerous process. To preserve the ship from harm, the contractor should use the mag-plasma shield integrated to its FTL engine. Such a shield consume mag-plasma. It is possible to choose how much mag-plasma to use before jumping with the mouse wheel, but using less than the amount required will almost always result in costly damages.\n\nSome path for FTL travel will be under the effect of a jump modifier that alter the way the FTL jump function, and might make travel more difficult. Contractor will have to discover these modifiers themselves.\n\nThe quadrant is cut into sectors. Each sector has an exploration level, that restricts travel within to contractors having reached this exploration level.",
+    "guid": "#Whf-kZ6y-2#F",
+    "name": "Faster-Than-Light Travel",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Fluid": {
+    "desc": "[DEPRECATED explain :\n- How to gather from geyser\n- how to fill, transfer, and empty reservoir\n- what about in a base",
+    "guid": "#Whg-737L-XYN",
+    "name": "Liquid and Gas",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Gravite": {
+    "desc": "[DEPRECATED explain :\n- how to find and scan gravite\n- there exist different kind of gravite that will behave differently",
+    "guid": "#Whf-EJ6S-#M3",
+    "name": "Gravite",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Heat": {
+    "desc": "[DEPRECATED explain :\n- What affect temperature ?\n- How does it kill you (ship and persona)?\n- how to get protection ?",
+    "guid": "#Whg-HR7X-qiU",
+    "name": "Heat and Cold",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Instances": {
+    "desc": "Contractors might find complexes belonging to various factions on the surface of planets.\n\nThese mostly buried facilities are accessible through a surface elevator, that may sometimes be locked by an access key.\n\nSuch area contain restricted data that you need to find to complete the area. Leaving the area without completing it first will reset the contractor's inventory to its state before entering.\n\nA completed area can no longer be visited.",
+    "guid": "#Whg-Jh7b-wQD",
+    "name": "Restricted Area",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Landing": {
+    "desc": "[TODO explain :\n- How and why to land the ship (maybe could be merged with ship controls ?)",
+    "guid": "#Whf-Mx6Y-dgp",
+    "name": "Landing",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Mining": {
+    "desc": "With a mining laser equipped on your ship, gather various ores by aiming toward a resource node and holding [key.Mine], the key assigned to the laser mining skill.\n\nEach resource node has a mining tier, that determine its toughness. The mining laser mining tier must match the one from the node to be able to mine it effectively.\n\nEvery node is formed by a unique blend of ore, but it might also contains a few rare finds.",
+    "guid": "#Whf-3R6P-AB5",
+    "name": "Mining",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_OrganicResource": {
+    "desc": "[DEPRECATED explain :\n- gather organic resources\n- the basic of farming",
+    "guid": "#Whf-G36V-hG2",
+    "name": "Organic Resources and Farming",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Radioactivity": {
+    "desc": "[DEPRECATED explain :\n- What emit radioactivity ?\n- How does it kill you ?\n- how to get protection ?",
+    "guid": "#Whg-Eh7T-6Q1",
+    "name": "Radioactivity",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Science": {
+    "desc": "Some items can be studied in the laboratory. Depending on the item, several levels of study might be available, each requiring a certain amount of copy of the item.\n\nOnce the necessary items are delivered, the Laboratory automatically studies them. The contractor has to get back to the laboratory later to obtain the results.\n\nEach level of study unlocks new crafting recipes using the item, and gives Science Experience, that will eventually unlock a new contractor level. Science levels give access to the creation of powerful exotic resources used by every contractors in the quadrant.",
+    "guid": "#Whf-aJ6p-Yd2",
+    "name": "Science",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Shell": {
+    "desc": "[DEPRECATED explain :\n- How to break a shell",
+    "guid": "#Whg-D&7M-3ow",
+    "name": "Mineral Shells",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_ShipControl": {
+    "desc": "Orient your ship with the mouse.\n\nHold [key.Forward] to accelerate until your ship reaches its maximum speed. Once at max speed, you can release [key.Forward] and keep steering your ship with the mouse.\n\nHold [key.Booster] to use your ship's booster and reach even higher speeds, at the cost of increased power consumption and increased heat generation.\n\nPress [key.Backward] to decelerate or move backwards.\n\nIn a planet’s atmosphere, hold [key.Descend] and [key.Ascend] to control your ship's altitude and [key.Left] and [key.Right] to strafe left and right.",
+    "guid": "#WhX-id6J-jIY",
+    "name": "Ship Controls",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_ShipEditor": {
+    "desc": "[TODO explain :\n- Module tab\n- Assembly tab\n-customization tab",
+    "guid": "#Whg-4l7F-R1H",
+    "name": "Ship Editor",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Knowledge_Wreck": {
+    "desc": "[DEPRECATED explain :\n- How to gather a ship wreck",
+    "guid": "#Whg-3B7D-3J7",
+    "name": "Shipwreck",
+    "price": null,
+    "type": "Knowledge_Tuto"
+  },
+  "Levinium": {
+    "desc": "A recently discovered metallic material, noted for its remarkable lightness. Its properties and use cases are still relatively unknown.",
+    "guid": "#SOJ-8MSP-7Rd",
+    "name": "Levinium Ingot",
+    "price": null,
+    "type": "Ingots"
+  },
+  "LeviniumCasingMK1": {
+    "desc": null,
+    "guid": "#SOJ-8MUE-#4c",
+    "name": "Small Levinium Part Casing",
+    "price": null,
+    "type": "Casings"
+  },
+  "LicensePoints": {
+    "desc": "Regulating access to industrial licenses, these points are issued by The Republic's Universal Licensing Agency.",
+    "guid": "#WlP-lZ0O-FDV",
+    "name": "License Points",
+    "price": null,
+    "type": "Virtual"
+  },
+  "Light_01": {
+    "desc": "A good light, used to open a path of vision in the darkness.",
+    "guid": "#SOJ-8MXz-ARp",
+    "name": "Spot Light",
+    "price": null,
+    "type": "ShipLight"
+  },
+  "Light_02": {
+    "desc": "",
+    "guid": "#SOJ-8MY1-##h",
+    "name": "Light Strip",
+    "price": null,
+    "type": "ShipLight"
+  },
+  "Light_03": {
+    "desc": "",
+    "guid": "#SOJ-8MY5-33B",
+    "name": "Headlight",
+    "price": null,
+    "type": "ShipLight"
+  },
+  "Lime": {
+    "desc": "A mineral component commonly used in cement and concrete. Obtained by carbonating limestone, it is mostly composed of calcium oxides.",
+    "guid": "#Trm-g2Qz-WgM",
+    "name": "Lime",
+    "price": 1,
+    "type": "SimpleFactoredMaterial"
+  },
+  "LiquidStorage1": {
+    "desc": "This storage module is suitable for liquid or semi-fluid materials. Its MACS connections allow it to supply other RSMs if it contains fuel or cooling fluid.",
+    "guid": "#SOJ-8MYe-iM#",
+    "name": "Small Liquid Tank",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "LiquidStorage2": {
+    "desc": null,
+    "guid": "#Xm1-l6Fq-Xo7",
+    "name": "Medium Liquid Tank",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "LiquidStorage3PH": {
+    "desc": null,
+    "guid": "#YAW-g6kl-EZn",
+    "name": "Large Liquid Tank",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "LockedCapsule": {
+    "desc": "[NOT IMPL] A capsule whose access is configurable.",
+    "guid": "#SOJ-8Mbv-pbP",
+    "name": "Personal Capsule",
+    "price": null,
+    "type": "ShipAmmunition"
+  },
+  "LowCrystal": {
+    "desc": "",
+    "guid": "#SOJ-8MR0-8FO",
+    "name": "Cloudy Gemstone",
+    "price": 3,
+    "type": "Luxuries"
+  },
+  "MagSheet": {
+    "desc": "A magnetically polarized sheet of elmerium, commonly used for the inner shells of mag-plasma tanks.",
+    "guid": "#XmF-iEGJ-YLd",
+    "name": "Monomagnetic Sheet",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "MagShield": {
+    "desc": "[NOT IMPL] Shield that negate 30% of damage received and turn it into power for the ship. If there are no batteries to hold that power, the excedent power gain is turned back into damage that affect directly the hull.",
+    "guid": "#SOJ-8MaI-QpQ",
+    "name": "Magnetokinetic Shield Generator",
+    "price": null,
+    "type": "ShipShields"
+  },
+  "MagneticChamber": {
+    "desc": "A device allowing plasma current to flow in high-speed circular motion without escaping its trajectory.",
+    "guid": "#SOJ-8MT3-2cV",
+    "name": "Confinement Chamber",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "MalachiteStone": {
+    "desc": "A carbonate crystal mostly made up of copper and used as a funeral ornament from Ancient Egypt to Mayan Mesoamerica.",
+    "guid": "#SOJ-8MP7-i4S",
+    "name": "Malachite Stone",
+    "price": 40,
+    "type": "Crystal"
+  },
+  "Mercury": {
+    "desc": "Mercury is the only known metal that is liquid at room temperature. It amalgams with many other metals, and is highly toxic to humans.",
+    "guid": "#ac3-wM8k-4sX",
+    "name": "Mercury",
+    "price": 6,
+    "type": "Liquid"
+  },
+  "MetalBolt": {
+    "desc": "A simple device using twisting force to fasten components together.",
+    "guid": "#Wyf-3c6Y-fYL",
+    "name": "Nut and Bolt",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "MetalSheet1": {
+    "desc": "An industrially processed sheet of metal, commonly used as a basic construction material.",
+    "guid": "#SOJ-8MT7-zdH",
+    "name": "Metal Sheet",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "MetalSheet2": {
+    "desc": "",
+    "guid": "#SOJ-8MTB-Wbx",
+    "name": "Strong Metal Sheet",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "MetalSheet3": {
+    "desc": "",
+    "guid": "#aVm-TAja-W9a",
+    "name": "High-Grade Metal Sheet",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "MicroChip": {
+    "desc": "An electronic device executing computer programs through a series of simple mathematical operations. Also known as a \"Central Processing Unit\".",
+    "guid": "#Xse-hZ7X-sGu",
+    "name": "Microchip",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "MiningTool0": {
+    "desc": "",
+    "guid": "#SOJ-8Mb9-o9m",
+    "name": "Crude Mining Laser",
+    "price": 50,
+    "type": "MiningTool"
+  },
+  "MiningTool1": {
+    "desc": "This optical module amplifies light to an intensity that can vaporise many materials. It is currently the most precise way to cut through things.",
+    "guid": "#SOJ-8MbD-vfC",
+    "name": "Simple Mining Laser",
+    "price": null,
+    "type": "MiningTool"
+  },
+  "MiningTool1_OC": {
+    "desc": null,
+    "guid": "#SOJ-8MbH-uCt",
+    "name": "Overclocked Mining Laser",
+    "price": null,
+    "type": "MiningTool"
+  },
+  "MiningTool2": {
+    "desc": null,
+    "guid": "#SOJ-8MbP-Z02",
+    "name": "Hi-Pi Laser",
+    "price": null,
+    "type": "MiningTool"
+  },
+  "MiningTool2_OC": {
+    "desc": null,
+    "guid": "#SOJ-8MbS-mHf",
+    "name": "Overclocked Hi-Pi Laser",
+    "price": null,
+    "type": "MiningTool"
+  },
+  "MiningTool3": {
+    "desc": null,
+    "guid": "#aal-oNFd-98X",
+    "name": "Giant Laser",
+    "price": null,
+    "type": "MiningTool"
+  },
+  "MiningTool3_OC": {
+    "desc": null,
+    "guid": "#aal-s3Fh-VaA",
+    "name": "Overclocked Giant Laser",
+    "price": null,
+    "type": "MiningTool"
+  },
+  "MiningTool_Cold": {
+    "desc": "This high-pressure stream of liquefied gas provides an alternative to laser beams, with the opposite effect on the target's temperature. The two can be used in combination.",
+    "guid": "#SOJ-8MbJ-i7z",
+    "name": "Cooling Laser",
+    "price": null,
+    "type": "MiningTool"
+  },
+  "MissileAirframe_Small": {
+    "desc": "A metal casing and propulsion structure capable of transporting an explosive warhead.",
+    "guid": "#Uqj-1cJp-sQm",
+    "name": "Small Missile Airframe",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "ModuleCasing1": {
+    "desc": "A universal standard serving as a basis for all \"Reliant Spaceship Modules\". Anchors the RSM to its associated ship using B-Switch electropermanent magnets.",
+    "guid": "#SOJ-8MTl-uoF",
+    "name": "Small Module Kit",
+    "price": null,
+    "type": "Casings"
+  },
+  "ModuleCasing2": {
+    "desc": null,
+    "guid": "#SOJ-8MTr-p0A",
+    "name": "Module Kit",
+    "price": null,
+    "type": "Casings"
+  },
+  "ModuleCasing3": {
+    "desc": null,
+    "guid": "#aVi-ikj3-Zgt",
+    "name": "Large Module Kit",
+    "price": null,
+    "type": "Casings"
+  },
+  "Motor": {
+    "desc": "A device converting electric power into motion, and vice versa.",
+    "guid": "#SOJ-8MSq-#LP",
+    "name": "Motor",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "Navigator": {
+    "desc": "This module use complex algorithms and precise spatial coordinates to help the distracted contractor plan a route across the stars.",
+    "guid": "#XaT-aE3L-Vmv",
+    "name": "Cosmic Navigator",
+    "price": null,
+    "type": "ShipFTLModules"
+  },
+  "NitroCapsule": {
+    "desc": "[NOT IMPL Ammunition for the nitrogenerator]",
+    "guid": "#UEf-JAAy-zaE",
+    "name": "Nitro Capsule",
+    "price": null,
+    "type": "ShipAmmunition"
+  },
+  "Nitrogenerator": {
+    "desc": "[NOT IMPL] gives a skill usable in and out of combat that consumes hydrogen capsule, to produce a lot of power for a short time (with a long cooldown)",
+    "guid": "#Tan-gkje-7x4",
+    "name": "LR Nitrogenerator",
+    "price": null,
+    "type": "ShipPowerGenerators"
+  },
+  "PBattery": {
+    "desc": "[NOT IMPL] A Battery that load fully when jumping in FTL (and cannot reload in any other way). Is consumed before any other battery.",
+    "guid": "#SOJ-8MZZ-lqg",
+    "name": "Paradoxical Battery",
+    "price": null,
+    "type": "ShipBattery"
+  },
+  "PShuttle": {
+    "desc": "[NOT IMPL shuttle but transport power instead of goods",
+    "guid": "#SOJ-8MeF-&96",
+    "name": "Power Shuttle",
+    "price": null,
+    "type": "Automate"
+  },
+  "P_ColdSuit": {
+    "desc": "This accessory increases a suit's insulation capacity against low temperatures. Multiple chips can be applied for increased efficiency.",
+    "guid": "#UbI-XcnI-gxm",
+    "name": "Cold-Protec Suit Chip",
+    "price": null,
+    "type": "PlayerSuitChip"
+  },
+  "P_ConstructionTool": {
+    "desc": "\"Blueprint Synthesis\" releases a cloud of hovering nanobots that can recognize, cut and assemble materials based on a predefined pattern. In short, it builds stuff.",
+    "guid": "#SOJ-8Mdk-bZQ",
+    "name": "Construction Tool",
+    "price": null,
+    "type": "PlayerHands"
+  },
+  "P_CritterPheromon": {
+    "desc": "[NOT IMPL a grenade that attracts Critters where it lands for a while]",
+    "guid": "#SPS-#JBY-AOS",
+    "name": "Pheromone Mix",
+    "price": null,
+    "type": "PlayerConsumable"
+  },
+  "P_DismentlingTool": {
+    "desc": "This improved tool includes the \"Material De-Synthesis\" feature, which can reverse a finished construction process and retrieve some of the components involved.",
+    "guid": "#SOJ-8Mdq-UOA",
+    "name": "Construction Tool 2.0",
+    "price": null,
+    "type": "PlayerHands"
+  },
+  "P_FarmingTool": {
+    "desc": "Putting a dirty seed to soak might seem like a mundane task, but this tool sublimates the art of positioning a germinating piece of alien plant at the perfect place for the success of its developpement.",
+    "guid": "#axS-SpOh-KiI",
+    "name": "Farming Tool",
+    "price": null,
+    "type": "PlayerHands"
+  },
+  "P_HeatSuit": {
+    "desc": "This accessory increases a suit's insulation capacity against high temperatures. Multiple chips can be applied for increased efficiency.",
+    "guid": "#SPT-ohC#-Lv9",
+    "name": "Heat-Protec Suit Chip",
+    "price": null,
+    "type": "PlayerSuitChip"
+  },
+  "P_Jetpack": {
+    "desc": "[NOTIMPL]",
+    "guid": "#SOJ-8Mdy-tvV",
+    "name": "Jetpack",
+    "price": null,
+    "type": "PlayerItem"
+  },
+  "P_JetpackV2": {
+    "desc": "[NOTIMPL]",
+    "guid": "#SOJ-8Me1-OWZ",
+    "name": "Jetpack v2",
+    "price": null,
+    "type": "PlayerItem"
+  },
+  "P_MovingTool": {
+    "desc": "This improved tool includes the \"Continuous Integrity\" feature, which can relocate a building within a base without dismantling it first.",
+    "guid": "#X0Z-6gKw-Ds7",
+    "name": "Construction Tool 3.0",
+    "price": null,
+    "type": "PlayerHands"
+  },
+  "P_MultiTool": {
+    "desc": "",
+    "guid": "#SOJ-8Mdi-RE5",
+    "name": "Debug Machine",
+    "price": null,
+    "type": "PlayerHands"
+  },
+  "P_RadSuit": {
+    "desc": "This accessory increases a suit's insulation capacity against radiation. Multiple chips can be applied for increased efficiency.",
+    "guid": "#T93-hoks-JB0",
+    "name": "Rad Suit Chip",
+    "price": null,
+    "type": "PlayerSuitChip"
+  },
+  "P_ThermoSuit": {
+    "desc": "This accessory increases a suit's insulation capacity against both high and low temperatures. Multiple chips can be applied for increased efficiency.",
+    "guid": "#Zke-33NM-cGM",
+    "name": "Thermo Suit Chip",
+    "price": null,
+    "type": "PlayerSuitChip"
+  },
+  "PatchDescHolder": {
+    "desc": "This enhancement can be permanently attached to a spaceship module. If the module is recycled, its attached patch has a 50% chance of being preserved.",
+    "guid": "#YKx-3x1L-mfg",
+    "name": "",
+    "price": null,
+    "type": "Virtual"
+  },
+  "Patch_BarrierToughness_1": {
+    "desc": null,
+    "guid": "#WIU-sUc6-oZk",
+    "name": "Shield Patch: Tough I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_BarrierToughness_2": {
+    "desc": null,
+    "guid": "#WIU-xocD-DZn",
+    "name": "Shield Patch: Tough II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_BarrierToughness_3": {
+    "desc": null,
+    "guid": "#WIU-y#cH-q16",
+    "name": "Shield Patch: Tough III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_BatteryMultiplicator_1": {
+    "desc": null,
+    "guid": "#W9E-ooc9-puv",
+    "name": "Battery Patch: Overload I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_BatteryMultiplicator_2": {
+    "desc": null,
+    "guid": "#WFt-&MUe-4MK",
+    "name": "Battery Patch: Overload II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_BatteryMultiplicator_3": {
+    "desc": null,
+    "guid": "#WFt-06Uj-fJ1",
+    "name": "Battery Patch: Overload III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_Charted_1": {
+    "desc": null,
+    "guid": "#aUK-yQGi-Du3",
+    "name": "FTL Patch: Charted Skies I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_Charted_2": {
+    "desc": null,
+    "guid": "#aUL-4YGl-Bwx",
+    "name": "FTL Patch: Charted Skies II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_Charted_3": {
+    "desc": null,
+    "guid": "#aUL-5sGp-ty8",
+    "name": "FTL Patch: Charted Skies III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_EdgeExplorer_1": {
+    "desc": null,
+    "guid": "#aIA-AdN8-Pab",
+    "name": "FTL Patch: Edge Explorer I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_EdgeExplorer_2": {
+    "desc": null,
+    "guid": "#aJZ-m&M8-eWS",
+    "name": "FTL Patch: Edge Explorer II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FTLDodge_1": {
+    "desc": null,
+    "guid": "#aQQ-n3T8-pSr",
+    "name": "FTL Patch: Light Dodging I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FTLDodge_2": {
+    "desc": null,
+    "guid": "#aRV-#IWB-VuJ",
+    "name": "FTL Patch: Light Dodging II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FTLDodge_3": {
+    "desc": null,
+    "guid": "#aRV-&IWF-X5R",
+    "name": "FTL Patch: Light Dodging III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FastShield_1": {
+    "desc": null,
+    "guid": "#WIV-#AcL-kGq",
+    "name": "Shield Patch: Fast I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FastShield_2": {
+    "desc": null,
+    "guid": "#WIV-4QcN-BEn",
+    "name": "Shield Patch: Fast II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FastShield_3": {
+    "desc": null,
+    "guid": "#WIV-4ccS-1b1",
+    "name": "Shield Patch: Fast III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FuelEfficiency_1": {
+    "desc": null,
+    "guid": "#WHR-dEHo-JEj",
+    "name": "Module Patch: Fuel Efficiency I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FuelEfficiency_2": {
+    "desc": null,
+    "guid": "#WHR-gwHs-Mbc",
+    "name": "Module Patch: Fuel Efficiency II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_FuelEfficiency_3": {
+    "desc": null,
+    "guid": "#WHR-h6Hy-1xk",
+    "name": "Module Patch: Fuel Efficiency III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_HeatAbsorber_1": {
+    "desc": null,
+    "guid": "#WHQ-w2H6-O&h",
+    "name": "Module Patch: Heat Absorber I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_HeatAbsorber_2": {
+    "desc": null,
+    "guid": "#WHR-0IHD-iKL",
+    "name": "Module Patch: Heat Absorber II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_HeatAbsorber_3": {
+    "desc": null,
+    "guid": "#WHR-1EHH-C85",
+    "name": "Module Patch: Heat Absorber III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_HeavyBarrier_1": {
+    "desc": null,
+    "guid": "#WIV-Y2cX-xEj",
+    "name": "Shield Patch: Heavy I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_HeavyBarrier_2": {
+    "desc": null,
+    "guid": "#WIV-cQca-&bS",
+    "name": "Shield Patch: Heavy II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_HeavyBarrier_3": {
+    "desc": null,
+    "guid": "#WIV-cgcd-Ty#",
+    "name": "Shield Patch: Heavy III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_IncreasedOutput_1": {
+    "desc": null,
+    "guid": "#aVO-E63p-YDI",
+    "name": "Laser Patch: Increased Output I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_IncreasedOutput_2": {
+    "desc": null,
+    "guid": "#aVO-bQ3t-AfQ",
+    "name": "Laser Patch: Increased Output II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_IncreasedOutput_3": {
+    "desc": null,
+    "guid": "#aVO-bk3z-Pej",
+    "name": "Laser Patch: Increased Output III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_LastYield_1": {
+    "desc": null,
+    "guid": "#aUL-fQGv-0RU",
+    "name": "Laser Patch: Last Yield I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_Magplasma_1": {
+    "desc": null,
+    "guid": "#aIE-JVNA-5GV",
+    "name": "FTL Patch: Mag-Plasma I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_Magplasma_2": {
+    "desc": null,
+    "guid": "#aIH-pUsj-YxX",
+    "name": "FTL Patch: Mag-Plasma II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_Magplasma_3": {
+    "desc": null,
+    "guid": "#aIH-rgsn-tVw",
+    "name": "FTL Patch: Mag-Plasma III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_MiningPower_1": {
+    "desc": null,
+    "guid": "#WHR-WcHf-ODt",
+    "name": "Laser Patch: Mining Power I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_MiningPower_2": {
+    "desc": null,
+    "guid": "#WHR-YUHi-add",
+    "name": "Laser Patch: Mining Power II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_MiningPower_3": {
+    "desc": null,
+    "guid": "#WHR-YgHk-a7U",
+    "name": "Laser Patch: Mining Power III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_MiningTier_1": {
+    "desc": null,
+    "guid": "#WHR-PUHU-zUn",
+    "name": "Laser Patch: Mining Tier I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_MiningTier_2": {
+    "desc": null,
+    "guid": "#WHR-V2HY-#ri",
+    "name": "Laser Patch: Mining Tier II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PowerEfficiency_1": {
+    "desc": null,
+    "guid": "#WHR-9QHI-3PB",
+    "name": "Module Patch: Power Efficiency I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PowerEfficiency_2": {
+    "desc": null,
+    "guid": "#WHR-JUHO-YVB",
+    "name": "Module Patch: Power Efficiency II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PowerEfficiency_3": {
+    "desc": null,
+    "guid": "#WHR-KgHS-f4k",
+    "name": "Module Patch: Power Efficiency III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PowerProduction_1": {
+    "desc": null,
+    "guid": "#WHR-w2I2-7BV",
+    "name": "Generator Patch: Power I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PowerProduction_2": {
+    "desc": null,
+    "guid": "#WHR-y#I9-RPq",
+    "name": "Generator Patch: Power II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PowerProduction_3": {
+    "desc": null,
+    "guid": "#WHR-y6IB-WOX",
+    "name": "Generator Patch: Power III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PrecisionTargeting_1": {
+    "desc": null,
+    "guid": "#WFt-4AUm-hvk",
+    "name": "Weapon Patch: Precision I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PrecisionTargeting_2": {
+    "desc": null,
+    "guid": "#WFt-BUUr-NNg",
+    "name": "Weapon Patch: Precision II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_PrecisionTargeting_3": {
+    "desc": null,
+    "guid": "#WFt-BYUu-BUS",
+    "name": "Weapon Patch: Precision III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_RadarRange_1": {
+    "desc": null,
+    "guid": "#aVS-PE4E-ucj",
+    "name": "Radar Patch: Range I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_RadarRange_2": {
+    "desc": null,
+    "guid": "#aVT-d24L-NWN",
+    "name": "Radar Patch: Range II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_RadarRange_3": {
+    "desc": null,
+    "guid": "#aVT-eE4P-ht4",
+    "name": "Radar Patch: Range III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_RareFind_1": {
+    "desc": null,
+    "guid": "#aVP-JE4#-hc9",
+    "name": "Laser Patch: Rare Find I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_RareFind_2": {
+    "desc": null,
+    "guid": "#aVS-9M48-B5i",
+    "name": "Laser Patch: Rare Find II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_RareFind_3": {
+    "desc": null,
+    "guid": "#aVS-AU4D-hi5",
+    "name": "Laser Patch: Rare Find III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_SureShot_1": {
+    "desc": null,
+    "guid": "#WHQ-0AGq-ue&",
+    "name": "Weapon Patch: Sure Shot I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_SureShot_2": {
+    "desc": null,
+    "guid": "#WHQ-3AGu-q9a",
+    "name": "Weapon Patch: Sure Shot II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_SureShot_3": {
+    "desc": null,
+    "guid": "#WIU-NMc2-8QH",
+    "name": "Weapon Patch: Sure Shot III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_SystemIntegration_1": {
+    "desc": null,
+    "guid": "#WHQ-7gGx-X4t",
+    "name": "Module Patch: System I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_SystemIntegration_2": {
+    "desc": null,
+    "guid": "#WHQ-BcH&-GI2",
+    "name": "Module Patch: System II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_SystemIntegration_3": {
+    "desc": null,
+    "guid": "#WHQ-BkH4-uVm",
+    "name": "Module Patch: System III",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_WildShot_1": {
+    "desc": null,
+    "guid": "#WHP-eMGd-4ah",
+    "name": "Weapon Patch: Wild Shot I",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_WildShot_2": {
+    "desc": null,
+    "guid": "#WHP-msGg-gq7",
+    "name": "Weapon Patch: Wild Shot II",
+    "price": null,
+    "type": "Patch"
+  },
+  "Patch_WildShot_3": {
+    "desc": null,
+    "guid": "#WHP-n#Gk-Qov",
+    "name": "Weapon Patch: Wild Shot III",
+    "price": null,
+    "type": "Patch"
+  },
+  "PathwayAmmo": {
+    "desc": "Used with a [PathwayPuncher], this kernel can bore a pathway to any available [B_PathwayHolder]. Such a Pathway can then be used to travel between two locations with a regular FTL engine.",
+    "guid": "#bMl-464z-G4G",
+    "name": "Pathway Kernel",
+    "price": null,
+    "type": "ShipAmmunition"
+  },
+  "PathwayPuncher": {
+    "desc": "A module that bores a tiny hole in the spacetime continuum. This allows the deployment of a [PathwayAmmo] that will dig a pathway toward an existing [B_PathwayHolder].",
+    "guid": "#bDX-oxPM-ooA",
+    "name": "Spacetime Puncher",
+    "price": null,
+    "type": "ShipToolSpecial"
+  },
+  "Pipe1": {
+    "desc": "A simple device to move fluids between two points.",
+    "guid": "#SOJ-8MSe-LK8",
+    "name": "Watertight Pipe",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Pipe2": {
+    "desc": "",
+    "guid": "#SOJ-8MSg-T#L",
+    "name": "Pressure-tight Pipe",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Plate1": {
+    "desc": "A thick metallic panel that can resist harsh weather conditions. Commonly used in outdoor construction or ship hulls.",
+    "guid": "#SOJ-8MTE-D&g",
+    "name": "Stainless Plate",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Plate2": {
+    "desc": "",
+    "guid": "#Sod-xIAP-o5f",
+    "name": "Inert Plate",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Plate_Light": {
+    "desc": "",
+    "guid": "#acH-tQJ3-mxe",
+    "name": "Very Light Plate",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "PlatinumCasingMK1": {
+    "desc": null,
+    "guid": "#SOJ-8MU9-MP4",
+    "name": "Small Solid Frame Casing",
+    "price": null,
+    "type": "Casings"
+  },
+  "PlatinumCasingMK2": {
+    "desc": null,
+    "guid": "#SOJ-8MUB-SRN",
+    "name": "Solid Frame Casing",
+    "price": null,
+    "type": "Casings"
+  },
+  "PlatinumIngot": {
+    "desc": "A noble metal of especially high value. Its remarkable resistance to corrosion makes it a prized industrial component.",
+    "guid": "#SOJ-8MSF-fRg",
+    "name": "Platinum Ingot",
+    "price": 16,
+    "type": "Ingots"
+  },
+  "PlatinumNugget": {
+    "desc": null,
+    "guid": "#SOJ-8MQz-OmC",
+    "name": "Platinum Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "PlatinumOre": {
+    "desc": null,
+    "guid": "#SOJ-8MQv-9V4",
+    "name": "Platinum Ore",
+    "price": null,
+    "type": "MetalOre"
+  },
+  "PlumbingLoot": {
+    "desc": null,
+    "guid": "#Yhg-p6tV-iUh",
+    "name": "",
+    "price": null,
+    "type": "Virtual"
+  },
+  "PowerSharerPH": {
+    "desc": "[NOT IMPL] Act as a hub for every ship in the group to share power (from low battery to high battery)",
+    "guid": "#SOJ-8MZq-SrE",
+    "name": "Power Projector",
+    "price": null,
+    "type": "ShipPowerGenerators"
+  },
+  "PressureStorage1": {
+    "desc": "This storage module is suitable for liquid gas requiring extreme pressurization. Its MACS connections allow it to supply other RSMs if it contains fuel or cooling fluid.",
+    "guid": "#SOJ-8MYg-DV2",
+    "name": "Small Pressure Chamber",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "PressureStorage2PH": {
+    "desc": null,
+    "guid": "#YAW-hMkp-5k4",
+    "name": "Medium Pressure Chamber",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "PressureStorage3PH": {
+    "desc": null,
+    "guid": "#YAW-hkks-zQv",
+    "name": "Large Pressure Chamber",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "Protein": {
+    "desc": "An essential component of living organisms, proteins are biomolecules comprising amino acid chains.",
+    "guid": "#SOJ-8MSV-hvC",
+    "name": "Xenic Protein",
+    "price": 1,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Pump": {
+    "desc": "A device for propelling fluids through connected pipes.",
+    "guid": "#SOJ-8MSv-0ee",
+    "name": "Pump",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "Pyrite": {
+    "desc": "A crystalline iron sulphide. Cheap enough to be known as \"fool's gold\", it is nevertheless a useful semiconductor and a common photovoltaic component.",
+    "guid": "#SOJ-8MQa-fk3",
+    "name": "Pyrite",
+    "price": 10,
+    "type": "Crystal"
+  },
+  "Quartz": {
+    "desc": "A crystal mostly made up of silica, and a major component of many astronomical objects. Its numerous varieties have been traded as gemstones since human antiquity.",
+    "guid": "#SOJ-8MPU-Ohf",
+    "name": "Quartz",
+    "price": 11,
+    "type": "Crystal"
+  },
+  "QuartzShavings": {
+    "desc": null,
+    "guid": "#SOJ-8MPe-BZq",
+    "name": "Quartz Powder",
+    "price": null,
+    "type": "MineralShavings"
+  },
+  "QuestFakeAlienArtefact": {
+    "desc": "This artifact was dug up on an unknown planet. It doesn’t look natural.",
+    "guid": "#TDw-esr7-vJN",
+    "name": "Possible Alien Artifact",
+    "price": null,
+    "type": "QuestItem"
+  },
+  "RBattery0": {
+    "desc": "This module can store kinetic energy with a rotating wheel to power other RSMs while avoiding the disadvantages of chemical batteries.",
+    "guid": "#SOJ-8MZX-hto",
+    "name": "Flywheel Battery",
+    "price": null,
+    "type": "ShipBattery"
+  },
+  "Radar0": {
+    "desc": "By emitting electromagnetic waves and interpreting their refraction, this radar can detect and identify metallic objects within a large perimeter.",
+    "guid": "#SOJ-8Maq-JEA",
+    "name": "Crude Resource Detector",
+    "price": 50,
+    "type": "ShipRadars"
+  },
+  "RadarMK1": {
+    "desc": "",
+    "guid": "#SOJ-8Mav-3Fh",
+    "name": "Simple Resource Detector",
+    "price": null,
+    "type": "ShipRadars"
+  },
+  "Radar_Smart": {
+    "desc": "Using spectral analysis and comparison with a database of components, this detector can identify known resources from afar.",
+    "guid": "#ZwZ-qo8l-0UC",
+    "name": "Spectral Resource Detector",
+    "price": null,
+    "type": "ShipRadars"
+  },
+  "Radar_Sniffer": {
+    "desc": "Using a sample of a determined resource, this detector can locate nearby deposits containing the same element.",
+    "guid": "#SOJ-8Mb1-Bd&",
+    "name": "Mimetic Detector",
+    "price": null,
+    "type": "ShipRadars"
+  },
+  "Radiator": {
+    "desc": "This module can release large quantities of thermal energy. It is mostly used to cool off a spaceship’s interior by dispersing its heat into space.",
+    "guid": "#SOJ-8Mal-nq2",
+    "name": "Small Radiator",
+    "price": null,
+    "type": "ShipHeatTools"
+  },
+  "Radiator1": {
+    "desc": null,
+    "guid": "#Y1E-q#fh-shO",
+    "name": "Medium Radiator",
+    "price": null,
+    "type": "ShipHeatTools"
+  },
+  "Radon": {
+    "desc": "A dangerous radioactive gaz that should not be handle without the proper equipement.",
+    "guid": "#T8r-iIjt-nNT",
+    "name": "Radon",
+    "price": null,
+    "type": "Gas"
+  },
+  "RandomLoot": {
+    "desc": "[DEPRECATED]",
+    "guid": "#WXD-Tk2n-j3&",
+    "name": "Bundle",
+    "price": null,
+    "type": "Virtual"
+  },
+  "RegionPiratesSpawn": {
+    "desc": null,
+    "guid": "#SOJ-8Mea-QKS",
+    "name": "Space Pirates",
+    "price": null,
+    "type": "Region"
+  },
+  "Rockwood_DreamwoodFruit": {
+    "desc": "Consumption of this fruit is strongly discouraged. Side effects might include: vivid hallucinations, acute paranoia, and sudden death.",
+    "guid": "#ajq-36KE-OxW",
+    "name": "Dream Sporule",
+    "price": null,
+    "type": "Biological_Fruit"
+  },
+  "Rockwood_GlowwoodBark": {
+    "desc": "This dark thick bark has grown in a radioactive environment, but it does not seem to have suffered from it.",
+    "guid": "#ajq-7wKP-KAT",
+    "name": "Rough Bark",
+    "price": null,
+    "type": "Biological_Extra"
+  },
+  "Rockwood_GlowwoodFruit": {
+    "desc": "This shiny berry is slightly warm to the touch, a sign of latent radioactivity.",
+    "guid": "#ajq-52KI-PPi",
+    "name": "Glowing Nodule",
+    "price": 0,
+    "type": "Biological_Fruit"
+  },
+  "Rockwood_Seed": {
+    "desc": "The Rockwood combines mineral and organic compounds in an unusual way. It often produces complex mineral structures that are rarely found anywhere else in nature.",
+    "guid": "#ajp-nEK9-V&H",
+    "name": "Rockwood Nut",
+    "price": 0,
+    "type": "Biological_Fruit"
+  },
+  "Sandstone": {
+    "desc": "A sedimentary rock mostly made up of oxidized silicon. A component in glass, ceramics and cement, it is so abundant that terrestrial planets are also known as \"silicate planets\".",
+    "guid": "#SOJ-8MPY-Air",
+    "name": "Silicate",
+    "price": null,
+    "type": "MineralOre"
+  },
+  "Scanner0": {
+    "desc": "This module identifies the composition of a sample via mass spectrometry. Mining lasers can only be used on resources that were identified through this process.",
+    "guid": "#SOJ-8Mb3-iq3",
+    "name": "Scanalyzer Alpha",
+    "price": null,
+    "type": "ShipToolSpecial"
+  },
+  "Scanner1": {
+    "desc": null,
+    "guid": "#bUh-zMtZ-UB3",
+    "name": "Scanalyzer Beta",
+    "price": null,
+    "type": "ShipToolSpecial"
+  },
+  "ScienceXP": {
+    "desc": null,
+    "guid": "#SOJ-8Mf3-4V1",
+    "name": "Science XP",
+    "price": null,
+    "type": "Virtual"
+  },
+  "ScriptItem": {
+    "desc": null,
+    "guid": "#Xh2-BUB1-KKo",
+    "name": "",
+    "price": null,
+    "type": "Virtual"
+  },
+  "SeekerMissile0": {
+    "desc": "Before the exode, simple chemical explosives were a commonplace weapon. More destructive options exist, but none are as cheap and easy to produce.",
+    "guid": "#SOJ-8Mbc-Dir",
+    "name": "Seeker Missile",
+    "price": null,
+    "type": "ShipAmmunition"
+  },
+  "Semiconductor": {
+    "desc": "A blank page for a future microchip or solar cell.",
+    "guid": "#Wys-Ag6e-NSP",
+    "name": "Semiconductor Substrate",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Shuttle0": {
+    "desc": "This autonomous vehicle carries loads into and out of the base, transporting them to or from other bases.",
+    "guid": "#SOJ-8Me9-Wb2",
+    "name": "Shuttle",
+    "price": null,
+    "type": "Shuttle"
+  },
+  "Shuttle1": {
+    "desc": "[NOT IMPL bigger shuttle]",
+    "guid": "#SOJ-8MeB-1JH",
+    "name": "Freighter",
+    "price": null,
+    "type": "Shuttle"
+  },
+  "SiliciumIngot": {
+    "desc": "A remarkably balanced semiconductor used in most electronic devices. This metalloid can also be found in clay, glass, and numerous types of stone.",
+    "guid": "#SOJ-8MS3-eJ3",
+    "name": "Silicon Ingot",
+    "price": 10,
+    "type": "Ingots"
+  },
+  "SiliconeGel": {
+    "desc": "A non-reactive, highly absorbent semi-solid, notably used in chemistry, water filtration and cooling.",
+    "guid": "#SOJ-8MTd-vlA",
+    "name": "Silicone Gel",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "SilverIngot": {
+    "desc": "The most conductive and reflective of all metals. It can be found in its pure form naturally, and has been used in numerous aspects of human industry and art for millennia.",
+    "guid": "#Xbq-6Isc-DBH",
+    "name": "Silver Ingot",
+    "price": 20,
+    "type": "Ingots"
+  },
+  "SilverNugget": {
+    "desc": null,
+    "guid": "#Xbp-zkf&-Pen",
+    "name": "Silver Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "SoftMoney": {
+    "desc": "NXT is the currency to unlock additional visuals for your character, your ship or you space base.\n\nThe visuals unlocked are guaranteed to be completely free of any advantage (unless you consider looking good being an advantage).\n\nNXT are gained by playing and progressing in SpaceCraft.",
+    "guid": "#b8S-EFAb-i#7",
+    "name": "NXT",
+    "price": null,
+    "type": "Virtual"
+  },
+  "SolarCell": {
+    "desc": "An electronic device converting electromagnetic waves into electricity.",
+    "guid": "#SOJ-8MTZ-T3&",
+    "name": "Solar Cell",
+    "price": null,
+    "type": "ComplexFactoredMaterial"
+  },
+  "SolarPanel1": {
+    "desc": "This module converts electromagnetic radiation into electric current to power other RSMs.",
+    "guid": "#SOJ-8Maf-zcR",
+    "name": "Small Solar Panel",
+    "price": null,
+    "type": "ShipPowerTools"
+  },
+  "SolarPanel2": {
+    "desc": null,
+    "guid": "#SOJ-8Mag-zFp",
+    "name": "Medium Solar Panel",
+    "price": null,
+    "type": "ShipPowerTools"
+  },
+  "SolarPanel3": {
+    "desc": null,
+    "guid": "#WIh-6gGb-XEV",
+    "name": "Large Solar Panel",
+    "price": null,
+    "type": "ShipPowerTools"
+  },
+  "SpaceStation0": {
+    "desc": null,
+    "guid": "#SOJ-8MeM-pGN",
+    "name": "Threshold Station",
+    "price": null,
+    "type": "SpaceStation"
+  },
+  "SpaceStation1": {
+    "desc": null,
+    "guid": "#WRw-62t5-EC5",
+    "name": "Solar Alpha Station",
+    "price": null,
+    "type": "SpaceStation"
+  },
+  "SpaceStation2": {
+    "desc": null,
+    "guid": "#Xse-qB4i-#mn",
+    "name": "Terminus Station",
+    "price": null,
+    "type": "SpaceStation"
+  },
+  "SpaceStation3": {
+    "desc": null,
+    "guid": "#Xsu-fMS0-Zcx",
+    "name": "Cairn Station",
+    "price": null,
+    "type": "SpaceStation"
+  },
+  "SpaceStation4": {
+    "desc": null,
+    "guid": "#bAx-GUiw-P8S",
+    "name": "Justice Station",
+    "price": null,
+    "type": "SpaceStation"
+  },
+  "SpaceStation5": {
+    "desc": null,
+    "guid": "#bCC-S#mB-7os",
+    "name": "Horizon Station",
+    "price": null,
+    "type": "SpaceStation"
+  },
+  "SpaceWheat_FrostPulp": {
+    "desc": "Despite its name, this pulp is strangely tepid, as if unaffected by outside temperature.",
+    "guid": "#air-j6pM-v6l",
+    "name": "Frost Pulp",
+    "price": null,
+    "type": "Biological_Extra"
+  },
+  "SpaceWheat_PlainPulp": {
+    "desc": "This pulp is mostly tasteless, despite the unusual nutrient it contains.",
+    "guid": "#air-ZMpB-PA9",
+    "name": "Plain Pulp",
+    "price": null,
+    "type": "Biological_Extra"
+  },
+  "SpaceWheat_Seed": {
+    "desc": "The Spacekorn is a highly adaptable alien organism. Even better, it’s a source of nutrients compatible with human biology.",
+    "guid": "#SOJ-8MRL-GEM",
+    "name": "Spacekorn Seed",
+    "price": 0,
+    "type": "Biological_Fruit"
+  },
+  "SpaceWheat_SourPulp": {
+    "desc": "This pulp has clearly turned already, and might be a source of fermented compounds.",
+    "guid": "#air-d2pE-hSn",
+    "name": "Sour Pulp",
+    "price": null,
+    "type": "Biological_Extra"
+  },
+  "SpaceWheat_WoolyKorn": {
+    "desc": "This hard fibrous shell should contain a few spacekorn seed. A grinder is required to extract them.",
+    "guid": "#air-egpI-XwC",
+    "name": "Wooly Korn",
+    "price": 0,
+    "type": "Biological_Fruit"
+  },
+  "StationFloor": {
+    "desc": null,
+    "guid": "#SOJ-8Mek-Pjt",
+    "name": "",
+    "price": null,
+    "type": "Building"
+  },
+  "StealthModule_Group": {
+    "desc": "[NOT IMPL] Tool that makes it more difficult to detect the ship (both for PC and NPC) and friendly ships around (Consume Antimatter Core)",
+    "guid": "#SOJ-8MaR-pIH",
+    "name": "Stealth Macro-Projector",
+    "price": null,
+    "type": "ShipModule"
+  },
+  "StealthModule_Personnal": {
+    "desc": "[NOT IMPL] Tool that makes it more difficult to detect the ship (both for PC and NPC) (Consume Antimatter Core)",
+    "guid": "#SOJ-8MaO-4DE",
+    "name": "Stealth Micro-Projector",
+    "price": null,
+    "type": "ShipModule"
+  },
+  "Steel": {
+    "desc": "An alloy of iron and carbon, frequently incorporating chromium to prevent oxidation. Its reliability and low cost make it a staple of most industries.",
+    "guid": "#SOJ-8MSI-V0o",
+    "name": "Steel Ingot",
+    "price": null,
+    "type": "Ingots"
+  },
+  "SteelCasingMK1": {
+    "desc": "A modular hull encasing a ship or an RSM. In addition to limiting friction in atmospheric spaces, the casing provides protection against electromagnetic radiation.",
+    "guid": "#SOJ-8MTy-SkL",
+    "name": "Small Steel Part Casing",
+    "price": null,
+    "type": "Casings"
+  },
+  "SteelHullScraps": {
+    "desc": "Wrecked hulls are ship parts that are damaged beyond repair. They can be dismantled to extract steel, aluminum and copper parts.",
+    "guid": "#Y2k-c&Jj-fIl",
+    "name": "Wrecked Hull",
+    "price": null,
+    "type": "Scrap"
+  },
+  "SteelScraps": {
+    "desc": "Scraps are the result of industrial disassembly. They cannot be reused without extensive processing at a [B_RecyclingPlant].",
+    "guid": "#Sgd-RNPG-pAs",
+    "name": "Steel Scraps",
+    "price": null,
+    "type": "Scrap"
+  },
+  "Storage1": {
+    "desc": "This storage module is suitable for solid materials. Its magnetic stabilization system protects its load from collisions, regardless of the ship's movements.",
+    "guid": "#SOJ-8MYV-&bT",
+    "name": "Small Cargo Hold",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "Storage2": {
+    "desc": null,
+    "guid": "#SOJ-8MYY-0Dy",
+    "name": "Cargo Hold",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "Storage3": {
+    "desc": null,
+    "guid": "#aVi-xYj7-jsE",
+    "name": "Large Cargo Hold",
+    "price": null,
+    "type": "ShipInventoryModules"
+  },
+  "Sulfur": {
+    "desc": "A crystalline material, chemical component and fertilizer. Described in the Bible as the brimstone of hell, it is one of only six chemical elements found in all known forms of life.",
+    "guid": "#SOJ-8MSS-Juk",
+    "name": "Sulfur",
+    "price": 0.7,
+    "type": "MineralParent"
+  },
+  "SupportCasing": {
+    "desc": "A standardized set of cables and pipes allowing all RSMs to communicate with their associated ship. Follows the \"Module Assembly Circulatory System\" or MACS convention.",
+    "guid": "#SOJ-8MTt-Ob5",
+    "name": "Support Hardware",
+    "price": null,
+    "type": "Casings"
+  },
+  "SystemScraps": {
+    "desc": "Electronic scraps are devices that are damaged beyond repair. They can be dismantled to extract copper and silicon parts.",
+    "guid": "#Sge-8ZPR-Pup",
+    "name": "Huge Electronics Scraps",
+    "price": null,
+    "type": "Scrap"
+  },
+  "TestReadable": {
+    "desc": "[NOT IMPL Someone made a doodle]",
+    "guid": "#Tgt-FJAm-ZrB",
+    "name": "Test Readable",
+    "price": null,
+    "type": "Readable"
+  },
+  "ThermalIsolant": {
+    "desc": "A mineral fiber that traps thin layers of air to slow down thermal conduction. Its name evokes the gentle memory of a time when real wool still existed.",
+    "guid": "#Xbq-SoVh-S&i",
+    "name": "Thermal Wool",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "ThermalPaste": {
+    "desc": "This semi-organic paste is unusually resistant to temperature changes. It can be use to protect from extreme condition.",
+    "guid": "#bMy-uF6c-3Cz",
+    "name": "Thermal Paste",
+    "price": 3,
+    "type": "Liquid"
+  },
+  "ThermalSheet": {
+    "desc": "An industrially processed sheet of metal with remarkably low thermal conductivity.",
+    "guid": "#Zke-ZRNa-NA4",
+    "name": "Thermal Sheet",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "Thruster0": {
+    "desc": "This electric propulsion device can provide thrust and lift to a spaceship without requiring any combustion or non-renewable fuel.",
+    "guid": "#SOJ-8MY6-I8#",
+    "name": "\"Cart Pusher\" Thruster",
+    "price": null,
+    "type": "ShipEngine"
+  },
+  "Thruster1": {
+    "desc": "",
+    "guid": "#SOJ-8MYA-AAF",
+    "name": "\"Long Haul Booster\"",
+    "price": null,
+    "type": "ShipEngine"
+  },
+  "Thruster2": {
+    "desc": null,
+    "guid": "#SOJ-8MYH-HZ5",
+    "name": "\"Silent Thruster\"",
+    "price": null,
+    "type": "ShipEngine"
+  },
+  "ThrusterAE1": {
+    "desc": "This subtle AEgir thruster integrates deeply with the ship's system to reach both summits of power efficiency and uncharted darkness.",
+    "guid": "#SOJ-8MYJ-eXr",
+    "name": "\"Quiet Breeze\" Thruster",
+    "price": null,
+    "type": "ShipEngine"
+  },
+  "ThrusterDA1": {
+    "desc": "Science often brings the inquisitive minds beyond the edge of safety. With this thruster, Damona gives them a way to return promptly to the secured emptyness of space.",
+    "guid": "#ZrS-ukzk-RpA",
+    "name": "\"Voidseeker\" Thruster",
+    "price": null,
+    "type": "ShipEngine"
+  },
+  "ThrusterMK1": {
+    "desc": "Meitner & Karls have designed this powerful thruster to deal with the dry heat of the most instense mining trip.",
+    "guid": "#SOJ-8MYP-0kX",
+    "name": "\"Grasshopper\" Thruster",
+    "price": null,
+    "type": "ShipEngine"
+  },
+  "TitaniumCasingMK1": {
+    "desc": "",
+    "guid": "#SOJ-8MU&-pF7",
+    "name": "Small Titanium Part Casing",
+    "price": null,
+    "type": "Casings"
+  },
+  "TitaniumCasingMK2": {
+    "desc": null,
+    "guid": "#SOJ-8MU5-VrB",
+    "name": "Titanium Part Casing",
+    "price": null,
+    "type": "Casings"
+  },
+  "TitaniumIngot": {
+    "desc": "A material commonly used in alloys for its lightness, resistance and biocompatibility. It can also be found in most living organisms.",
+    "guid": "#SOJ-8MS0-lkK",
+    "name": "Titanium Ingot",
+    "price": 9,
+    "type": "Ingots"
+  },
+  "TitaniumNugget": {
+    "desc": null,
+    "guid": "#SOJ-8MPz-uyE",
+    "name": "Titanium Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "TitaniumOre": {
+    "desc": null,
+    "guid": "#SOJ-8MPs-89Y",
+    "name": "Titanium Ore",
+    "price": null,
+    "type": "MetalOre"
+  },
+  "TitaniumScraps": {
+    "desc": "",
+    "guid": "#Y2j-I&Kn-0PP",
+    "name": "Titanium Scraps",
+    "price": null,
+    "type": "Scrap"
+  },
+  "TungstenIngot": {
+    "desc": "A dense and hard metal with an exceptionally high melting point, tungsten is difficult to work, but its properties also make it a critical component of many alloys.",
+    "guid": "#arw-9&IO-m35",
+    "name": "Tungsten Ingot",
+    "price": 16,
+    "type": "Ingots"
+  },
+  "TungstenNugget": {
+    "desc": null,
+    "guid": "#bvA-M2p5-lHL",
+    "name": "Tungsten Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "TungstenOre": {
+    "desc": null,
+    "guid": "#auX-Nwox-ICa",
+    "name": "Tungsten Ore",
+    "price": null,
+    "type": "MetalOre"
+  },
+  "Turquoise": {
+    "desc": "An opaque gemstone formed by the contact of meteoritic water and copper porphyry.",
+    "guid": "#SOJ-8MQJ-xpT",
+    "name": "Turquoise",
+    "price": 15,
+    "type": "MineralNugget"
+  },
+  "TurquoiseBead": {
+    "desc": null,
+    "guid": "#TqQ-OAXz-kom",
+    "name": "Turquoise Bead",
+    "price": 5,
+    "type": "Luxuries"
+  },
+  "Unbendinium": {
+    "desc": "This mysterious alloy has been critical to humankind spacefaring logistics. Its tensile and yield strenghts are unmatched by any other metal known to man.",
+    "guid": "#arw-5VII-3eT",
+    "name": "Unbendinium Ingot",
+    "price": null,
+    "type": "Ingots"
+  },
+  "Unknown": {
+    "desc": null,
+    "guid": "#SOJ-8MeW-PC2",
+    "name": "???",
+    "price": 0,
+    "type": "MetalOre"
+  },
+  "UraniumNugget": {
+    "desc": "A dangerous radioactive material that should not be handle without the proper equipement.",
+    "guid": "#SVo-YEEC-Gf7",
+    "name": "Uranium Nugget",
+    "price": 1,
+    "type": "MetalNugget"
+  },
+  "VanadiumIngot": {
+    "desc": "A material commonly used in steel alloys. It can also be found as a toxin in a number of living organisms.",
+    "guid": "#SOJ-8MSB-&kJ",
+    "name": "Vanadium Ingot",
+    "price": 15,
+    "type": "Ingots"
+  },
+  "VanadiumOre": {
+    "desc": null,
+    "guid": "#SOJ-8MQk-gVT",
+    "name": "Vanadium Ore",
+    "price": null,
+    "type": "MetalOre"
+  },
+  "Vitriol": {
+    "desc": "Sulphuric acid is one of the most widely used industrial substances. There are many ways to produce this component, and even more ways to use it.",
+    "guid": "#Xcq-D&9i-d4y",
+    "name": "Sulphuric Acid",
+    "price": 0.55,
+    "type": "Liquid"
+  },
+  "Water": {
+    "desc": "As a remarkably neutral solvent with a strong polarity and small molecular size, water is essential to all known lifeforms and most known industries.",
+    "guid": "#SOJ-8MRR-lYD",
+    "name": "Water",
+    "price": 0.4,
+    "type": "Liquid"
+  },
+  "Water_Brine": {
+    "desc": "Large open body of water under an open sky are contaminated with many compounds, and need to be treated before being used in chemical applications.",
+    "guid": "#a8&-AEga-SED",
+    "name": "Brine Water",
+    "price": 0.3,
+    "type": "Liquid"
+  },
+  "Water_Waste": {
+    "desc": "[NOT IMPL]",
+    "guid": "#a8&-CEgf-q6W",
+    "name": "Polluted Water",
+    "price": 0.2,
+    "type": "Liquid"
+  },
+  "Wing_01": {
+    "desc": null,
+    "guid": "#SOJ-8MXY-4Ud",
+    "name": "\"Nimbus\" Spoiler",
+    "price": null,
+    "type": "ShipWing"
+  },
+  "Wing_01_Steel_AluK": {
+    "desc": null,
+    "guid": "#Zlt-rIu8-jyS",
+    "name": "Thermal \"Nimbus\" Spoiler",
+    "price": null,
+    "type": "ShipWing"
+  },
+  "Wing_02": {
+    "desc": null,
+    "guid": "#SOJ-8MXe-oLe",
+    "name": "\"Catfin\" Spoiler",
+    "price": null,
+    "type": "ShipWing"
+  },
+  "Wing_02_Steel_AluK": {
+    "desc": null,
+    "guid": "#Zlt-rQuA-UhZ",
+    "name": "Thermal \"Catfin\" Spoiler",
+    "price": null,
+    "type": "ShipWing"
+  },
+  "Wing_03": {
+    "desc": null,
+    "guid": "#SOJ-8MXh-FvQ",
+    "name": "\"Warden\" Wing",
+    "price": null,
+    "type": "ShipWing"
+  },
+  "Wing_03_Steel_AluK": {
+    "desc": null,
+    "guid": "#a1J-17PY-F7N",
+    "name": "Thermal \"Warden\" Spoiler",
+    "price": null,
+    "type": "ShipWing"
+  },
+  "Wing_04": {
+    "desc": "",
+    "guid": "#SOJ-8MXl-03z",
+    "name": "\"Condor\" Wing",
+    "price": null,
+    "type": "ShipWing"
+  },
+  "Wing_04_Tit_AluK": {
+    "desc": "",
+    "guid": "#Zlw-ksvZ-lVw",
+    "name": "Thermal \"Condor\" Wing",
+    "price": null,
+    "type": "ShipWing"
+  },
+  "Wire": {
+    "desc": "A simple device to transmit electric current between two points.",
+    "guid": "#SOJ-8MSY-MbN",
+    "name": "Wire",
+    "price": null,
+    "type": "SimpleFactoredMaterial"
+  },
+  "WreckBlackBox": {
+    "desc": "A black box containing all flight data up until the crash. Someone might be interested in acquiring it.",
+    "guid": "#Wk3-JkdC-rOD",
+    "name": "Black Box",
+    "price": null,
+    "type": "QuestItem"
+  },
+  "XenicOil": {
+    "desc": "An organic hydrocarbon extracted from alien seeds, xenic oil is an useful lubricant and a mediocre fuel.",
+    "guid": "#aVl-TAjH-h03",
+    "name": "Xenic Oil",
+    "price": 16,
+    "type": "Liquid"
+  },
+  "ZirconiumIngot": {
+    "desc": "A material remarkably resistant to corrosion and high temperatures. It is also capable of storing radioactive energy with minimal loss.",
+    "guid": "#SOJ-8MRw-ojC",
+    "name": "Zirconium Ingot",
+    "price": 28,
+    "type": "Ingots"
+  },
+  "ZirconiumNugget": {
+    "desc": null,
+    "guid": "#SOJ-8MPJ-5jM",
+    "name": "Zirconium Nugget",
+    "price": null,
+    "type": "MetalNugget"
+  },
+  "ZirconiumOre": {
+    "desc": null,
+    "guid": "#SOJ-8MPG-Qnw",
+    "name": "Zirconium Ore",
+    "price": null,
+    "type": "MetalOre"
+  }
+}
