@@ -1021,6 +1021,168 @@ def resolve_recipe_tree(
 
 # ---------- UI ----------
 
+# Subtle border for the flat-styled custom widgets (tk.Entry/tk.Button don't
+# get one from the OS theme the way ttk widgets do) - gives them a more
+# "finished" look than the borderless relief="flat" default. Entries light up
+# with the accent color on focus; buttons keep a static border regardless.
+_BORDER = "#30363d"
+_BORDER_FOCUS = "#388bfd"
+
+
+def _bordered_entry(parent, **kwargs):
+    kwargs.setdefault("highlightthickness", 1)
+    kwargs.setdefault("highlightbackground", _BORDER)
+    kwargs.setdefault("highlightcolor", _BORDER_FOCUS)
+    return tk.Entry(parent, **kwargs)
+
+
+def _strip_focus(layout):
+    """Drop the dashed keyboard-focus rectangle ttk draws inside a button,
+    splicing its children (the padding/label) up into its place instead of
+    just deleting them."""
+    result = []
+    for name, opts in layout:
+        new_opts = dict(opts)
+        if "children" in new_opts:
+            new_opts["children"] = _strip_focus(new_opts["children"])
+        if "focus" in name.lower():
+            result.extend(new_opts.get("children", []))
+        else:
+            result.append((name, new_opts))
+    return result
+
+
+def _configure_button_styles(style: ttk.Style) -> None:
+    """Named ttk.TButton styles used everywhere instead of classic tk.Button:
+    a real hover/press state (which a flat tk.Button can't give without extra
+    binds) reads as much more "finished" than a static border. Grouped by
+    color role; Tab/JobRemove additionally react to a manually-toggled
+    "selected" widget state (see _set_mode/_set_view/_set_recipe_mode and the
+    job-row remove button)."""
+    # Every "X.TButton" style below inherits the base "TButton" layout, so
+    # stripping the focus ring once here covers all of them.
+    style.layout("TButton", _strip_focus(style.layout("TButton")))
+
+    def role(name, bg, fg, hover, pressed, font=("Segoe UI", 9), padding=(10, 5)):
+        style.configure(
+            f"{name}.TButton",
+            background=bg,
+            foreground=fg,
+            bordercolor=_BORDER,
+            borderwidth=1,
+            relief="raised",
+            font=font,
+            padding=padding,
+        )
+        style.map(
+            f"{name}.TButton",
+            background=[("pressed", pressed), ("active", hover)],
+            bordercolor=[("focus", _BORDER_FOCUS)],
+            relief=[("pressed", "sunken"), ("!pressed", "raised")],
+        )
+
+    role("Neutral", "#21262d", "#c9d1d9", "#30363d", "#161b22")
+    role(
+        "NeutralSmall",
+        "#21262d",
+        "#c9d1d9",
+        "#30363d",
+        "#161b22",
+        font=("Segoe UI", 8),
+        padding=(6, 4),
+    )
+    role("Success", "#238636", "white", "#2ea043", "#1a7431")
+    role(
+        "SuccessSmall",
+        "#238636",
+        "white",
+        "#2ea043",
+        "#1a7431",
+        font=("Segoe UI", 8),
+        padding=(6, 3),
+    )
+    role("Danger", "#da3633", "white", "#f85149", "#b62324")
+    role("Accent", "#1f6feb", "white", "#388bfd", "#1158c7")
+
+    # Toggle-style tab buttons: one style, "selected" state manually set via
+    # .state(["selected"]) / .state(["!selected"]) at each toggle site.
+    style.configure(
+        "Tab.TButton",
+        background="#21262d",
+        foreground="#8b949e",
+        bordercolor=_BORDER,
+        borderwidth=1,
+        relief="raised",
+        font=("Segoe UI", 8),
+        padding=(6, 3),
+    )
+    style.map(
+        "Tab.TButton",
+        background=[("selected", "#1f6feb"), ("active", "#30363d")],
+        foreground=[("selected", "white")],
+        bordercolor=[("selected", "#1f6feb")],
+        relief=[("selected", "sunken"), ("!selected", "raised")],
+    )
+
+    # Minimal icon buttons (titlebar ✕/📌/⚙, row "×" removers) - no static
+    # border so they blend into their bar/row at rest, just a hover highlight.
+    def icon_role(name, bg, fg, hover):
+        style.configure(
+            f"{name}.TButton",
+            background=bg,
+            foreground=fg,
+            borderwidth=0,
+            relief="flat",
+            font=("Segoe UI", 9),
+            padding=(4, 2),
+        )
+        style.map(f"{name}.TButton", background=[("active", hover)])
+
+    icon_role("IconClose", "#161b22", "#c9d1d9", "#21262d")
+    icon_role("IconSettings", "#161b22", "#8b949e", "#21262d")
+
+    style.configure(
+        "IconPin.TButton",
+        background="#161b22",
+        foreground="#6e7681",
+        borderwidth=0,
+        relief="flat",
+        font=("Segoe UI", 9),
+        padding=(4, 2),
+    )
+    style.map(
+        "IconPin.TButton",
+        background=[("active", "#21262d")],
+        foreground=[("selected", "#f0883e")],
+    )
+
+    style.configure(
+        "Remove.TButton",
+        background="#0d1117",
+        foreground="#da3633",
+        borderwidth=0,
+        relief="flat",
+        font=("Segoe UI", 9),
+        padding=(2, 0),
+    )
+    style.map("Remove.TButton", background=[("active", "#21262d")])
+
+    style.configure(
+        "JobRemove.TButton",
+        background="#161b22",
+        foreground="#da3633",
+        borderwidth=0,
+        relief="flat",
+        font=("Segoe UI", 9),
+        padding=(2, 0),
+    )
+    style.map(
+        "JobRemove.TButton",
+        background=[("selected", "#1f6feb"), ("active", "#21262d")],
+        foreground=[("selected", "#ffaaaa")],
+    )
+
+
 _NO_ARROW_STYLES: set[str] = set()
 
 
@@ -1475,25 +1637,14 @@ class CraftQueuePanel:
         )
         self._title_label.pack(side="left", padx=8)
 
-        tk.Button(
-            drag,
-            text="✕",
-            bg="#161b22",
-            fg="#c9d1d9",
-            bd=0,
-            command=self.hide,
-            font=("Segoe UI", 9),
+        ttk.Button(
+            drag, text="✕", style="IconClose.TButton", command=self.hide
         ).pack(side="right", padx=4)
 
-        self._pin_btn = tk.Button(
-            drag,
-            text="📌",
-            bg="#161b22",
-            fg="#f0883e" if self._pinned else "#6e7681",
-            bd=0,
-            command=self._toggle_pin,
-            font=("Segoe UI", 9),
+        self._pin_btn = ttk.Button(
+            drag, text="📌", style="IconPin.TButton", command=self._toggle_pin
         )
+        self._pin_btn.state(["selected" if self._pinned else "!selected"])
         self._pin_btn.pack(side="right", padx=2)
 
         for widget in (drag, self._title_label):
@@ -1506,30 +1657,22 @@ class CraftQueuePanel:
         tab_row = tk.Frame(self._win, bg="#0d1117")
         tab_row.pack(fill="x", padx=6, pady=(4, 0))
 
-        self._btn_queue = tk.Button(
+        self._btn_queue = ttk.Button(
             tab_row,
             text="Queue",
-            bg="#1f6feb" if self._mode == "queue" else "#21262d",
-            fg="white" if self._mode == "queue" else "#8b949e",
-            relief="flat",
-            bd=0,
-            padx=6,
-            font=("Segoe UI", 8),
+            style="Tab.TButton",
             command=lambda: self._set_mode("queue"),
         )
+        self._btn_queue.state(["selected" if self._mode == "queue" else "!selected"])
         self._btn_queue.pack(side="left", padx=(0, 2))
 
-        self._btn_totals = tk.Button(
+        self._btn_totals = ttk.Button(
             tab_row,
             text="Totals",
-            bg="#1f6feb" if self._mode == "totals" else "#21262d",
-            fg="white" if self._mode == "totals" else "#8b949e",
-            relief="flat",
-            bd=0,
-            padx=6,
-            font=("Segoe UI", 8),
+            style="Tab.TButton",
             command=lambda: self._set_mode("totals"),
         )
+        self._btn_totals.state(["selected" if self._mode == "totals" else "!selected"])
         self._btn_totals.pack(side="left", padx=(0, 2))
 
         # Bottom items must be packed before the expanding PanedWindow so the
@@ -1563,7 +1706,7 @@ class CraftQueuePanel:
         )
 
         self._add_qty_var = tk.StringVar(value="1")
-        tk.Entry(
+        _bordered_entry(
             add_row,
             textvariable=self._add_qty_var,
             width=7,
@@ -1574,26 +1717,15 @@ class CraftQueuePanel:
             justify="center",
         ).pack(side="left", padx=(0, 4), ipady=2)
 
-        tk.Button(
-            add_row,
-            text="+ Add",
-            command=self._add_job,
-            bg="#238636",
-            fg="white",
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
+        ttk.Button(
+            add_row, text="+ Add", command=self._add_job, style="SuccessSmall.TButton"
         ).pack(side="left")
 
-        tk.Button(
+        ttk.Button(
             add_row,
             text="Clear done",
             command=self._clear_all_done,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
+            style="NeutralSmall.TButton",
         ).pack(side="right")
 
         # --- station row (recipes with more than one usable station let
@@ -1771,7 +1903,7 @@ class CraftQueuePanel:
 
     def _toggle_pin(self):
         self._pinned = not self._pinned
-        self._pin_btn.config(fg="#f0883e" if self._pinned else "#6e7681")
+        self._pin_btn.state(["selected" if self._pinned else "!selected"])
         self.update_title_bar()
         cfg: dict = load_config()
         cfg["queue_pinned"] = self._pinned
@@ -1781,14 +1913,8 @@ class CraftQueuePanel:
 
     def _set_mode(self, mode):
         self._mode = mode
-        self._btn_queue.config(
-            bg="#1f6feb" if mode == "queue" else "#21262d",
-            fg="white" if mode == "queue" else "#8b949e",
-        )
-        self._btn_totals.config(
-            bg="#1f6feb" if mode == "totals" else "#21262d",
-            fg="white" if mode == "totals" else "#8b949e",
-        )
+        self._btn_queue.state(["selected" if mode == "queue" else "!selected"])
+        self._btn_totals.state(["selected" if mode == "totals" else "!selected"])
         self._refresh_breakdown()
 
     # --- job list ---
@@ -1842,21 +1968,18 @@ class CraftQueuePanel:
         )
         lbl.pack(side="left", padx=(0, 2), pady=3, fill="x", expand=True)
 
-        rm_btn = tk.Button(
+        rm_btn = ttk.Button(
             row,
             text="×",
-            bg=bg,
-            fg="#ffaaaa" if is_sel else "#da3633",
-            relief="flat",
-            bd=0,
-            font=("Segoe UI", 9),
+            style="JobRemove.TButton",
             command=lambda qid=queue_id: self._remove_job(qid),
         )
+        rm_btn.state(["selected" if is_sel else "!selected"])
         rm_btn.pack(side="right", padx=4)
         rm_btn.bind("<MouseWheel>", self._job_scroll, add=True)
 
         qty_var = tk.StringVar(value=f"{qty:g}")
-        qty_e = tk.Entry(
+        qty_e = _bordered_entry(
             row,
             textvariable=qty_var,
             width=6,
@@ -2495,6 +2618,9 @@ class Overlay(tk.Tk):
         self.attributes("-alpha", 0.94)
         self.configure(bg="#0d1117")
         self.overrideredirect(True)  # no native title bar -> cleaner overlay
+        style = ttk.Style(self)
+        style.theme_use("default")
+        _configure_button_styles(style)
         self.selected_id = None
         self.type_filter_vars = {}  # res_type -> tk.BooleanVar, rebuilt dynamically
         self._hotkey_handle = None
@@ -2632,25 +2758,16 @@ class Overlay(tk.Tk):
         )
         self._title_label.pack(side="left", padx=8)
 
-        close_btn = tk.Button(
-            drag_bar,
-            text="✕",
-            bg="#161b22",
-            fg="#c9d1d9",
-            bd=0,
-            command=self.quit_app,
-            font=("Segoe UI", 9),
+        close_btn = ttk.Button(
+            drag_bar, text="✕", style="IconClose.TButton", command=self.quit_app
         )
         close_btn.pack(side="right", padx=4)
 
-        settings_btn = tk.Button(
+        settings_btn = ttk.Button(
             drag_bar,
             text="⚙",
-            bg="#161b22",
-            fg="#8b949e",
-            bd=0,
+            style="IconSettings.TButton",
             command=self._open_hotkey_settings,
-            font=("Segoe UI", 9),
         )
         settings_btn.pack(side="right", padx=2)
 
@@ -2665,56 +2782,43 @@ class Overlay(tk.Tk):
         tab_row = tk.Frame(self, bg="#0d1117")
         tab_row.pack(fill="x", side="top", padx=8, pady=(4, 0))
 
-        self._btn_resource = tk.Button(
+        self._btn_resource = ttk.Button(
             tab_row,
             text="Resource",
-            bg="#1f6feb" if self._view_mode == "resource" else "#21262d",
-            fg="white" if self._view_mode == "resource" else "#8b949e",
-            bd=0,
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
+            style="Tab.TButton",
             command=lambda: self._set_view("resource"),
+        )
+        self._btn_resource.state(
+            ["selected" if self._view_mode == "resource" else "!selected"]
         )
         self._btn_resource.pack(side="left", padx=(0, 2))
 
-        self._btn_location = tk.Button(
+        self._btn_location = ttk.Button(
             tab_row,
             text="Location",
-            bg="#1f6feb" if self._view_mode == "location" else "#21262d",
-            fg="white" if self._view_mode == "location" else "#8b949e",
-            bd=0,
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
+            style="Tab.TButton",
             command=lambda: self._set_view("location"),
+        )
+        self._btn_location.state(
+            ["selected" if self._view_mode == "location" else "!selected"]
         )
         self._btn_location.pack(side="left", padx=(0, 2))
 
-        self._btn_recipe = tk.Button(
+        self._btn_recipe = ttk.Button(
             tab_row,
             text="Recipe",
-            bg="#1f6feb" if self._view_mode == "recipe" else "#21262d",
-            fg="white" if self._view_mode == "recipe" else "#8b949e",
-            bd=0,
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
+            style="Tab.TButton",
             command=lambda: self._set_view("recipe"),
+        )
+        self._btn_recipe.state(
+            ["selected" if self._view_mode == "recipe" else "!selected"]
         )
         self._btn_recipe.pack(side="left", padx=(0, 2))
 
-        self._btn_queue_panel = tk.Button(
-            tab_row,
-            text="Queue",
-            bg="#21262d",
-            fg="#8b949e",
-            bd=0,
-            relief="flat",
-            padx=6,
-            font=("Segoe UI", 8),
-            command=self.toggle_queue_panel,
+        self._btn_queue_panel = ttk.Button(
+            tab_row, text="Queue", style="Tab.TButton", command=self.toggle_queue_panel
         )
+        self._btn_queue_panel.state(["!selected"])
         self._btn_queue_panel.pack(side="left", padx=(8, 2))
 
     def _title_text(self):
@@ -2766,14 +2870,8 @@ class Overlay(tk.Tk):
             _restore_hotkey()
             win.destroy()
 
-        tk.Button(
-            drag_bar,
-            text="✕",
-            bg="#161b22",
-            fg="#c9d1d9",
-            bd=0,
-            command=_close_dialog,
-            font=("Segoe UI", 9),
+        ttk.Button(
+            drag_bar, text="✕", style="IconClose.TButton", command=_close_dialog
         ).pack(side="right", padx=4)
 
         drag = {"x": 0, "y": 0}
@@ -2829,7 +2927,7 @@ class Overlay(tk.Tk):
         def _stop_listening():
             win.unbind("<KeyPress>")
             win.unbind("<KeyRelease>")
-            rebind_btn.config(text="Rebind", bg="#21262d")
+            rebind_btn.configure(text="Rebind", style="Neutral.TButton")
 
         def _on_key_press(event):
             mod = _MODIFIER_KEYSYMS.get(event.keysym)
@@ -2881,7 +2979,7 @@ class Overlay(tk.Tk):
             mods.clear()
             msg.config(text="")
             display.config(text="Press a key...")
-            rebind_btn.config(text="Press a key... (Esc to cancel)", bg="#1f6feb")
+            rebind_btn.configure(text="Press a key... (Esc to cancel)", style="Accent.TButton")
             win.bind("<KeyPress>", _on_key_press)
             win.bind("<KeyRelease>", _on_key_release)
             win.focus_set()
@@ -2890,25 +2988,13 @@ class Overlay(tk.Tk):
         btn_row = tk.Frame(body, bg="#0d1117")
         btn_row.pack(padx=16, pady=(4, 12), fill="x")
 
-        rebind_btn = tk.Button(
-            btn_row,
-            text="Rebind",
-            command=_start_listening,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            padx=10,
+        rebind_btn = ttk.Button(
+            btn_row, text="Rebind", command=_start_listening, style="Neutral.TButton"
         )
         rebind_btn.pack(side="left", fill="x", expand=True)
 
-        tk.Button(
-            btn_row,
-            text="Close",
-            command=_close_dialog,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            padx=10,
+        ttk.Button(
+            btn_row, text="Close", command=_close_dialog, style="Neutral.TButton"
         ).pack(side="left", padx=(6, 0))
 
         win.update_idletasks()
@@ -2994,10 +3080,7 @@ class Overlay(tk.Tk):
             (self._btn_location, "location"),
             (self._btn_recipe, "recipe"),
         ):
-            btn.config(
-                bg="#1f6feb" if mode == key else "#21262d",
-                fg="white" if mode == key else "#8b949e",
-            )
+            btn.state(["selected" if mode == key else "!selected"])
         cfg: dict = load_config()
         cfg["view_mode"] = mode
         save_config(cfg)
@@ -3063,7 +3146,7 @@ class Overlay(tk.Tk):
         self._search_frame = frame
         self.search_var = tk.StringVar()
         self.search_var.trace_add("write", lambda *_a: self.refresh())
-        entry = tk.Entry(
+        entry = _bordered_entry(
             frame,
             textvariable=self.search_var,
             bg="#161b22",
@@ -3283,7 +3366,7 @@ class Overlay(tk.Tk):
         tk.Label(
             form, text="Notes", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
         ).pack(anchor="w", pady=(6, 0))
-        self.notes_entry = tk.Entry(
+        self.notes_entry = _bordered_entry(
             form, bg="#161b22", fg="#c9d1d9", insertbackground="#c9d1d9", relief="flat"
         )
         self.notes_entry.pack(fill="x", ipady=3)
@@ -3291,41 +3374,17 @@ class Overlay(tk.Tk):
         # buttons
         btns = tk.Frame(form, bg="#0d1117")
         btns.pack(fill="x", pady=(8, 0))
-        tk.Button(
-            btns,
-            text="Add",
-            command=self.add_entry,
-            bg="#238636",
-            fg="white",
-            relief="flat",
-            padx=10,
+        ttk.Button(
+            btns, text="Add", command=self.add_entry, style="Success.TButton"
         ).pack(side="left", padx=2)
-        tk.Button(
-            btns,
-            text="Update",
-            command=self.update_entry,
-            bg="#1f6feb",
-            fg="white",
-            relief="flat",
-            padx=10,
+        ttk.Button(
+            btns, text="Update", command=self.update_entry, style="Accent.TButton"
         ).pack(side="left", padx=2)
-        tk.Button(
-            btns,
-            text="Clear",
-            command=self.clear_form,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            padx=10,
+        ttk.Button(
+            btns, text="Clear", command=self.clear_form, style="Neutral.TButton"
         ).pack(side="left", padx=2)
-        tk.Button(
-            btns,
-            text="Delete",
-            command=self.delete_entry,
-            bg="#da3633",
-            fg="white",
-            relief="flat",
-            padx=10,
+        ttk.Button(
+            btns, text="Delete", command=self.delete_entry, style="Danger.TButton"
         ).pack(side="right", padx=(2, 18))
 
     # ----- dropdown refresh (dynamic, no hardcoding) -----
@@ -3872,15 +3931,15 @@ class Overlay(tk.Tk):
         if self._queue_panel is None:
             self._queue_panel = CraftQueuePanel(self, self)
             self._queue_panel.on_hide_cb = self._on_queue_panel_hide
-            self._btn_queue_panel.config(bg="#1f6feb", fg="white")
+            self._btn_queue_panel.state(["selected"])
         elif self._queue_panel.is_visible():
             self._queue_panel.hide()
         else:
             self._queue_panel.show()
-            self._btn_queue_panel.config(bg="#1f6feb", fg="white")
+            self._btn_queue_panel.state(["selected"])
 
     def _on_queue_panel_hide(self):
-        self._btn_queue_panel.config(bg="#21262d", fg="#8b949e")
+        self._btn_queue_panel.state(["!selected"])
 
     def _on_recipe_combo_right_click(self, event):
         if self._recipe_selected_id is None:
@@ -3908,7 +3967,7 @@ class Overlay(tk.Tk):
             qty = 1.0
         self._queue_panel.add_job(self._recipe_selected_id, qty)
         self._queue_panel.show()
-        self._btn_queue_panel.config(bg="#1f6feb", fg="white")
+        self._btn_queue_panel.state(["selected"])
 
     def quit_app(self):
         """Fully close the app (not just hide) - also ends the hotkey
@@ -4028,22 +4087,17 @@ class Overlay(tk.Tk):
             ),
             on_select_fn=self._on_recipe_combo_select,
         )
-        tk.Button(
+        ttk.Button(
             self._sel_left,
             text="New",
             command=self.clear_recipe_form,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            bd=0,
-            padx=8,
-            font=("Segoe UI", 8),
+            style="NeutralSmall.TButton",
         ).pack(side="left", padx=(0, 8))
         tk.Label(
             self._sel_left, text="×", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 9)
         ).pack(side="left")
         self._recipe_qty_var = tk.StringVar(value="1")
-        qty_entry = tk.Entry(
+        qty_entry = _bordered_entry(
             self._sel_left,
             textvariable=self._recipe_qty_var,
             width=5,
@@ -4058,41 +4112,29 @@ class Overlay(tk.Tk):
         qty_entry.bind("<FocusOut>", lambda _e: self._refresh_recipe_breakdown())
         # Breakdown / Totals / Used In toggle (right side)
         self._recipe_breakdown_mode = "breakdown"
-        self._btn_bd_breakdown = tk.Button(
+        self._btn_bd_breakdown = ttk.Button(
             sel,
             text="Breakdown",
-            bg="#1f6feb",
-            fg="white",
-            relief="flat",
-            bd=0,
-            padx=6,
-            font=("Segoe UI", 8),
+            style="Tab.TButton",
             command=lambda: self._set_recipe_mode("breakdown"),
         )
+        self._btn_bd_breakdown.state(["selected"])
         self._btn_bd_breakdown.pack(side="right", padx=(2, 0))
-        self._btn_bd_totals = tk.Button(
+        self._btn_bd_totals = ttk.Button(
             sel,
             text="Totals",
-            bg="#21262d",
-            fg="#8b949e",
-            relief="flat",
-            bd=0,
-            padx=6,
-            font=("Segoe UI", 8),
+            style="Tab.TButton",
             command=lambda: self._set_recipe_mode("totals"),
         )
+        self._btn_bd_totals.state(["!selected"])
         self._btn_bd_totals.pack(side="right", padx=(0, 2))
-        self._btn_bd_usedin = tk.Button(
+        self._btn_bd_usedin = ttk.Button(
             sel,
             text="Used In",
-            bg="#21262d",
-            fg="#8b949e",
-            relief="flat",
-            bd=0,
-            padx=6,
-            font=("Segoe UI", 8),
+            style="Tab.TButton",
             command=lambda: self._set_recipe_mode("usedin"),
         )
+        self._btn_bd_usedin.state(["!selected"])
         self._btn_bd_usedin.pack(side="right", padx=(0, 2))
 
         # --- PanedWindow: breakdown tree (top) + edit form (bottom) ---
@@ -4150,7 +4192,7 @@ class Overlay(tk.Tk):
             name_row, text="Name:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
         ).pack(side="left", padx=(0, 4))
         self._recipe_name_var = tk.StringVar()
-        tk.Entry(
+        _bordered_entry(
             name_row,
             textvariable=self._recipe_name_var,
             bg="#161b22",
@@ -4218,65 +4260,41 @@ class Overlay(tk.Tk):
         self._ing_canvas.bind("<MouseWheel>", self._ing_scroll)
         self._ing_inner.bind("<MouseWheel>", self._ing_scroll)
 
-        tk.Button(
+        ttk.Button(
             btn_row,
             text="+ Station",
             command=self._add_station_row,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            bd=0,
-            padx=8,
-            font=("Segoe UI", 8),
+            style="NeutralSmall.TButton",
         ).pack(side="left", padx=(0, 6))
-        tk.Button(
+        ttk.Button(
             btn_row,
             text="+ Output",
             command=self._add_output_row,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            bd=0,
-            padx=8,
-            font=("Segoe UI", 8),
+            style="NeutralSmall.TButton",
         ).pack(side="left", padx=(0, 6))
-        tk.Button(
+        ttk.Button(
             btn_row,
             text="+ Ingredient",
             command=self._add_ingredient_row,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            bd=0,
-            padx=8,
-            font=("Segoe UI", 8),
+            style="NeutralSmall.TButton",
         ).pack(side="left", padx=(0, 10))
-        tk.Button(
+        ttk.Button(
             btn_row,
             text="Save",
             command=self.save_recipe_action,
-            bg="#238636",
-            fg="white",
-            relief="flat",
-            padx=10,
+            style="Success.TButton",
         ).pack(side="left", padx=2)
-        tk.Button(
+        ttk.Button(
             btn_row,
             text="Clear",
             command=self.clear_recipe_form,
-            bg="#21262d",
-            fg="#c9d1d9",
-            relief="flat",
-            padx=10,
+            style="Neutral.TButton",
         ).pack(side="left", padx=2)
-        tk.Button(
+        ttk.Button(
             btn_row,
             text="Delete",
             command=self.delete_recipe_action,
-            bg="#da3633",
-            fg="white",
-            relief="flat",
-            padx=10,
+            style="Danger.TButton",
         ).pack(side="right", padx=(2, 18))
 
     def _all_ingredient_options(self):
@@ -4297,7 +4315,7 @@ class Overlay(tk.Tk):
             name_cb,
             pre_fn=lambda cb=name_cb: cb.configure(values=get_all_output_names()),
         )
-        qty_entry = tk.Entry(
+        qty_entry = _bordered_entry(
             row_frame,
             textvariable=qty_var,
             width=7,
@@ -4315,15 +4333,8 @@ class Overlay(tk.Tk):
             self._out_rows = [x for x in self._out_rows if x is not row]
             row["frame"].destroy()
 
-        rm_btn = tk.Button(
-            row_frame,
-            text="×",
-            command=remove,
-            bg="#0d1117",
-            fg="#da3633",
-            relief="flat",
-            bd=0,
-            font=("Segoe UI", 9),
+        rm_btn = ttk.Button(
+            row_frame, text="×", command=remove, style="Remove.TButton"
         )
         rm_btn.pack(side="left")
         self._out_rows.append(row)
@@ -4346,7 +4357,7 @@ class Overlay(tk.Tk):
             station_cb,
             pre_fn=lambda cb=station_cb: cb.configure(values=get_all_stations()),
         )
-        auto_entry = tk.Entry(
+        auto_entry = _bordered_entry(
             row_frame,
             textvariable=auto_var,
             width=6,
@@ -4356,7 +4367,7 @@ class Overlay(tk.Tk):
             relief="flat",
         )
         auto_entry.pack(side="left", padx=(0, 4), ipady=2)
-        manual_entry = tk.Entry(
+        manual_entry = _bordered_entry(
             row_frame,
             textvariable=manual_var,
             width=6,
@@ -4379,15 +4390,8 @@ class Overlay(tk.Tk):
             self._station_rows = [x for x in self._station_rows if x is not row]
             row["frame"].destroy()
 
-        rm_btn = tk.Button(
-            row_frame,
-            text="×",
-            command=remove,
-            bg="#0d1117",
-            fg="#da3633",
-            relief="flat",
-            bd=0,
-            font=("Segoe UI", 9),
+        rm_btn = ttk.Button(
+            row_frame, text="×", command=remove, style="Remove.TButton"
         )
         rm_btn.pack(side="left")
         self._station_rows.append(row)
@@ -4459,7 +4463,7 @@ class Overlay(tk.Tk):
                 values=self._all_ingredient_options()
             ),
         )
-        qty_entry = tk.Entry(
+        qty_entry = _bordered_entry(
             row_frame,
             textvariable=qty_var,
             width=7,
@@ -4475,15 +4479,8 @@ class Overlay(tk.Tk):
             self._ing_rows = [x for x in self._ing_rows if x is not row]
             row["frame"].destroy()
 
-        rm_btn = tk.Button(
-            row_frame,
-            text="×",
-            command=remove,
-            bg="#0d1117",
-            fg="#da3633",
-            relief="flat",
-            bd=0,
-            font=("Segoe UI", 9),
+        rm_btn = ttk.Button(
+            row_frame, text="×", command=remove, style="Remove.TButton"
         )
         rm_btn.pack(side="left")
         for w in (row_frame, name_cb, qty_entry, rm_btn):
@@ -4811,10 +4808,7 @@ class Overlay(tk.Tk):
             (self._btn_bd_totals, "totals"),
             (self._btn_bd_usedin, "usedin"),
         ):
-            btn.config(
-                bg="#1f6feb" if mode == key else "#21262d",
-                fg="white" if mode == key else "#8b949e",
-            )
+            btn.state(["selected" if mode == key else "!selected"])
         self._refresh_recipe_breakdown()
 
     def _refresh_recipe_breakdown(self):
