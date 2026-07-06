@@ -227,6 +227,12 @@ def init_db():
         )
     """)
     c.execute("""
+        CREATE TABLE IF NOT EXISTS recipe_station_prefs (
+            ingredient_name TEXT PRIMARY KEY,
+            station TEXT NOT NULL
+        )
+    """)
+    c.execute("""
         CREATE TABLE IF NOT EXISTS craft_queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             recipe_id INTEGER NOT NULL,
@@ -685,6 +691,39 @@ def clear_alt_pref(ingredient_name):
     conn.close()
 
 
+def get_station_prefs():
+    """Return {ingredient_name: station} of user-chosen preferred crafting
+    stations, same idea as get_alt_prefs but for which station (rather than
+    which alternate recipe) to use for an ingredient."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT ingredient_name, station FROM recipe_station_prefs")
+    prefs = dict(c.fetchall())
+    conn.close()
+    return prefs
+
+
+def set_station_pref(ingredient_name, station):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "INSERT OR REPLACE INTO recipe_station_prefs (ingredient_name, station) VALUES (?, ?)",
+        (ingredient_name, station),
+    )
+    conn.commit()
+    conn.close()
+
+
+def clear_station_pref(ingredient_name):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "DELETE FROM recipe_station_prefs WHERE ingredient_name=?", (ingredient_name,)
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_deposits_for_ingredient(resource_name):
     """Deposit locations for a resource, excluding Claimed."""
     conn = sqlite3.connect(DB_PATH)
@@ -872,6 +911,13 @@ def _load_recipe_data():
     ing_map: dict = {}
     for rid, ing_name, qty in c.fetchall():
         ing_map.setdefault(rid, []).append((ing_name, qty))
+    c.execute(
+        "SELECT recipe_id, station, auto_craft_seconds, manual_craft_seconds"
+        " FROM recipe_stations ORDER BY id"
+    )
+    stations_by_recipe: dict = {}
+    for rid, station, auto_s, manual_s in c.fetchall():
+        stations_by_recipe.setdefault(rid, []).append((station, auto_s, manual_s))
     conn.close()
     return (
         recipe_map,
@@ -880,6 +926,7 @@ def _load_recipe_data():
         alts_by_output,
         recipe_name_by_id,
         recipe_meta_by_id,
+        stations_by_recipe,
     )
 
 
@@ -895,17 +942,22 @@ def resolve_recipe_tree(
     _recipe_name_by_id=None,
     _recipe_meta_by_id=None,
     _alt_prefs=None,
+    _stations_by_recipe=None,
+    _station_prefs=None,
 ):
     """
     Recursively build a breakdown tree for `name`.
     Returns: {'name', 'qty', 'is_recipe', 'output_qty', 'recipe_name', 'children',
               'alts', 'byproducts', 'station', 'auto_craft_seconds',
-              'manual_craft_seconds'}
+              'manual_craft_seconds', 'stations'}
     'alts' lists every other recipe producing the same output — shown as collapsible branches.
     'byproducts' lists this recipe's other outputs (besides `name`), scaled to
     the same craft count — populated for multi-output recipes.
+    'stations' lists every usable station for this node's recipe (station,
+    auto_craft_seconds, manual_craft_seconds), so the UI can offer a picker.
     _root_recipe_id: forces a specific recipe at the top level (for alternate recipe views).
     _alt_prefs: {ingredient_name: recipe_id} of user-selected alternate recipes.
+    _station_prefs: {ingredient_name: station} of user-selected preferred stations.
     """
     if _recipe_map is None or _ing_map is None or _outputs_by_recipe is None:
         (
@@ -915,6 +967,7 @@ def resolve_recipe_tree(
             _alts_by_output,
             _recipe_name_by_id,
             _recipe_meta_by_id,
+            _stations_by_recipe,
         ) = _load_recipe_data()
     if _visited is None:
         _visited = frozenset()
@@ -935,6 +988,7 @@ def resolve_recipe_tree(
     station = None
     auto_craft_seconds = None
     manual_craft_seconds = None
+    stations: list = []
     if is_recipe:
         recipe_outputs = _outputs_by_recipe.get(recipe_id, [(name, 1.0)])
         output_names = [n for n, _ in recipe_outputs]
@@ -945,6 +999,17 @@ def resolve_recipe_tree(
         station = meta.get("station")
         auto_craft_seconds = meta.get("auto_craft_seconds")
         manual_craft_seconds = meta.get("manual_craft_seconds")
+        stations = (_stations_by_recipe or {}).get(recipe_id, [])
+        pref_station = (_station_prefs or {}).get(name)
+        if pref_station:
+            for st_name, st_auto, st_manual in stations:
+                if st_name == pref_station:
+                    station, auto_craft_seconds, manual_craft_seconds = (
+                        st_name,
+                        st_auto,
+                        st_manual,
+                    )
+                    break
         crafts = math.ceil(qty_needed / output_qty)
         byproducts = [
             {"name": n, "qty": crafts * q}
@@ -964,6 +1029,8 @@ def resolve_recipe_tree(
                 _recipe_name_by_id=_recipe_name_by_id,
                 _recipe_meta_by_id=_recipe_meta_by_id,
                 _alt_prefs=_alt_prefs,
+                _stations_by_recipe=_stations_by_recipe,
+                _station_prefs=_station_prefs,
             )
             children.append(child)
         # Find every other recipe that produces the same output
@@ -992,6 +1059,8 @@ def resolve_recipe_tree(
                     _recipe_name_by_id=_recipe_name_by_id,
                     _recipe_meta_by_id=_recipe_meta_by_id,
                     _alt_prefs=_alt_prefs,
+                    _stations_by_recipe=_stations_by_recipe,
+                    _station_prefs=_station_prefs,
                 )
                 alt_children.append(alt_child)
             alts.append(
@@ -1001,6 +1070,7 @@ def resolve_recipe_tree(
                     "output_qty": alt_oqty,
                     "children": alt_children,
                     "byproducts": alt_byproducts,
+                    "stations": (_stations_by_recipe or {}).get(alt_rid, []),
                 }
             )
 
@@ -1016,6 +1086,7 @@ def resolve_recipe_tree(
         "station": station,
         "auto_craft_seconds": auto_craft_seconds,
         "manual_craft_seconds": manual_craft_seconds,
+        "stations": stations,
     }
 
 
@@ -1428,7 +1499,14 @@ class _LiveDropdown:
             default=0,
         )
         w = max(b.winfo_width(), min(longest + 24, 520), 120)
-        h = min(8, self._lb.size()) * 20 + 4  # type: ignore[union-attr]
+        # Measure the real per-row pixel height from Tk's own layout rather
+        # than assuming one - a hardcoded guess (previously 20px) can badly
+        # overshoot the actual rendered row height (~15-17px for "Segoe UI"
+        # 9 on this system), padding the popup with visibly blank rows.
+        n = min(8, self._lb.size())  # type: ignore[union-attr]
+        bbox = self._lb.bbox(0) if n else None  # type: ignore[union-attr]
+        row_h = bbox[3] if bbox else lb_font.metrics("linespace") + 2
+        h = n * row_h + 4
         self._win.geometry(f"{w}x{h}+{x}+{y}")  # type: ignore[union-attr]
 
     def _on_toplevel_configure(self, _event=None):
@@ -1519,13 +1597,29 @@ _force_foreground_window = win32util.force_foreground_window
 _set_click_through = win32util.set_click_through
 
 
+def _format_duration(seconds):
+    """12s / 1m 15s / 1h 1m 1s / 12h - drops zero-valued higher units, never
+    drops seconds entirely unless another unit is present."""
+    total = int(round(seconds))
+    h, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
+    parts = []
+    if h:
+        parts.append(f"{h}h")
+    if m:
+        parts.append(f"{m}m")
+    if s or not parts:
+        parts.append(f"{s}s")
+    return " ".join(parts)
+
+
 def _format_craft_meta_suffix(station, auto_s):
     """Terse ' @ Station  12s auto' suffix for a breakdown-tree label."""
     parts = []
     if station:
         parts.append(f"@ {station}")
     if auto_s:
-        parts.append(f"{auto_s:g}s auto")
+        parts.append(f"{_format_duration(auto_s)} auto")
     if not parts:
         return ""
     return "  " + "  ".join(parts)
@@ -1545,7 +1639,7 @@ def _craft_meta_parts(station, auto_s):
     if station:
         parts.append(f"  @ {station}")
     if auto_s:
-        parts.append(f"  {auto_s:g}s auto")
+        parts.append(f"  {_format_duration(auto_s)} auto")
     return parts
 
 
@@ -1742,9 +1836,13 @@ class CraftQueuePanel:
         ).pack(side="left", padx=(0, 4))
         self._add_station_var = tk.StringVar()
         self._add_station_cb = ttk.Combobox(
-            station_row, textvariable=self._add_station_var, width=20
+            station_row, textvariable=self._add_station_var, width=18
         )
-        self._add_station_cb.pack(side="left", fill="x", expand=True)
+        # No fill/expand: station names are always short, so stretching this
+        # to the full row width (like the recipe-name box deliberately does)
+        # just made the dropdown popup balloon out to match - see _reposition.
+        self._add_station_cb.pack(side="left")
+        _LiveDropdown(self._add_station_cb)
         self._add_recipe_cb.bind(
             "<FocusOut>", self._refresh_add_station_options, add="+"
         )
@@ -2013,11 +2111,9 @@ class CraftQueuePanel:
                 font=("Segoe UI", 8),
             )
             station_cb.pack(side="right", padx=2)
-            station_cb.bind(
-                "<<ComboboxSelected>>",
-                lambda _e, qid=queue_id, v=station_var: self._update_station(
-                    qid, v.get()
-                ),
+            _LiveDropdown(
+                station_cb,
+                on_select_fn=lambda v, qid=queue_id: self._update_station(qid, v),
             )
             station_cb.bind("<MouseWheel>", self._job_scroll, add=True)
 
@@ -2077,10 +2173,12 @@ class CraftQueuePanel:
         name = self._add_recipe_var.get().strip()
         recipe_id = get_recipe_by_name(name)
         stations = get_recipe_stations(recipe_id) if recipe_id is not None else []
-        values = [""] + [s[0] for s in stations]
+        values = [s[0] for s in stations]
         self._add_station_cb.configure(values=values)
+        # Default to the recipe's primary station rather than leaving this
+        # blank, so the field always shows what will actually be used.
         if self._add_station_var.get() not in values:
-            self._add_station_var.set("")
+            self._add_station_var.set(values[0] if values else "")
 
     def _add_job(self):
         name = self._add_recipe_var.get().strip()
@@ -2098,7 +2196,7 @@ class CraftQueuePanel:
         self._add_recipe_var.set("")
         self._add_qty_var.set("1")
         self._add_station_var.set("")
-        self._add_station_cb.configure(values=[""])
+        self._add_station_cb.configure(values=[])
         self._refresh_job_list()
         if self._mode == "totals":
             self._refresh_breakdown()
@@ -2153,8 +2251,13 @@ class CraftQueuePanel:
             return
         queue_id, recipe_id, output_name, qty, job_station = self._selected_job
         alt_prefs = get_alt_prefs()
+        station_prefs = get_station_prefs()
         node = resolve_recipe_tree(
-            output_name, qty_needed=qty, _root_recipe_id=recipe_id, _alt_prefs=alt_prefs
+            output_name,
+            qty_needed=qty,
+            _root_recipe_id=recipe_id,
+            _alt_prefs=alt_prefs,
+            _station_prefs=station_prefs,
         )
         if job_station:
             times = get_recipe_station_times(recipe_id, job_station)
@@ -2187,6 +2290,7 @@ class CraftQueuePanel:
             tree.insert("", "end", text="Queue is empty.", tags=("section",))
             return
         alt_prefs = get_alt_prefs()
+        station_prefs = get_station_prefs()
         all_raw: dict = {}
         all_crafted: dict = {}
         per_job = []
@@ -2197,6 +2301,7 @@ class CraftQueuePanel:
                 qty_needed=qty,
                 _root_recipe_id=recipe_id,
                 _alt_prefs=alt_prefs,
+                _station_prefs=station_prefs,
             )
             if station:
                 times = get_recipe_station_times(recipe_id, station)
@@ -2337,6 +2442,22 @@ class CraftQueuePanel:
                             tags=("location",),
                         )
                         self._bd_iid_info[loc_iid] = {"type": "location"}
+                stations = info.get("stations", [])
+                if len(stations) > 1:
+                    current_station = info.get("station")
+                    for st_name, st_auto, _st_manual in stations:
+                        if st_name == current_station:
+                            continue
+                        st_label = f"⚒  {st_name}  (station — click to use)"
+                        st_label += _format_craft_meta_suffix(None, st_auto)
+                        st_iid = tree.insert(
+                            iid, "end", text=st_label, open=False, tags=("alt_header",)
+                        )
+                        self._bd_iid_info[st_iid] = {
+                            "type": "station_header",
+                            "ingredient_name": iname,
+                            "station": st_name,
+                        }
 
         self._insert_raw_totals(tree, parent_iid, queue_id, raw, checked)
 
@@ -2452,6 +2573,23 @@ class CraftQueuePanel:
                     path_parts + [f"~{alt['recipe_id']}~{name}"],
                     checked,
                 )
+        # Other stations this same recipe could be crafted at - collapsed
+        # header per station, click to prefer it for this ingredient.
+        if node["is_recipe"] and len(node.get("stations", [])) > 1:
+            current_station = node.get("station")
+            for st_name, st_auto, _st_manual in node["stations"]:
+                if st_name == current_station:
+                    continue
+                st_label = f"⚒  {st_name}  (station — click to use)"
+                st_label += _format_craft_meta_suffix(None, st_auto)
+                st_iid = tree.insert(
+                    iid, "end", text=st_label, open=False, tags=("alt_header",)
+                )
+                self._bd_iid_info[st_iid] = {
+                    "type": "station_header",
+                    "ingredient_name": name,
+                    "station": st_name,
+                }
 
     def _on_bd_click(self, event):
         if self._bd_toggled:
@@ -2466,6 +2604,10 @@ class CraftQueuePanel:
             return
         if info["type"] == "alt_header":
             set_alt_pref(info["ingredient_name"], info["alt_recipe_id"])
+            self._refresh_breakdown()
+            return
+        if info["type"] == "station_header":
+            set_station_pref(info["ingredient_name"], info["station"])
             self._refresh_breakdown()
             return
         if info["type"] == "ingredient":
@@ -4559,6 +4701,23 @@ class Overlay(tk.Tk):
                     path_parts + [f"~{alt['recipe_id']}~{name}"],
                     checked,
                 )
+        # Other stations this same recipe could be crafted at - collapsed
+        # header per station, click to prefer it for this ingredient.
+        if node["is_recipe"] and len(node.get("stations", [])) > 1:
+            current_station = node.get("station")
+            for st_name, st_auto, _st_manual in node["stations"]:
+                if st_name == current_station:
+                    continue
+                st_label = f"⚒  {st_name}  (station — click to use)"
+                st_label += _format_craft_meta_suffix(None, st_auto)
+                st_iid = self._recipe_breakdown_tree.insert(
+                    iid, "end", text=st_label, open=False, tags=("alt_header",)
+                )
+                self._recipe_iid_info[st_iid] = {
+                    "type": "station_header",
+                    "ingredient_name": name,
+                    "station": st_name,
+                }
 
     def _on_bd_toggled(self, _):
         self._bd_toggled = True
@@ -4625,6 +4784,10 @@ class Overlay(tk.Tk):
             return
         if info["type"] == "alt_header":
             set_alt_pref(info["ingredient_name"], info["alt_recipe_id"])
+            self._refresh_recipe_breakdown()
+            return
+        if info["type"] == "station_header":
+            set_station_pref(info["ingredient_name"], info["station"])
             self._refresh_recipe_breakdown()
             return
         if info["type"] == "usedin_recipe":
@@ -4844,11 +5007,13 @@ class Overlay(tk.Tk):
             craft_qty = 1.0
         checked = get_checked_paths(recipe_id)
         alt_prefs = get_alt_prefs()
+        station_prefs = get_station_prefs()
         node = resolve_recipe_tree(
             output_name,
             qty_needed=craft_qty,
             _root_recipe_id=recipe_id,
             _alt_prefs=alt_prefs,
+            _station_prefs=station_prefs,
         )
         if self._recipe_breakdown_mode == "totals":
             self._refresh_totals_view(
@@ -4955,6 +5120,7 @@ class Overlay(tk.Tk):
                         "alts": child.get("alts", []),
                         "raw_names": sorted({c["name"] for c in child["children"]}),
                         "station": child.get("station"),
+                        "stations": child.get("stations", []),
                         "auto_craft_seconds": child.get("auto_craft_seconds"),
                         "manual_craft_seconds": child.get("manual_craft_seconds"),
                         "byproducts": child.get("byproducts", []),
@@ -5083,6 +5249,22 @@ class Overlay(tk.Tk):
                         "ingredient_name": res_name,
                         "alt_recipe_id": alt["recipe_id"],
                     }
+                stations = info.get("stations", [])
+                if len(stations) > 1:
+                    current_station = info.get("station")
+                    for st_name, st_auto, _st_manual in stations:
+                        if st_name == current_station:
+                            continue
+                        st_label = f"⚒  {st_name}  (station — click to use)"
+                        st_label += _format_craft_meta_suffix(None, st_auto)
+                        st_iid = tree.insert(
+                            iid, "end", text=st_label, open=False, tags=("alt_header",)
+                        )
+                        self._recipe_iid_info[st_iid] = {
+                            "type": "station_header",
+                            "ingredient_name": res_name,
+                            "station": st_name,
+                        }
 
         raw_hdr = tree.insert(
             header, "end", text="── Raw materials ──", open=True, tags=("section",)
