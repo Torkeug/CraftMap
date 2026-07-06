@@ -33,7 +33,7 @@ def test_raw_ingredient_has_no_children(db):
 
 
 def test_single_level_recipe_breaks_down_ingredients(db):
-    db.save_recipe(None, "Iron Bar", output_qty=2, ingredients=[("Iron Ore", 3)])
+    db.save_recipe(None, "Iron Bar", outputs=[("Iron Bar", 2)], ingredients=[("Iron Ore", 3)])
 
     tree = db.resolve_recipe_tree("Iron Bar", qty_needed=4)
 
@@ -48,8 +48,8 @@ def test_single_level_recipe_breaks_down_ingredients(db):
 
 
 def test_craft_count_rounds_up_with_ceil(db):
-    # output_qty=3 but only 4 needed -> ceil(4/3) = 2 crafts, not 1 or 1.33
-    db.save_recipe(None, "Plate", output_qty=3, ingredients=[("Iron Bar", 1)])
+    # output qty=3 but only 4 needed -> ceil(4/3) = 2 crafts, not 1 or 1.33
+    db.save_recipe(None, "Plate", outputs=[("Plate", 3)], ingredients=[("Iron Bar", 1)])
 
     tree = db.resolve_recipe_tree("Plate", qty_needed=4)
 
@@ -58,8 +58,8 @@ def test_craft_count_rounds_up_with_ceil(db):
 
 
 def test_multi_level_nesting(db):
-    db.save_recipe(None, "Iron Bar", output_qty=1, ingredients=[("Iron Ore", 2)])
-    db.save_recipe(None, "Gear", output_qty=1, ingredients=[("Iron Bar", 3)])
+    db.save_recipe(None, "Iron Bar", outputs=[("Iron Bar", 1)], ingredients=[("Iron Ore", 2)])
+    db.save_recipe(None, "Gear", outputs=[("Gear", 1)], ingredients=[("Iron Bar", 3)])
 
     tree = db.resolve_recipe_tree("Gear", qty_needed=1)
 
@@ -74,8 +74,8 @@ def test_multi_level_nesting(db):
 def test_cycle_is_broken_not_infinite(db):
     # A needs B, B needs A - resolving A must terminate and treat the
     # second occurrence of A as a raw (non-recipe) leaf.
-    db.save_recipe(None, "A", output_qty=1, ingredients=[("B", 1)])
-    db.save_recipe(None, "B", output_qty=1, ingredients=[("A", 1)])
+    db.save_recipe(None, "A", outputs=[("A", 1)], ingredients=[("B", 1)])
+    db.save_recipe(None, "B", outputs=[("B", 1)], ingredients=[("A", 1)])
 
     tree = db.resolve_recipe_tree("A", qty_needed=1)
 
@@ -88,8 +88,8 @@ def test_cycle_is_broken_not_infinite(db):
 
 
 def test_alternate_recipes_are_listed(db):
-    db.save_recipe(None, "Fuel", output_qty=1, ingredients=[("Coal", 2)], output_name="Energy")
-    db.save_recipe(None, "Battery", output_qty=1, ingredients=[("Lithium", 1)], output_name="Energy")
+    db.save_recipe(None, "Fuel", outputs=[("Energy", 1)], ingredients=[("Coal", 2)])
+    db.save_recipe(None, "Battery", outputs=[("Energy", 1)], ingredients=[("Lithium", 1)])
 
     tree = db.resolve_recipe_tree("Energy", qty_needed=1)
 
@@ -100,12 +100,89 @@ def test_alternate_recipes_are_listed(db):
 
 
 def test_alt_pref_overrides_default_recipe(db):
-    db.save_recipe(None, "Fuel", output_qty=1, ingredients=[("Coal", 2)], output_name="Energy")
+    db.save_recipe(None, "Fuel", outputs=[("Energy", 1)], ingredients=[("Coal", 2)])
     battery_id = db.save_recipe(
-        None, "Battery", output_qty=1, ingredients=[("Lithium", 1)], output_name="Energy"
+        None, "Battery", outputs=[("Energy", 1)], ingredients=[("Lithium", 1)]
     )
 
     tree = db.resolve_recipe_tree("Energy", qty_needed=1, _alt_prefs={"Energy": battery_id})
 
     assert tree["recipe_name"] == "Battery"
     assert tree["children"][0]["name"] == "Lithium"
+
+
+def test_recipe_station_and_time_returned_in_tree(db):
+    db.save_recipe(
+        None,
+        "Steel Ingot",
+        outputs=[("Steel Ingot", 3)],
+        ingredients=[("Iron Ingot", 4)],
+        station="Smelter",
+        auto_craft_seconds=180.0,
+        manual_craft_seconds=5.0,
+    )
+
+    tree = db.resolve_recipe_tree("Steel Ingot", qty_needed=3)
+
+    assert tree["station"] == "Smelter"
+    assert tree["auto_craft_seconds"] == 180.0
+    assert tree["manual_craft_seconds"] == 5.0
+
+
+def test_multi_output_recipe_returns_scaled_byproducts(db):
+    # Smelting Aquamarine yields both Silicium Ingot and Aluminium Ingot.
+    db.save_recipe(
+        None,
+        "Aluminium Ingot Aquamarine",
+        outputs=[("Silicium Ingot", 2), ("Aluminium Ingot", 1)],
+        ingredients=[("Aquamarine", 3)],
+    )
+
+    tree = db.resolve_recipe_tree("Aluminium Ingot", qty_needed=2)
+
+    # ceil(2 / 1) = 2 crafts -> 2 * 2 = 4 Silicium Ingot as a byproduct.
+    assert tree["output_qty"] == 1
+    assert tree["byproducts"] == [{"name": "Silicium Ingot", "qty": 4.0}]
+
+
+def test_alts_grouped_by_output_item_not_recipe_id(db):
+    # A single multi-output recipe must show up as an alt under BOTH of its
+    # outputs' buckets, each scaled to that output's own qty - not just its
+    # "primary" output. The two single-output recipes are saved first so they
+    # win as the default (first-by-id) recipe for each item.
+    db.save_recipe(None, "Steel", outputs=[("Steel Ingot", 3)], ingredients=[("Iron Ingot", 4)])
+    db.save_recipe(None, "Copper", outputs=[("Copper Ingot", 1)], ingredients=[("Copper Ore", 2)])
+    db.save_recipe(
+        None,
+        "Recycle Steel Hull",
+        outputs=[("Steel Ingot", 2), ("Copper Ingot", 1)],
+        ingredients=[("Wrecked Hull", 4)],
+    )
+
+    steel_tree = db.resolve_recipe_tree("Steel Ingot", qty_needed=3)
+    copper_tree = db.resolve_recipe_tree("Copper Ingot", qty_needed=1)
+
+    steel_alt_names = {alt["recipe_name"] for alt in steel_tree["alts"]}
+    copper_alt_names = {alt["recipe_name"] for alt in copper_tree["alts"]}
+    assert "Recycle Steel Hull" in steel_alt_names
+    assert "Recycle Steel Hull" in copper_alt_names
+
+    steel_alt = next(
+        alt for alt in steel_tree["alts"] if alt["recipe_name"] == "Recycle Steel Hull"
+    )
+    assert steel_alt["output_qty"] == 2
+    assert steel_alt["byproducts"] == [{"name": "Copper Ingot", "qty": 2.0}]
+
+
+def test_get_all_output_names_includes_secondary_outputs(db):
+    db.save_recipe(
+        None,
+        "Aluminium Ingot Aquamarine",
+        outputs=[("Silicium Ingot", 2), ("Aluminium Ingot", 1)],
+        ingredients=[("Aquamarine", 3)],
+    )
+
+    names = db.get_all_output_names()
+
+    assert "Silicium Ingot" in names
+    assert "Aluminium Ingot" in names

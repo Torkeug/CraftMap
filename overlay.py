@@ -152,6 +152,14 @@ def init_db():
         c.execute("ALTER TABLE recipes ADD COLUMN output_qty REAL NOT NULL DEFAULT 1")
     if "output_name" not in recipe_cols:
         c.execute("ALTER TABLE recipes ADD COLUMN output_name TEXT")
+    if "station" not in recipe_cols:
+        c.execute("ALTER TABLE recipes ADD COLUMN station TEXT")
+    if "auto_craft_seconds" not in recipe_cols:
+        c.execute("ALTER TABLE recipes ADD COLUMN auto_craft_seconds REAL")
+    if "manual_craft_seconds" not in recipe_cols:
+        c.execute("ALTER TABLE recipes ADD COLUMN manual_craft_seconds REAL")
+    if "game_craft_id" not in recipe_cols:
+        c.execute("ALTER TABLE recipes ADD COLUMN game_craft_id TEXT")
     c.execute("""
         CREATE TABLE IF NOT EXISTS recipe_ingredients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -161,6 +169,26 @@ def init_db():
             FOREIGN KEY (recipe_id) REFERENCES recipes(id)
         )
     """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS recipe_outputs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipe_id INTEGER NOT NULL,
+            item_name TEXT NOT NULL,
+            quantity REAL NOT NULL DEFAULT 1,
+            FOREIGN KEY (recipe_id) REFERENCES recipes(id)
+        )
+    """)
+    # backfill: every pre-existing recipe needs at least one recipe_outputs row,
+    # mirroring its old single output_qty/output_name columns
+    c.execute(
+        "SELECT id, COALESCE(output_name, name), output_qty FROM recipes"
+        " WHERE id NOT IN (SELECT DISTINCT recipe_id FROM recipe_outputs)"
+    )
+    for rid, oname, oqty in c.fetchall():
+        c.execute(
+            "INSERT INTO recipe_outputs (recipe_id, item_name, quantity) VALUES (?, ?, ?)",
+            (rid, oname, oqty),
+        )
     c.execute("""
         CREATE TABLE IF NOT EXISTS recipe_checked (
             recipe_id INTEGER NOT NULL,
@@ -350,15 +378,17 @@ def distinct_ingredient_names():
 
 def get_recipes_using_ingredient(ingredient_name):
     """Return (recipe_id, recipe_name, qty, output_name, output_qty) for every
-    recipe that uses ingredient_name."""
+    recipe that uses ingredient_name. output_name/output_qty are the recipe's
+    primary (first) output."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "SELECT r.id, r.name, ri.quantity,"
-        " COALESCE(r.output_name, r.name), COALESCE(r.output_qty, 1)"
+        "SELECT r.id, r.name, ri.quantity, ro.item_name, ro.quantity"
         " FROM recipe_ingredients ri"
         " JOIN recipes r ON r.id = ri.recipe_id"
+        " JOIN recipe_outputs ro ON ro.recipe_id = r.id"
         " WHERE ri.ingredient_name = ?"
+        " AND ro.id = (SELECT MIN(id) FROM recipe_outputs WHERE recipe_id = r.id)"
         " ORDER BY r.name COLLATE NOCASE",
         (ingredient_name,),
     )
@@ -367,28 +397,64 @@ def get_recipes_using_ingredient(ingredient_name):
     return rows
 
 
-def save_recipe(recipe_id, name, output_qty, ingredients, output_name=None):
-    """Insert (recipe_id=None) or update a recipe, replacing its ingredients. Returns id."""
+def save_recipe(
+    recipe_id,
+    name,
+    outputs,
+    ingredients,
+    station=None,
+    auto_craft_seconds=None,
+    manual_craft_seconds=None,
+):
+    """Insert (recipe_id=None) or update a recipe, replacing its outputs and
+    ingredients. `outputs` is a non-empty list of (item_name, qty) tuples;
+    outputs[0] is the primary output. Returns id."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    oname = output_name if output_name and output_name != name else None
+    primary_name, primary_qty = outputs[0]
+    oname = primary_name if primary_name != name else None
     if recipe_id is None:
         c.execute(
-            "INSERT INTO recipes (name, output_qty, output_name) VALUES (?, ?, ?)",
-            (name, output_qty, oname),
+            "INSERT INTO recipes"
+            " (name, output_qty, output_name, station, auto_craft_seconds, manual_craft_seconds)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                name,
+                primary_qty,
+                oname,
+                station,
+                auto_craft_seconds,
+                manual_craft_seconds,
+            ),
         )
         recipe_id = c.lastrowid
     else:
         c.execute(
-            "UPDATE recipes SET name=?, output_qty=?, output_name=? WHERE id=?",
-            (name, output_qty, oname, recipe_id),
+            "UPDATE recipes SET name=?, output_qty=?, output_name=?,"
+            " station=?, auto_craft_seconds=?, manual_craft_seconds=? WHERE id=?",
+            (
+                name,
+                primary_qty,
+                oname,
+                station,
+                auto_craft_seconds,
+                manual_craft_seconds,
+                recipe_id,
+            ),
         )
         c.execute("DELETE FROM recipe_ingredients WHERE recipe_id=?", (recipe_id,))
+        c.execute("DELETE FROM recipe_outputs WHERE recipe_id=?", (recipe_id,))
     for ing_name, qty in ingredients:
         c.execute(
             "INSERT INTO recipe_ingredients (recipe_id, ingredient_name, quantity)"
             " VALUES (?, ?, ?)",
             (recipe_id, ing_name, qty),
+        )
+    for out_name, out_qty in outputs:
+        c.execute(
+            "INSERT INTO recipe_outputs (recipe_id, item_name, quantity)"
+            " VALUES (?, ?, ?)",
+            (recipe_id, out_name, out_qty),
         )
     conn.commit()
     conn.close()
@@ -405,10 +471,12 @@ def get_recipe_name(recipe_id):
 
 
 def get_recipe_output_name(recipe_id):
+    """The recipe's primary (first) output item name."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "SELECT COALESCE(output_name, name) FROM recipes WHERE id=?", (recipe_id,)
+        "SELECT item_name FROM recipe_outputs WHERE recipe_id=? ORDER BY id LIMIT 1",
+        (recipe_id,),
     )
     row = c.fetchone()
     conn.close()
@@ -416,31 +484,77 @@ def get_recipe_output_name(recipe_id):
 
 
 def get_all_output_names():
-    """Distinct item names that recipes produce, for autocomplete."""
+    """Distinct item names that recipes produce (including secondary/byproduct
+    outputs), for autocomplete."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute(
-        "SELECT DISTINCT COALESCE(output_name, name) FROM recipes"
-        " ORDER BY 1 COLLATE NOCASE"
-    )
+    c.execute("SELECT DISTINCT item_name FROM recipe_outputs ORDER BY 1 COLLATE NOCASE")
     rows = c.fetchall()
     conn.close()
     return [r[0] for r in rows]
 
 
 def get_recipe_output_qty(recipe_id):
+    """The recipe's primary (first) output quantity."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT COALESCE(output_qty, 1) FROM recipes WHERE id=?", (recipe_id,))
+    c.execute(
+        "SELECT quantity FROM recipe_outputs WHERE recipe_id=? ORDER BY id LIMIT 1",
+        (recipe_id,),
+    )
     row = c.fetchone()
     conn.close()
     return float(row[0]) if row else 1.0
+
+
+def get_recipe_outputs(recipe_id):
+    """All of a recipe's outputs, ordered with the primary first."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "SELECT item_name, quantity FROM recipe_outputs"
+        " WHERE recipe_id=? ORDER BY id",
+        (recipe_id,),
+    )
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+
+def get_recipe_meta(recipe_id):
+    """Return (station, auto_craft_seconds, manual_craft_seconds) for a recipe."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "SELECT station, auto_craft_seconds, manual_craft_seconds"
+        " FROM recipes WHERE id=?",
+        (recipe_id,),
+    )
+    row = c.fetchone()
+    conn.close()
+    return row if row else (None, None, None)
+
+
+def get_all_stations():
+    """Distinct craft stations already in use, for autocomplete - no hardcoded
+    lists, grows automatically as recipes are tagged with a station."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "SELECT DISTINCT station FROM recipes"
+        " WHERE station IS NOT NULL AND station != ''"
+        " ORDER BY station COLLATE NOCASE"
+    )
+    rows = c.fetchall()
+    conn.close()
+    return [r[0] for r in rows]
 
 
 def delete_recipe(recipe_id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM recipe_ingredients WHERE recipe_id=?", (recipe_id,))
+    c.execute("DELETE FROM recipe_outputs WHERE recipe_id=?", (recipe_id,))
     c.execute("DELETE FROM recipe_checked WHERE recipe_id=?", (recipe_id,))
     c.execute("DELETE FROM recipes WHERE id=?", (recipe_id,))
     conn.commit()
@@ -524,13 +638,16 @@ def get_deposits_for_ingredient(resource_name):
 
 
 def get_craft_queue():
-    """Return [(queue_id, recipe_id, recipe_name, output_name, quantity), ...]."""
+    """Return [(queue_id, recipe_id, recipe_name, output_name, quantity), ...].
+    output_name is the recipe's primary (first) output."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "SELECT cq.id, cq.recipe_id, r.name,"
-        " COALESCE(r.output_name, r.name), cq.quantity"
-        " FROM craft_queue cq JOIN recipes r ON r.id = cq.recipe_id"
+        "SELECT cq.id, cq.recipe_id, r.name, ro.item_name, cq.quantity"
+        " FROM craft_queue cq"
+        " JOIN recipes r ON r.id = cq.recipe_id"
+        " JOIN recipe_outputs ro ON ro.recipe_id = r.id"
+        " WHERE ro.id = (SELECT MIN(id) FROM recipe_outputs WHERE recipe_id = r.id)"
         " ORDER BY cq.id"
     )
     rows = c.fetchall()
@@ -620,27 +737,40 @@ def clear_queue_checked(queue_id):
 
 
 def _load_recipe_data():
-    """Load all recipes and ingredients in two queries."""
+    """Load all recipes, outputs, and ingredients in a few queries."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # Order by id ASC so the first (oldest) recipe for each output_name is the default.
+    c.execute("SELECT id, name FROM recipes")
+    recipe_name_by_id = {rid: rname for rid, rname in c.fetchall()}
     c.execute(
-        "SELECT id, name, COALESCE(output_name, name), COALESCE(output_qty, 1)"
-        " FROM recipes ORDER BY id ASC"
+        "SELECT id, station, auto_craft_seconds, manual_craft_seconds FROM recipes"
     )
-    recipe_map = {}  # output_name / recipe_name → first recipe_id
-    output_map = {}  # recipe_id → output_qty
-    output_name_by_id = {}  # recipe_id → what it produces (COALESCE(output_name, name))
-    recipe_name_by_id = {}  # recipe_id → recipe's own name
-    alts_by_output = {}  # output_name → [(rid, recipe_name, oqty), ...]
-    for rid, rname, oname, oqty in c.fetchall():
-        output_map[rid] = float(oqty)
-        output_name_by_id[rid] = oname
-        recipe_name_by_id[rid] = rname
-        alts_by_output.setdefault(oname, []).append((rid, rname, float(oqty)))
-        if oname not in recipe_map:  # first by id wins as default
-            recipe_map[oname] = rid
-        # Also index by recipe name so ingredients can reference alternates by name
+    recipe_meta_by_id = {
+        rid: {
+            "station": station,
+            "auto_craft_seconds": auto_s,
+            "manual_craft_seconds": manual_s,
+        }
+        for rid, station, auto_s, manual_s in c.fetchall()
+    }
+    # Order by recipe id ASC so the first (oldest) recipe for each output item
+    # is the default.
+    c.execute(
+        "SELECT ro.recipe_id, ro.item_name, ro.quantity"
+        " FROM recipe_outputs ro JOIN recipes r ON r.id = ro.recipe_id"
+        " ORDER BY r.id ASC, ro.id ASC"
+    )
+    recipe_map = {}  # item_name / recipe_name → first recipe_id producing it
+    outputs_by_recipe = {}  # recipe_id → [(item_name, qty), ...], index 0 = primary
+    alts_by_output = {}  # item_name → [(rid, recipe_name, qty_for_that_item), ...]
+    for rid, item_name, qty in c.fetchall():
+        outputs_by_recipe.setdefault(rid, []).append((item_name, float(qty)))
+        rname = recipe_name_by_id.get(rid, item_name)
+        alts_by_output.setdefault(item_name, []).append((rid, rname, float(qty)))
+        if item_name not in recipe_map:  # first by id wins as default
+            recipe_map[item_name] = rid
+    # Also index by recipe name so ingredients can reference alternates by name
+    for rid, rname in recipe_name_by_id.items():
         if rname not in recipe_map:
             recipe_map[rname] = rid
     c.execute(
@@ -653,10 +783,10 @@ def _load_recipe_data():
     return (
         recipe_map,
         ing_map,
-        output_map,
-        output_name_by_id,
+        outputs_by_recipe,
         alts_by_output,
         recipe_name_by_id,
+        recipe_meta_by_id,
     )
 
 
@@ -666,28 +796,32 @@ def resolve_recipe_tree(
     _visited=None,
     _recipe_map=None,
     _ing_map=None,
-    _output_map=None,
+    _outputs_by_recipe=None,
     _root_recipe_id=None,
-    _output_name_by_id=None,
     _alts_by_output=None,
     _recipe_name_by_id=None,
+    _recipe_meta_by_id=None,
     _alt_prefs=None,
 ):
     """
     Recursively build a breakdown tree for `name`.
-    Returns: {'name', 'qty', 'is_recipe', 'output_qty', 'recipe_name', 'children', 'alts'}
+    Returns: {'name', 'qty', 'is_recipe', 'output_qty', 'recipe_name', 'children',
+              'alts', 'byproducts', 'station', 'auto_craft_seconds',
+              'manual_craft_seconds'}
     'alts' lists every other recipe producing the same output — shown as collapsible branches.
+    'byproducts' lists this recipe's other outputs (besides `name`), scaled to
+    the same craft count — populated for multi-output recipes.
     _root_recipe_id: forces a specific recipe at the top level (for alternate recipe views).
     _alt_prefs: {ingredient_name: recipe_id} of user-selected alternate recipes.
     """
-    if _recipe_map is None or _ing_map is None or _output_map is None:
+    if _recipe_map is None or _ing_map is None or _outputs_by_recipe is None:
         (
             _recipe_map,
             _ing_map,
-            _output_map,
-            _output_name_by_id,
+            _outputs_by_recipe,
             _alts_by_output,
             _recipe_name_by_id,
+            _recipe_meta_by_id,
         ) = _load_recipe_data()
     if _visited is None:
         _visited = frozenset()
@@ -702,12 +836,28 @@ def resolve_recipe_tree(
 
     children = []
     alts = []
+    byproducts = []
     output_qty = 1.0
     used_recipe_name = name
+    station = None
+    auto_craft_seconds = None
+    manual_craft_seconds = None
     if is_recipe:
-        output_qty = _output_map.get(recipe_id, 1.0)
+        recipe_outputs = _outputs_by_recipe.get(recipe_id, [(name, 1.0)])
+        output_names = [n for n, _ in recipe_outputs]
+        actual_output = name if name in output_names else output_names[0]
+        output_qty = next(q for n, q in recipe_outputs if n == actual_output)
         used_recipe_name = (_recipe_name_by_id or {}).get(recipe_id, name)
+        meta = (_recipe_meta_by_id or {}).get(recipe_id, {})
+        station = meta.get("station")
+        auto_craft_seconds = meta.get("auto_craft_seconds")
+        manual_craft_seconds = meta.get("manual_craft_seconds")
         crafts = math.ceil(qty_needed / output_qty)
+        byproducts = [
+            {"name": n, "qty": crafts * q}
+            for n, q in recipe_outputs
+            if n != actual_output
+        ]
         sub_visited = _visited | {name}
         for ing_name, ing_qty in _ing_map.get(recipe_id, []):
             child = resolve_recipe_tree(
@@ -716,21 +866,26 @@ def resolve_recipe_tree(
                 sub_visited,
                 _recipe_map,
                 _ing_map,
-                _output_map,
-                _output_name_by_id=_output_name_by_id,
+                _outputs_by_recipe,
                 _alts_by_output=_alts_by_output,
                 _recipe_name_by_id=_recipe_name_by_id,
+                _recipe_meta_by_id=_recipe_meta_by_id,
                 _alt_prefs=_alt_prefs,
             )
             children.append(child)
         # Find every other recipe that produces the same output
-        actual_output = (_output_name_by_id or {}).get(recipe_id, name)
         for alt_rid, alt_rname, alt_oqty in (_alts_by_output or {}).get(
             actual_output, []
         ):
             if alt_rid == recipe_id:
                 continue
             alt_crafts = math.ceil(qty_needed / alt_oqty)
+            alt_outputs = _outputs_by_recipe.get(alt_rid, [(actual_output, alt_oqty)])
+            alt_byproducts = [
+                {"name": n, "qty": alt_crafts * q}
+                for n, q in alt_outputs
+                if n != actual_output
+            ]
             alt_children = []
             for ing_name, ing_qty in _ing_map.get(alt_rid, []):
                 alt_child = resolve_recipe_tree(
@@ -739,10 +894,10 @@ def resolve_recipe_tree(
                     sub_visited,
                     _recipe_map,
                     _ing_map,
-                    _output_map,
-                    _output_name_by_id=_output_name_by_id,
+                    _outputs_by_recipe,
                     _alts_by_output=_alts_by_output,
                     _recipe_name_by_id=_recipe_name_by_id,
+                    _recipe_meta_by_id=_recipe_meta_by_id,
                     _alt_prefs=_alt_prefs,
                 )
                 alt_children.append(alt_child)
@@ -752,6 +907,7 @@ def resolve_recipe_tree(
                     "recipe_name": alt_rname,
                     "output_qty": alt_oqty,
                     "children": alt_children,
+                    "byproducts": alt_byproducts,
                 }
             )
 
@@ -763,6 +919,10 @@ def resolve_recipe_tree(
         "recipe_name": used_recipe_name,
         "children": children,
         "alts": alts,
+        "byproducts": byproducts,
+        "station": station,
+        "auto_craft_seconds": auto_craft_seconds,
+        "manual_craft_seconds": manual_craft_seconds,
     }
 
 
@@ -1102,6 +1262,26 @@ _root_hwnd = win32util.root_hwnd
 _hwnd_is_foreground = win32util.hwnd_is_foreground
 _force_foreground_window = win32util.force_foreground_window
 _set_click_through = win32util.set_click_through
+
+
+def _format_craft_meta_suffix(station, auto_s):
+    """Terse ' @ Station  12s auto' suffix for a breakdown-tree label."""
+    parts = []
+    if station:
+        parts.append(f"@ {station}")
+    if auto_s:
+        parts.append(f"{auto_s:g}s auto")
+    if not parts:
+        return ""
+    return "  " + "  ".join(parts)
+
+
+def _format_byproducts_suffix(byproducts):
+    """Terse '  (+2 Silicium Ingot)' suffix listing a recipe's other outputs."""
+    if not byproducts:
+        return ""
+    parts = [f"+{b['qty']:g} {b['name']}" for b in byproducts]
+    return "  (" + ", ".join(parts) + ")"
 
 
 class CraftQueuePanel:
@@ -1618,6 +1798,10 @@ class CraftQueuePanel:
         root_label = f"◆  {output_name}  ×{qty:g}"
         if crafts > 1 or oqty > 1:
             root_label += f"  ({crafts:g} crafts)"
+        root_label += _format_craft_meta_suffix(
+            node.get("station"), node.get("auto_craft_seconds")
+        )
+        root_label += _format_byproducts_suffix(node.get("byproducts"))
         root_iid = tree.insert("", "end", text=root_label, open=True, tags=("root",))
         self._bd_iid_info[root_iid] = {"type": "root"}
         for child in node["children"]:
@@ -1647,10 +1831,26 @@ class CraftQueuePanel:
             for iname, info in job_crafted.items():
                 entry = all_crafted.setdefault(
                     iname,
-                    {"qty": 0.0, "output_qty": info["output_qty"], "raw_names": set()},
+                    {
+                        "qty": 0.0,
+                        "output_qty": info["output_qty"],
+                        "raw_names": set(),
+                        "station": info.get("station"),
+                        "auto_craft_seconds": info.get("auto_craft_seconds"),
+                        "byproducts": {},
+                    },
                 )
                 entry["qty"] += info["qty"]
                 entry["raw_names"].update(info["raw_names"])
+                for bp in info.get("byproducts", []):
+                    entry["byproducts"][bp["name"]] = (
+                        entry["byproducts"].get(bp["name"], 0.0) + bp["qty"]
+                    )
+
+        for entry in all_crafted.values():
+            entry["byproducts"] = [
+                {"name": n, "qty": q} for n, q in sorted(entry["byproducts"].items())
+            ]
 
         header = tree.insert(
             "", "end", text=f"◆  All Jobs  ({len(jobs)})", open=True, tags=("root",)
@@ -1700,6 +1900,10 @@ class CraftQueuePanel:
                     else self._overlay.img_unchecked
                 )
                 suffix = f"  ({crafts:g} crafts)" if oq > 1 else ""
+                suffix += _format_craft_meta_suffix(
+                    info.get("station"), info.get("auto_craft_seconds")
+                )
+                suffix += _format_byproducts_suffix(info.get("byproducts"))
                 iid = tree.insert(
                     craft_hdr,
                     "end",
@@ -1785,6 +1989,10 @@ class CraftQueuePanel:
         label = f"{qty:g}×  {name}"
         if used_recipe and used_recipe != name:
             label += f"  [{used_recipe}]"
+        label += _format_craft_meta_suffix(
+            node.get("station"), node.get("auto_craft_seconds")
+        )
+        label += _format_byproducts_suffix(node.get("byproducts"))
         img = self._overlay.img_checked if is_done else self._overlay.img_unchecked
         iid = tree.insert(
             parent_iid,
@@ -3662,40 +3870,61 @@ class Overlay(tk.Tk):
             insertbackground="#c9d1d9",
             relief="flat",
         ).pack(side="left", fill="x", expand=True, ipady=3, padx=(0, 8))
+
+        meta_row = tk.Frame(form, bg="#0d1117")
+        meta_row.pack(fill="x", pady=(0, 4))
         tk.Label(
-            name_row, text="Produces:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+            meta_row, text="Station:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
         ).pack(side="left", padx=(0, 4))
-        self._recipe_output_var = tk.StringVar(value="1")
+        self._recipe_station_var = tk.StringVar()
+        self._recipe_station_cb = ttk.Combobox(
+            meta_row, textvariable=self._recipe_station_var, width=14
+        )
+        self._recipe_station_cb.pack(side="left", padx=(0, 8))
+        self._recipe_station_cb.bind(
+            "<FocusIn>",
+            lambda _e: self._recipe_station_cb.configure(values=get_all_stations()),
+        )
+        _LiveDropdown(
+            self._recipe_station_cb,
+            pre_fn=lambda: self._recipe_station_cb.configure(
+                values=get_all_stations()
+            ),
+        )
+        tk.Label(
+            meta_row, text="Auto:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(side="left", padx=(0, 4))
+        self._recipe_auto_time_var = tk.StringVar()
         tk.Entry(
-            name_row,
-            textvariable=self._recipe_output_var,
-            width=5,
+            meta_row,
+            textvariable=self._recipe_auto_time_var,
+            width=6,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+        ).pack(side="left", ipady=3, padx=(0, 8))
+        tk.Label(
+            meta_row, text="Manual:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(side="left", padx=(0, 4))
+        self._recipe_manual_time_var = tk.StringVar()
+        tk.Entry(
+            meta_row,
+            textvariable=self._recipe_manual_time_var,
+            width=6,
             bg="#161b22",
             fg="#c9d1d9",
             insertbackground="#c9d1d9",
             relief="flat",
         ).pack(side="left", ipady=3)
 
-        item_row = tk.Frame(form, bg="#0d1117")
-        item_row.pack(fill="x", pady=(0, 4))
         tk.Label(
-            item_row, text="Item:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
-        ).pack(side="left", padx=(0, 4))
-        self._recipe_item_var = tk.StringVar()
-        self._recipe_item_cb = ttk.Combobox(
-            item_row, textvariable=self._recipe_item_var, width=30
-        )
-        self._recipe_item_cb.pack(side="left", fill="x", expand=True)
-        self._recipe_item_cb.bind(
-            "<FocusIn>",
-            lambda _e: self._recipe_item_cb.configure(values=get_all_output_names()),
-        )
-        _LiveDropdown(
-            self._recipe_item_cb,
-            pre_fn=lambda: self._recipe_item_cb.configure(
-                values=get_all_output_names()
-            ),
-        )
+            form, text="Outputs:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(anchor="w", pady=(0, 2))
+        self._out_inner = tk.Frame(form, bg="#0d1117")
+        self._out_inner.pack(fill="x", pady=(0, 4))
+        self._out_rows: list = []
+        self._add_output_row()
 
         tk.Label(
             form, text="Ingredients:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
@@ -3742,6 +3971,17 @@ class Overlay(tk.Tk):
 
         tk.Button(
             btn_row,
+            text="+ Output",
+            command=self._add_output_row,
+            bg="#21262d",
+            fg="#c9d1d9",
+            relief="flat",
+            bd=0,
+            padx=8,
+            font=("Segoe UI", 8),
+        ).pack(side="left", padx=(0, 6))
+        tk.Button(
+            btn_row,
             text="+ Ingredient",
             command=self._add_ingredient_row,
             bg="#21262d",
@@ -3785,6 +4025,54 @@ class Overlay(tk.Tk):
         ingredient_names = distinct_ingredient_names()
         return sorted(set(produced + resource_names + ingredient_names), key=str.lower)
 
+    def _add_output_row(self, name="", qty=1):
+        row_frame = tk.Frame(self._out_inner, bg="#0d1117")
+        row_frame.pack(fill="x", pady=1)
+        name_var = tk.StringVar(value=str(name))
+        qty_var = tk.StringVar(value=str(qty))
+        name_cb = ttk.Combobox(row_frame, textvariable=name_var, width=24)
+        name_cb["values"] = get_all_output_names()
+        name_cb.pack(side="left", padx=(0, 4))
+        _LiveDropdown(
+            name_cb,
+            pre_fn=lambda cb=name_cb: cb.configure(values=get_all_output_names()),
+        )
+        qty_entry = tk.Entry(
+            row_frame,
+            textvariable=qty_var,
+            width=7,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+        )
+        qty_entry.pack(side="left", padx=(0, 4), ipady=2)
+        row = {"name_var": name_var, "qty_var": qty_var, "frame": row_frame}
+
+        def remove():
+            if len(self._out_rows) <= 1:
+                return
+            self._out_rows = [x for x in self._out_rows if x is not row]
+            row["frame"].destroy()
+
+        rm_btn = tk.Button(
+            row_frame,
+            text="×",
+            command=remove,
+            bg="#0d1117",
+            fg="#da3633",
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 9),
+        )
+        rm_btn.pack(side="left")
+        self._out_rows.append(row)
+
+    def _clear_output_rows(self):
+        for row in self._out_rows:
+            row["frame"].destroy()
+        self._out_rows = []
+
     def _refresh_recipe_list(self):
         if not hasattr(self, "_recipe_combo"):
             return
@@ -3803,9 +4091,15 @@ class Overlay(tk.Tk):
         self._usedin_recipe_id = recipe_id
         self._usedin_navigated_away = False
         self._recipe_name_var.set(name)
-        oqty = get_recipe_output_qty(recipe_id)
-        self._recipe_output_var.set(f"{oqty:g}")
-        self._recipe_item_var.set(get_recipe_output_name(recipe_id))
+        station, auto_s, manual_s = get_recipe_meta(recipe_id)
+        self._recipe_station_var.set(station or "")
+        self._recipe_auto_time_var.set(f"{auto_s:g}" if auto_s is not None else "")
+        self._recipe_manual_time_var.set(
+            f"{manual_s:g}" if manual_s is not None else ""
+        )
+        self._clear_output_rows()
+        for out_name, out_qty in get_recipe_outputs(recipe_id):
+            self._add_output_row(out_name, out_qty)
         self._ing_inner.unbind("<Configure>")
         for child in self._ing_inner.winfo_children():
             child.destroy()
@@ -3885,6 +4179,10 @@ class Overlay(tk.Tk):
         label = f"{qty_str}×  {name}"
         if used_recipe and used_recipe != name:
             label += f"  [{used_recipe}]"
+        label += _format_craft_meta_suffix(
+            node.get("station"), node.get("auto_craft_seconds")
+        )
+        label += _format_byproducts_suffix(node.get("byproducts"))
         tag = "done" if is_done else "ingredient"
         img = self.img_checked if is_done else self.img_unchecked
         iid = self._recipe_breakdown_tree.insert(
@@ -3915,10 +4213,12 @@ class Overlay(tk.Tk):
                 self._recipe_iid_info[loc_iid] = {"type": "location"}
         # Alternate recipes for the same output — collapsed by default; click to select
         for alt in node.get("alts", []):
+            alt_label = f"⟳  {alt['recipe_name']}  (alt — click to use)"
+            alt_label += _format_byproducts_suffix(alt.get("byproducts"))
             alt_iid = self._recipe_breakdown_tree.insert(
                 iid,
                 "end",
-                text=f"⟳  {alt['recipe_name']}  (alt — click to use)",
+                text=alt_label,
                 open=False,
                 tags=("alt_header",),
             )
@@ -3946,9 +4246,15 @@ class Overlay(tk.Tk):
         self._recipe_combo.icursor("end")
         self._recipe_combo.selection_range(0, "end")
         self._recipe_name_var.set(rname)
-        oqty = get_recipe_output_qty(rid)
-        self._recipe_output_var.set(f"{oqty:g}")
-        self._recipe_item_var.set(get_recipe_output_name(rid))
+        station, auto_s, manual_s = get_recipe_meta(rid)
+        self._recipe_station_var.set(station or "")
+        self._recipe_auto_time_var.set(f"{auto_s:g}" if auto_s is not None else "")
+        self._recipe_manual_time_var.set(
+            f"{manual_s:g}" if manual_s is not None else ""
+        )
+        self._clear_output_rows()
+        for out_name, out_qty in get_recipe_outputs(rid):
+            self._add_output_row(out_name, out_qty)
         for row in self._ing_rows:
             row["frame"].destroy()
         self._ing_rows.clear()
@@ -4042,6 +4348,27 @@ class Overlay(tk.Tk):
             messagebox.showwarning("Missing info", "Add at least one ingredient.")
             self.after(0, self._recipe_repaint)
             return
+        outputs = []
+        for row in self._out_rows:
+            out_name = row["name_var"].get().strip()
+            qty_str = row["qty_var"].get().strip()
+            if not out_name:
+                continue
+            try:
+                qty = float(qty_str)
+                if qty <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showwarning(
+                    "Invalid quantity", f"Invalid quantity for output '{out_name}'."
+                )
+                self.after(0, self._recipe_repaint)
+                return
+            outputs.append((out_name, qty))
+        if not outputs:
+            messagebox.showwarning("Missing info", "Add at least one output.")
+            self.after(0, self._recipe_repaint)
+            return
         existing_id = get_recipe_by_name(name)
         if existing_id is not None and existing_id != self._recipe_selected_id:
             messagebox.showwarning(
@@ -4049,19 +4376,26 @@ class Overlay(tk.Tk):
             )
             self.after(0, self._recipe_repaint)
             return
+        station = self._recipe_station_var.get().strip() or None
         try:
-            output_qty = float(self._recipe_output_var.get().strip() or "1")
-            if output_qty <= 0:
-                raise ValueError
+            auto_str = self._recipe_auto_time_var.get().strip()
+            auto_s = float(auto_str) if auto_str else None
+            manual_str = self._recipe_manual_time_var.get().strip()
+            manual_s = float(manual_str) if manual_str else None
         except ValueError:
             messagebox.showwarning(
-                "Invalid quantity", "Output quantity must be a positive number."
+                "Invalid time", "Craft time must be a number of seconds."
             )
             self.after(0, self._recipe_repaint)
             return
-        output_name = self._recipe_item_var.get().strip() or name
         rid = save_recipe(
-            self._recipe_selected_id, name, output_qty, ingredients, output_name
+            self._recipe_selected_id,
+            name,
+            outputs,
+            ingredients,
+            station=station,
+            auto_craft_seconds=auto_s,
+            manual_craft_seconds=manual_s,
         )
         self._recipe_selected_id = rid
         self._viewing_recipe_id = rid
@@ -4099,10 +4433,15 @@ class Overlay(tk.Tk):
         self._viewing_recipe_id = None
         if hasattr(self, "_recipe_name_var"):
             self._recipe_name_var.set("")
-        if hasattr(self, "_recipe_output_var"):
-            self._recipe_output_var.set("1")
-        if hasattr(self, "_recipe_item_var"):
-            self._recipe_item_var.set("")
+        if hasattr(self, "_recipe_station_var"):
+            self._recipe_station_var.set("")
+        if hasattr(self, "_recipe_auto_time_var"):
+            self._recipe_auto_time_var.set("")
+        if hasattr(self, "_recipe_manual_time_var"):
+            self._recipe_manual_time_var.set("")
+        if hasattr(self, "_out_rows"):
+            self._clear_output_rows()
+            self._add_output_row()
         if hasattr(self, "_recipe_var"):
             self._recipe_var.set("")
         if hasattr(self, "_ing_inner"):
@@ -4198,6 +4537,10 @@ class Overlay(tk.Tk):
                 root_label = f"◆  {output_name}  ×{craft_qty:g}"
                 if crafts > 1 or oqty > 1:
                     root_label += f"  ({crafts:g} crafts)"
+            root_label += _format_craft_meta_suffix(
+                node.get("station"), node.get("auto_craft_seconds")
+            )
+            root_label += _format_byproducts_suffix(node.get("byproducts"))
             root_iid = tree.insert(
                 "", "end", text=root_label, open=True, tags=("root",)
             )
@@ -4283,6 +4626,10 @@ class Overlay(tk.Tk):
                         "output_qty": child.get("output_qty", 1.0),
                         "alts": child.get("alts", []),
                         "raw_names": sorted({c["name"] for c in child["children"]}),
+                        "station": child.get("station"),
+                        "auto_craft_seconds": child.get("auto_craft_seconds"),
+                        "manual_craft_seconds": child.get("manual_craft_seconds"),
+                        "byproducts": child.get("byproducts", []),
                     },
                 )
                 entry["qty"] += child["qty"]
@@ -4301,6 +4648,10 @@ class Overlay(tk.Tk):
             root_label = f"◆  {recipe_name}  ×{craft_qty:g}"
             if crafts > 1 or oqty > 1:
                 root_label += f"  ({crafts:g} crafts)"
+        root_label += _format_craft_meta_suffix(
+            node.get("station"), node.get("auto_craft_seconds")
+        )
+        root_label += _format_byproducts_suffix(node.get("byproducts"))
         header = tree.insert(
             "", "end", text=root_label, open=True, tags=("total_header",)
         )
@@ -4349,6 +4700,10 @@ class Overlay(tk.Tk):
                 is_done = path_key in checked
                 img = self.img_checked if is_done else self.img_unchecked
                 suffix = f"  ({crafts:g} crafts)" if oq > 1 else ""
+                suffix += _format_craft_meta_suffix(
+                    info.get("station"), info.get("auto_craft_seconds")
+                )
+                suffix += _format_byproducts_suffix(info.get("byproducts"))
                 iid = tree.insert(
                     craft_hdr,
                     "end",
@@ -4386,10 +4741,12 @@ class Overlay(tk.Tk):
                         )
                         self._recipe_iid_info[loc_iid] = {"type": "location"}
                 for alt in info.get("alts", []):
+                    alt_label = f"⟳  {alt['recipe_name']}  (alt — click to use)"
+                    alt_label += _format_byproducts_suffix(alt.get("byproducts"))
                     alt_iid = tree.insert(
                         iid,
                         "end",
-                        text=f"⟳  {alt['recipe_name']}  (alt — click to use)",
+                        text=alt_label,
                         open=False,
                         tags=("alt_header",),
                     )
