@@ -4343,11 +4343,35 @@ class Overlay(tk.Tk):
             relief="flat",
         ).pack(side="left", fill="x", expand=True, ipady=3, padx=(0, 8))
 
-        tk.Label(
-            form, text="Stations:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
-        ).pack(anchor="w", pady=(0, 2))
         self._station_inner = tk.Frame(form, bg="#0d1117")
         self._station_inner.pack(fill="x", pady=(0, 4))
+        # Header labels share this grid with the row widgets below (added in
+        # _add_station_row) so their columns line up exactly regardless of
+        # font metrics - packing them in a separate sibling frame can't
+        # guarantee that.
+        tk.Label(
+            self._station_inner,
+            text="Stations:",
+            bg="#0d1117",
+            fg="#8b949e",
+            font=("Segoe UI", 8),
+        ).grid(row=0, column=0, padx=(0, 4), pady=(0, 2), sticky="w")
+        tk.Label(
+            self._station_inner,
+            text="Auto (s)",
+            bg="#0d1117",
+            fg="#6e7681",
+            font=("Segoe UI", 7),
+            anchor="w",
+        ).grid(row=0, column=1, padx=(0, 4), pady=(0, 2), sticky="w")
+        tk.Label(
+            self._station_inner,
+            text="Manual (s)",
+            bg="#0d1117",
+            fg="#6e7681",
+            font=("Segoe UI", 7),
+            anchor="w",
+        ).grid(row=0, column=2, padx=(0, 4), pady=(0, 2), sticky="w")
         self._station_rows: list = []
         self._add_station_row()
 
@@ -4487,20 +4511,17 @@ class Overlay(tk.Tk):
         self._out_rows = []
 
     def _add_station_row(self, station="", auto="", manual=""):
-        row_frame = tk.Frame(self._station_inner, bg="#0d1117")
-        row_frame.pack(fill="x", pady=1)
         station_var = tk.StringVar(value=str(station))
         auto_var = tk.StringVar(value=str(auto))
         manual_var = tk.StringVar(value=str(manual))
-        station_cb = ttk.Combobox(row_frame, textvariable=station_var, width=14)
+        station_cb = ttk.Combobox(self._station_inner, textvariable=station_var, width=14)
         station_cb["values"] = get_all_stations()
-        station_cb.pack(side="left", padx=(0, 4))
         _LiveDropdown(
             station_cb,
             pre_fn=lambda cb=station_cb: cb.configure(values=get_all_stations()),
         )
         auto_entry = _bordered_entry(
-            row_frame,
+            self._station_inner,
             textvariable=auto_var,
             width=6,
             bg="#161b22",
@@ -4508,9 +4529,8 @@ class Overlay(tk.Tk):
             insertbackground="#c9d1d9",
             relief="flat",
         )
-        auto_entry.pack(side="left", padx=(0, 4), ipady=2)
         manual_entry = _bordered_entry(
-            row_frame,
+            self._station_inner,
             textvariable=manual_var,
             width=6,
             bg="#161b22",
@@ -4518,29 +4538,52 @@ class Overlay(tk.Tk):
             insertbackground="#c9d1d9",
             relief="flat",
         )
-        manual_entry.pack(side="left", padx=(0, 4), ipady=2)
         row = {
             "station_var": station_var,
             "auto_var": auto_var,
             "manual_var": manual_var,
-            "frame": row_frame,
+            "station_widget": station_cb,
+            "auto_widget": auto_entry,
+            "manual_widget": manual_entry,
         }
 
         def remove():
             if len(self._station_rows) <= 1:
                 return
             self._station_rows = [x for x in self._station_rows if x is not row]
-            row["frame"].destroy()
+            station_cb.destroy()
+            auto_entry.destroy()
+            manual_entry.destroy()
+            row["remove_widget"].destroy()
+            self._relayout_station_rows()
 
         rm_btn = ttk.Button(
-            row_frame, text="×", command=remove, style="Remove.TButton"
+            self._station_inner, text="×", command=remove, style="Remove.TButton"
         )
-        rm_btn.pack(side="left")
+        row["remove_widget"] = rm_btn
         self._station_rows.append(row)
+        self._relayout_station_rows()
+
+    def _relayout_station_rows(self):
+        # Row 0 is the Auto/Manual header; rows shift up here after a
+        # removal so no gap is left where a deleted row used to be.
+        for i, row in enumerate(self._station_rows):
+            r = i + 1
+            row["station_widget"].grid(row=r, column=0, padx=(0, 4), pady=1, sticky="w")
+            row["auto_widget"].grid(
+                row=r, column=1, padx=(0, 4), pady=1, ipady=2, sticky="w"
+            )
+            row["manual_widget"].grid(
+                row=r, column=2, padx=(0, 4), pady=1, ipady=2, sticky="w"
+            )
+            row["remove_widget"].grid(row=r, column=3, pady=1, sticky="w")
 
     def _clear_station_rows(self):
         for row in self._station_rows:
-            row["frame"].destroy()
+            row["station_widget"].destroy()
+            row["auto_widget"].destroy()
+            row["manual_widget"].destroy()
+            row["remove_widget"].destroy()
         self._station_rows = []
 
     def _refresh_recipe_list(self):
