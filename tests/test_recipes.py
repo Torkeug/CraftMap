@@ -15,6 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import overlay  # noqa: E402
 
+DEFAULT_STATIONS = [("Station", None, None)]
+
 
 @pytest.fixture
 def db(tmp_path, monkeypatch):
@@ -33,7 +35,13 @@ def test_raw_ingredient_has_no_children(db):
 
 
 def test_single_level_recipe_breaks_down_ingredients(db):
-    db.save_recipe(None, "Iron Bar", outputs=[("Iron Bar", 2)], ingredients=[("Iron Ore", 3)])
+    db.save_recipe(
+        None,
+        "Iron Bar",
+        outputs=[("Iron Bar", 2)],
+        ingredients=[("Iron Ore", 3)],
+        stations=DEFAULT_STATIONS,
+    )
 
     tree = db.resolve_recipe_tree("Iron Bar", qty_needed=4)
 
@@ -49,7 +57,13 @@ def test_single_level_recipe_breaks_down_ingredients(db):
 
 def test_craft_count_rounds_up_with_ceil(db):
     # output qty=3 but only 4 needed -> ceil(4/3) = 2 crafts, not 1 or 1.33
-    db.save_recipe(None, "Plate", outputs=[("Plate", 3)], ingredients=[("Iron Bar", 1)])
+    db.save_recipe(
+        None,
+        "Plate",
+        outputs=[("Plate", 3)],
+        ingredients=[("Iron Bar", 1)],
+        stations=DEFAULT_STATIONS,
+    )
 
     tree = db.resolve_recipe_tree("Plate", qty_needed=4)
 
@@ -58,8 +72,20 @@ def test_craft_count_rounds_up_with_ceil(db):
 
 
 def test_multi_level_nesting(db):
-    db.save_recipe(None, "Iron Bar", outputs=[("Iron Bar", 1)], ingredients=[("Iron Ore", 2)])
-    db.save_recipe(None, "Gear", outputs=[("Gear", 1)], ingredients=[("Iron Bar", 3)])
+    db.save_recipe(
+        None,
+        "Iron Bar",
+        outputs=[("Iron Bar", 1)],
+        ingredients=[("Iron Ore", 2)],
+        stations=DEFAULT_STATIONS,
+    )
+    db.save_recipe(
+        None,
+        "Gear",
+        outputs=[("Gear", 1)],
+        ingredients=[("Iron Bar", 3)],
+        stations=DEFAULT_STATIONS,
+    )
 
     tree = db.resolve_recipe_tree("Gear", qty_needed=1)
 
@@ -74,8 +100,12 @@ def test_multi_level_nesting(db):
 def test_cycle_is_broken_not_infinite(db):
     # A needs B, B needs A - resolving A must terminate and treat the
     # second occurrence of A as a raw (non-recipe) leaf.
-    db.save_recipe(None, "A", outputs=[("A", 1)], ingredients=[("B", 1)])
-    db.save_recipe(None, "B", outputs=[("B", 1)], ingredients=[("A", 1)])
+    db.save_recipe(
+        None, "A", outputs=[("A", 1)], ingredients=[("B", 1)], stations=DEFAULT_STATIONS
+    )
+    db.save_recipe(
+        None, "B", outputs=[("B", 1)], ingredients=[("A", 1)], stations=DEFAULT_STATIONS
+    )
 
     tree = db.resolve_recipe_tree("A", qty_needed=1)
 
@@ -88,8 +118,20 @@ def test_cycle_is_broken_not_infinite(db):
 
 
 def test_alternate_recipes_are_listed(db):
-    db.save_recipe(None, "Fuel", outputs=[("Energy", 1)], ingredients=[("Coal", 2)])
-    db.save_recipe(None, "Battery", outputs=[("Energy", 1)], ingredients=[("Lithium", 1)])
+    db.save_recipe(
+        None,
+        "Fuel",
+        outputs=[("Energy", 1)],
+        ingredients=[("Coal", 2)],
+        stations=DEFAULT_STATIONS,
+    )
+    db.save_recipe(
+        None,
+        "Battery",
+        outputs=[("Energy", 1)],
+        ingredients=[("Lithium", 1)],
+        stations=DEFAULT_STATIONS,
+    )
 
     tree = db.resolve_recipe_tree("Energy", qty_needed=1)
 
@@ -100,9 +142,19 @@ def test_alternate_recipes_are_listed(db):
 
 
 def test_alt_pref_overrides_default_recipe(db):
-    db.save_recipe(None, "Fuel", outputs=[("Energy", 1)], ingredients=[("Coal", 2)])
+    db.save_recipe(
+        None,
+        "Fuel",
+        outputs=[("Energy", 1)],
+        ingredients=[("Coal", 2)],
+        stations=DEFAULT_STATIONS,
+    )
     battery_id = db.save_recipe(
-        None, "Battery", outputs=[("Energy", 1)], ingredients=[("Lithium", 1)]
+        None,
+        "Battery",
+        outputs=[("Energy", 1)],
+        ingredients=[("Lithium", 1)],
+        stations=DEFAULT_STATIONS,
     )
 
     tree = db.resolve_recipe_tree("Energy", qty_needed=1, _alt_prefs={"Energy": battery_id})
@@ -117,9 +169,7 @@ def test_recipe_station_and_time_returned_in_tree(db):
         "Steel Ingot",
         outputs=[("Steel Ingot", 3)],
         ingredients=[("Iron Ingot", 4)],
-        station="Smelter",
-        auto_craft_seconds=180.0,
-        manual_craft_seconds=5.0,
+        stations=[("Smelter", 180.0, 5.0)],
     )
 
     tree = db.resolve_recipe_tree("Steel Ingot", qty_needed=3)
@@ -129,6 +179,43 @@ def test_recipe_station_and_time_returned_in_tree(db):
     assert tree["manual_craft_seconds"] == 5.0
 
 
+def test_recipe_can_have_multiple_stations(db):
+    rid = db.save_recipe(
+        None,
+        "Steel Ingot",
+        outputs=[("Steel Ingot", 3)],
+        ingredients=[("Iron Ingot", 4)],
+        stations=[
+            ("Smelter", 180.0, 5.0),
+            ("Micro-Furnace", 10.0, 5.0),
+            ("Ship (on-board)", None, 15.0),
+        ],
+    )
+
+    stations = db.get_recipe_stations(rid)
+
+    assert stations == [
+        ("Smelter", 180.0, 5.0),
+        ("Micro-Furnace", 10.0, 5.0),
+        ("Ship (on-board)", None, 15.0),
+    ]
+    # The primary (first) station is mirrored onto the recipe's own row.
+    assert db.get_recipe_meta(rid) == ("Smelter", 180.0, 5.0)
+
+
+def test_get_recipe_station_times_looks_up_by_name(db):
+    rid = db.save_recipe(
+        None,
+        "Steel Ingot",
+        outputs=[("Steel Ingot", 3)],
+        ingredients=[("Iron Ingot", 4)],
+        stations=[("Smelter", 180.0, 5.0), ("Micro-Furnace", 10.0, 5.0)],
+    )
+
+    assert db.get_recipe_station_times(rid, "Micro-Furnace") == (10.0, 5.0)
+    assert db.get_recipe_station_times(rid, "Nonexistent Station") is None
+
+
 def test_multi_output_recipe_returns_scaled_byproducts(db):
     # Smelting Aquamarine yields both Silicium Ingot and Aluminium Ingot.
     db.save_recipe(
@@ -136,6 +223,7 @@ def test_multi_output_recipe_returns_scaled_byproducts(db):
         "Aluminium Ingot Aquamarine",
         outputs=[("Silicium Ingot", 2), ("Aluminium Ingot", 1)],
         ingredients=[("Aquamarine", 3)],
+        stations=DEFAULT_STATIONS,
     )
 
     tree = db.resolve_recipe_tree("Aluminium Ingot", qty_needed=2)
@@ -150,13 +238,26 @@ def test_alts_grouped_by_output_item_not_recipe_id(db):
     # outputs' buckets, each scaled to that output's own qty - not just its
     # "primary" output. The two single-output recipes are saved first so they
     # win as the default (first-by-id) recipe for each item.
-    db.save_recipe(None, "Steel", outputs=[("Steel Ingot", 3)], ingredients=[("Iron Ingot", 4)])
-    db.save_recipe(None, "Copper", outputs=[("Copper Ingot", 1)], ingredients=[("Copper Ore", 2)])
+    db.save_recipe(
+        None,
+        "Steel",
+        outputs=[("Steel Ingot", 3)],
+        ingredients=[("Iron Ingot", 4)],
+        stations=DEFAULT_STATIONS,
+    )
+    db.save_recipe(
+        None,
+        "Copper",
+        outputs=[("Copper Ingot", 1)],
+        ingredients=[("Copper Ore", 2)],
+        stations=DEFAULT_STATIONS,
+    )
     db.save_recipe(
         None,
         "Recycle Steel Hull",
         outputs=[("Steel Ingot", 2), ("Copper Ingot", 1)],
         ingredients=[("Wrecked Hull", 4)],
+        stations=DEFAULT_STATIONS,
     )
 
     steel_tree = db.resolve_recipe_tree("Steel Ingot", qty_needed=3)
@@ -180,6 +281,7 @@ def test_get_all_output_names_includes_secondary_outputs(db):
         "Aluminium Ingot Aquamarine",
         outputs=[("Silicium Ingot", 2), ("Aluminium Ingot", 1)],
         ingredients=[("Aquamarine", 3)],
+        stations=DEFAULT_STATIONS,
     )
 
     names = db.get_all_output_names()

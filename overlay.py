@@ -190,6 +190,29 @@ def init_db():
             (rid, oname, oqty),
         )
     c.execute("""
+        CREATE TABLE IF NOT EXISTS recipe_stations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipe_id INTEGER NOT NULL,
+            station TEXT NOT NULL,
+            auto_craft_seconds REAL,
+            manual_craft_seconds REAL,
+            FOREIGN KEY (recipe_id) REFERENCES recipes(id)
+        )
+    """)
+    # backfill: every pre-existing recipe with a station needs at least one
+    # recipe_stations row, mirroring its old single station/*_craft_seconds columns
+    c.execute(
+        "SELECT id, station, auto_craft_seconds, manual_craft_seconds FROM recipes"
+        " WHERE station IS NOT NULL AND station != ''"
+        " AND id NOT IN (SELECT DISTINCT recipe_id FROM recipe_stations)"
+    )
+    for rid, station, auto_s, manual_s in c.fetchall():
+        c.execute(
+            "INSERT INTO recipe_stations (recipe_id, station, auto_craft_seconds, manual_craft_seconds)"
+            " VALUES (?, ?, ?, ?)",
+            (rid, station, auto_s, manual_s),
+        )
+    c.execute("""
         CREATE TABLE IF NOT EXISTS recipe_checked (
             recipe_id INTEGER NOT NULL,
             path_key TEXT NOT NULL,
@@ -211,6 +234,12 @@ def init_db():
             FOREIGN KEY (recipe_id) REFERENCES recipes(id)
         )
     """)
+    c.execute("PRAGMA table_info(craft_queue)")
+    queue_cols = [row[1] for row in c.fetchall()]
+    if "station" not in queue_cols:
+        c.execute("ALTER TABLE craft_queue ADD COLUMN station TEXT")
+    if "combine" not in queue_cols:
+        c.execute("ALTER TABLE craft_queue ADD COLUMN combine INTEGER NOT NULL DEFAULT 1")
     c.execute("""
         CREATE TABLE IF NOT EXISTS queue_checked (
             queue_id INTEGER NOT NULL,
@@ -402,17 +431,18 @@ def save_recipe(
     name,
     outputs,
     ingredients,
-    station=None,
-    auto_craft_seconds=None,
-    manual_craft_seconds=None,
+    stations,
 ):
-    """Insert (recipe_id=None) or update a recipe, replacing its outputs and
-    ingredients. `outputs` is a non-empty list of (item_name, qty) tuples;
-    outputs[0] is the primary output. Returns id."""
+    """Insert (recipe_id=None) or update a recipe, replacing its outputs,
+    ingredients, and stations. `outputs` is a non-empty list of
+    (item_name, qty) tuples; outputs[0] is the primary output. `stations`
+    is a non-empty list of (station, auto_craft_seconds, manual_craft_seconds)
+    tuples; stations[0] is the primary station. Returns id."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     primary_name, primary_qty = outputs[0]
     oname = primary_name if primary_name != name else None
+    primary_station, primary_auto_s, primary_manual_s = stations[0]
     if recipe_id is None:
         c.execute(
             "INSERT INTO recipes"
@@ -422,9 +452,9 @@ def save_recipe(
                 name,
                 primary_qty,
                 oname,
-                station,
-                auto_craft_seconds,
-                manual_craft_seconds,
+                primary_station,
+                primary_auto_s,
+                primary_manual_s,
             ),
         )
         recipe_id = c.lastrowid
@@ -436,14 +466,15 @@ def save_recipe(
                 name,
                 primary_qty,
                 oname,
-                station,
-                auto_craft_seconds,
-                manual_craft_seconds,
+                primary_station,
+                primary_auto_s,
+                primary_manual_s,
                 recipe_id,
             ),
         )
         c.execute("DELETE FROM recipe_ingredients WHERE recipe_id=?", (recipe_id,))
         c.execute("DELETE FROM recipe_outputs WHERE recipe_id=?", (recipe_id,))
+        c.execute("DELETE FROM recipe_stations WHERE recipe_id=?", (recipe_id,))
     for ing_name, qty in ingredients:
         c.execute(
             "INSERT INTO recipe_ingredients (recipe_id, ingredient_name, quantity)"
@@ -455,6 +486,13 @@ def save_recipe(
             "INSERT INTO recipe_outputs (recipe_id, item_name, quantity)"
             " VALUES (?, ?, ?)",
             (recipe_id, out_name, out_qty),
+        )
+    for st_name, st_auto_s, st_manual_s in stations:
+        c.execute(
+            "INSERT INTO recipe_stations"
+            " (recipe_id, station, auto_craft_seconds, manual_craft_seconds)"
+            " VALUES (?, ?, ?, ?)",
+            (recipe_id, st_name, st_auto_s, st_manual_s),
         )
     conn.commit()
     conn.close()
@@ -522,7 +560,8 @@ def get_recipe_outputs(recipe_id):
 
 
 def get_recipe_meta(recipe_id):
-    """Return (station, auto_craft_seconds, manual_craft_seconds) for a recipe."""
+    """Return (station, auto_craft_seconds, manual_craft_seconds) for a
+    recipe's primary station."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
@@ -535,15 +574,42 @@ def get_recipe_meta(recipe_id):
     return row if row else (None, None, None)
 
 
+def get_recipe_stations(recipe_id):
+    """All of a recipe's usable stations, ordered with the primary first."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "SELECT station, auto_craft_seconds, manual_craft_seconds"
+        " FROM recipe_stations WHERE recipe_id=? ORDER BY id",
+        (recipe_id,),
+    )
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+
+def get_recipe_station_times(recipe_id, station):
+    """Return (auto_craft_seconds, manual_craft_seconds) for one of a
+    recipe's stations by name, or None if that recipe has no such station."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "SELECT auto_craft_seconds, manual_craft_seconds FROM recipe_stations"
+        " WHERE recipe_id=? AND station=? ORDER BY id LIMIT 1",
+        (recipe_id, station),
+    )
+    row = c.fetchone()
+    conn.close()
+    return tuple(row) if row else None
+
+
 def get_all_stations():
     """Distinct craft stations already in use, for autocomplete - no hardcoded
     lists, grows automatically as recipes are tagged with a station."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "SELECT DISTINCT station FROM recipes"
-        " WHERE station IS NOT NULL AND station != ''"
-        " ORDER BY station COLLATE NOCASE"
+        "SELECT DISTINCT station FROM recipe_stations ORDER BY station COLLATE NOCASE"
     )
     rows = c.fetchall()
     conn.close()
@@ -555,6 +621,7 @@ def delete_recipe(recipe_id):
     c = conn.cursor()
     c.execute("DELETE FROM recipe_ingredients WHERE recipe_id=?", (recipe_id,))
     c.execute("DELETE FROM recipe_outputs WHERE recipe_id=?", (recipe_id,))
+    c.execute("DELETE FROM recipe_stations WHERE recipe_id=?", (recipe_id,))
     c.execute("DELETE FROM recipe_checked WHERE recipe_id=?", (recipe_id,))
     c.execute("DELETE FROM recipes WHERE id=?", (recipe_id,))
     conn.commit()
@@ -638,12 +705,16 @@ def get_deposits_for_ingredient(resource_name):
 
 
 def get_craft_queue():
-    """Return [(queue_id, recipe_id, recipe_name, output_name, quantity), ...].
-    output_name is the recipe's primary (first) output."""
+    """Return [(queue_id, recipe_id, recipe_name, output_name, quantity,
+    station, combine), ...]. output_name is the recipe's primary (first)
+    output. station is the station chosen for this job (None = the
+    recipe's primary/default station). combine is whether this job's
+    numbers count toward the Totals view's combined "All Jobs" aggregate."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "SELECT cq.id, cq.recipe_id, r.name, ro.item_name, cq.quantity"
+        "SELECT cq.id, cq.recipe_id, r.name, ro.item_name, cq.quantity,"
+        " cq.station, cq.combine"
         " FROM craft_queue cq"
         " JOIN recipes r ON r.id = cq.recipe_id"
         " JOIN recipe_outputs ro ON ro.recipe_id = r.id"
@@ -655,15 +726,19 @@ def get_craft_queue():
     return rows
 
 
-def add_to_queue(recipe_id, quantity=1.0):
+def add_to_queue(recipe_id, quantity=1.0, station=None):
     """Add a job, merging into an existing queue entry for the same recipe
-    (bumping its quantity) instead of creating a duplicate row - queuing a
-    recipe that's already queued should read as "craft more of it", not a
-    second identical entry, and this also preserves that entry's checked
-    ingredient state instead of resetting it in a fresh row."""
+    AND station (bumping its quantity) instead of creating a duplicate row -
+    queuing a recipe/station that's already queued should read as "craft
+    more of it", not a second identical entry, and this also preserves that
+    entry's checked ingredient state instead of resetting it in a fresh row.
+    The same recipe queued at a *different* station is a distinct job."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT id, quantity FROM craft_queue WHERE recipe_id=?", (recipe_id,))
+    c.execute(
+        "SELECT id, quantity FROM craft_queue WHERE recipe_id=? AND station IS ?",
+        (recipe_id, station),
+    )
     existing = c.fetchone()
     if existing:
         queue_id, existing_qty = existing
@@ -673,8 +748,8 @@ def add_to_queue(recipe_id, quantity=1.0):
         )
     else:
         c.execute(
-            "INSERT INTO craft_queue (recipe_id, quantity) VALUES (?, ?)",
-            (recipe_id, quantity),
+            "INSERT INTO craft_queue (recipe_id, quantity, station) VALUES (?, ?, ?)",
+            (recipe_id, quantity, station),
         )
         queue_id = c.lastrowid
     conn.commit()
@@ -686,6 +761,24 @@ def update_queue_qty(queue_id, quantity):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("UPDATE craft_queue SET quantity=? WHERE id=?", (quantity, queue_id))
+    conn.commit()
+    conn.close()
+
+
+def update_queue_station(queue_id, station):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("UPDATE craft_queue SET station=? WHERE id=?", (station, queue_id))
+    conn.commit()
+    conn.close()
+
+
+def update_queue_combine(queue_id, combine):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "UPDATE craft_queue SET combine=? WHERE id=?", (1 if combine else 0, queue_id)
+    )
     conn.commit()
     conn.close()
 
@@ -1284,6 +1377,42 @@ def _format_byproducts_suffix(byproducts):
     return "  (" + ", ".join(parts) + ")"
 
 
+def _craft_meta_parts(station, auto_s):
+    """Station/time as separately-droppable label parts, most important first."""
+    parts = []
+    if station:
+        parts.append(f"  @ {station}")
+    if auto_s:
+        parts.append(f"  {auto_s:g}s auto")
+    return parts
+
+
+def _byproducts_part(byproducts):
+    if not byproducts:
+        return None
+    parts = [f"+{b['qty']:g} {b['name']}" for b in byproducts]
+    return "  (" + ", ".join(parts) + ")"
+
+
+def _fit_label(base, optional_parts, available_px, font):
+    """base is always shown; optional_parts (priority order, most important
+    first) are appended while they still fit within available_px, and
+    dropped from the end (least important first) once they don't. base
+    itself is ellipsis-truncated as a last resort if it alone overflows."""
+    text = base
+    for part in optional_parts:
+        candidate = text + part
+        if font.measure(candidate) <= available_px:
+            text = candidate
+        else:
+            break
+    if font.measure(text) > available_px:
+        while text and font.measure(text + "…") > available_px:
+            text = text[:-1]
+        text += "…"
+    return text
+
+
 class CraftQueuePanel:
     """
     Pinnable always-on-top floating window for the persistent crafting queue.
@@ -1467,6 +1596,37 @@ class CraftQueuePanel:
             font=("Segoe UI", 8),
         ).pack(side="right")
 
+        # --- station row (recipes with more than one usable station let
+        # you pick which one this queued job uses; blank = the recipe's
+        # primary/default station) ---
+        station_row = tk.Frame(self._win, bg="#0d1117")
+        station_row.pack(side="bottom", fill="x", padx=6, pady=(0, 4))
+        tk.Label(
+            station_row,
+            text="Station:",
+            bg="#0d1117",
+            fg="#8b949e",
+            font=("Segoe UI", 8),
+        ).pack(side="left", padx=(0, 4))
+        self._add_station_var = tk.StringVar()
+        self._add_station_cb = ttk.Combobox(
+            station_row, textvariable=self._add_station_var, width=20
+        )
+        self._add_station_cb.pack(side="left", fill="x", expand=True)
+        self._add_recipe_cb.bind(
+            "<FocusOut>", self._refresh_add_station_options, add="+"
+        )
+        self._add_recipe_cb.bind(
+            "<Return>", self._refresh_add_station_options, add="+"
+        )
+        _LiveDropdown(
+            self._add_recipe_cb,
+            pre_fn=lambda: self._add_recipe_cb.configure(
+                values=[n for _, n in get_all_recipes()]
+            ),
+            on_select_fn=lambda _v: self._refresh_add_station_options(),
+        )
+
         # --- PanedWindow: job list (top pane) + breakdown tree (bottom pane) ---
         self._pw = tk.PanedWindow(
             self._win,
@@ -1530,6 +1690,9 @@ class CraftQueuePanel:
         bd_vsb.grid(row=0, column=1, sticky="ns")
         self._bd_tree.configure(yscrollcommand=_autohide_yscroll(bd_vsb))
         self._bd_tree.bind("<ButtonRelease-1>", self._on_bd_click)
+        self._bd_font = tkfont.nametofont("TkDefaultFont")
+        self._bd_resize_job = None
+        self._bd_tree.bind("<Configure>", self._on_bd_tree_configure, add="+")
         self._bd_tree.bind(
             "<<TreeviewOpen>>", lambda _e: setattr(self, "_bd_toggled", True)
         )
@@ -1643,18 +1806,31 @@ class CraftQueuePanel:
                 fg="#6e7681",
                 font=("Segoe UI", 8),
             ).pack(anchor="w", padx=4, pady=4)
-        for queue_id, recipe_id, _, output_name, qty in jobs:
-            self._build_job_row(queue_id, recipe_id, output_name, qty)
+        for queue_id, recipe_id, _, output_name, qty, station, combine in jobs:
+            self._build_job_row(
+                queue_id, recipe_id, output_name, qty, station, combine
+            )
         self._job_canvas.configure(
             scrollregion=self._job_canvas.bbox("all") or (0, 0, 0, 0)
         )
 
-    def _build_job_row(self, queue_id, recipe_id, output_name, qty):
+    def _build_job_row(self, queue_id, recipe_id, output_name, qty, station, combine):
         is_sel = self._selected_job is not None and self._selected_job[0] == queue_id
         bg = "#1f6feb" if is_sel else "#161b22"
         row = tk.Frame(self._job_inner, bg=bg, cursor="hand2")
         row.pack(fill="x", pady=1)
         self._job_frames[queue_id] = row
+
+        combine_img = (
+            self._overlay.img_checked if combine else self._overlay.img_unchecked
+        )
+        combine_lbl = tk.Label(row, image=combine_img, bg=bg, cursor="hand2")
+        combine_lbl.pack(side="left", padx=(4, 2))
+        combine_lbl.bind(
+            "<ButtonPress-1>",
+            lambda _e, qid=queue_id, cur=combine: self._toggle_combine(qid, cur),
+        )
+        combine_lbl.bind("<MouseWheel>", self._job_scroll, add=True)
 
         lbl = tk.Label(
             row,
@@ -1664,7 +1840,7 @@ class CraftQueuePanel:
             font=("Segoe UI", 8),
             anchor="w",
         )
-        lbl.pack(side="left", padx=(6, 2), pady=3, fill="x", expand=True)
+        lbl.pack(side="left", padx=(0, 2), pady=3, fill="x", expand=True)
 
         rm_btn = tk.Button(
             row,
@@ -1683,7 +1859,7 @@ class CraftQueuePanel:
         qty_e = tk.Entry(
             row,
             textvariable=qty_var,
-            width=7,
+            width=6,
             bg="#21262d",
             fg="#c9d1d9",
             insertbackground="#c9d1d9",
@@ -1698,21 +1874,43 @@ class CraftQueuePanel:
         qty_e.bind(
             "<FocusOut>", lambda _e, qid=queue_id, v=qty_var: self._update_qty(qid, v)
         )
+        qty_e.bind("<MouseWheel>", self._job_scroll, add=True)
 
-        def _on_click(_ev, qid=queue_id, rid=recipe_id, oname=output_name, qv=qty_var):
-            self._select_job(qid, rid, oname, qv)
+        # Only show a station picker for recipes that actually have more
+        # than one usable station - keeps the row uncluttered for the vast
+        # majority of recipes, which only have one.
+        recipe_stations = get_recipe_stations(recipe_id)
+        if len(recipe_stations) > 1:
+            station_var = tk.StringVar(value=station or "")
+            station_cb = ttk.Combobox(
+                row,
+                textvariable=station_var,
+                width=9,
+                values=[s[0] for s in recipe_stations],
+                font=("Segoe UI", 8),
+            )
+            station_cb.pack(side="right", padx=2)
+            station_cb.bind(
+                "<<ComboboxSelected>>",
+                lambda _e, qid=queue_id, v=station_var: self._update_station(
+                    qid, v.get()
+                ),
+            )
+            station_cb.bind("<MouseWheel>", self._job_scroll, add=True)
+
+        def _on_click(_ev, qid=queue_id, rid=recipe_id, oname=output_name, qv=qty_var, st=station):
+            self._select_job(qid, rid, oname, qv, st)
 
         for w in (row, lbl):
             w.bind("<ButtonPress-1>", _on_click)
             w.bind("<MouseWheel>", self._job_scroll, add=True)
-        qty_e.bind("<MouseWheel>", self._job_scroll, add=True)
 
-    def _select_job(self, queue_id, recipe_id, output_name, qty_var):
+    def _select_job(self, queue_id, recipe_id, output_name, qty_var, station=None):
         try:
             qty = max(float(qty_var.get()), 0.001)
         except ValueError:
             qty = 1.0
-        self._selected_job = (queue_id, recipe_id, output_name, qty)
+        self._selected_job = (queue_id, recipe_id, output_name, qty, station)
         self._refresh_job_list()
         if self._mode == "queue":
             self._refresh_breakdown()
@@ -1727,7 +1925,22 @@ class CraftQueuePanel:
         update_queue_qty(queue_id, qty)
         if self._selected_job and self._selected_job[0] == queue_id:
             old = self._selected_job
-            self._selected_job = (old[0], old[1], old[2], qty)
+            self._selected_job = (old[0], old[1], old[2], qty, old[4])
+            self._refresh_breakdown()
+
+    def _update_station(self, queue_id, station):
+        station = station or None
+        update_queue_station(queue_id, station)
+        if self._selected_job and self._selected_job[0] == queue_id:
+            old = self._selected_job
+            self._selected_job = (old[0], old[1], old[2], old[3], station)
+        if self._mode == "queue":
+            self._refresh_breakdown()
+
+    def _toggle_combine(self, queue_id, currently_combine):
+        update_queue_combine(queue_id, not currently_combine)
+        self._refresh_job_list()
+        if self._mode == "totals":
             self._refresh_breakdown()
 
     def _remove_job(self, queue_id):
@@ -1736,6 +1949,15 @@ class CraftQueuePanel:
             self._selected_job = None
         self._refresh_job_list()
         self._refresh_breakdown()
+
+    def _refresh_add_station_options(self, _event=None):
+        name = self._add_recipe_var.get().strip()
+        recipe_id = get_recipe_by_name(name)
+        stations = get_recipe_stations(recipe_id) if recipe_id is not None else []
+        values = [""] + [s[0] for s in stations]
+        self._add_station_cb.configure(values=values)
+        if self._add_station_var.get() not in values:
+            self._add_station_var.set("")
 
     def _add_job(self):
         name = self._add_recipe_var.get().strip()
@@ -1748,9 +1970,12 @@ class CraftQueuePanel:
             qty = max(float(self._add_qty_var.get()), 0.001)
         except ValueError:
             qty = 1.0
-        add_to_queue(recipe_id, qty)
+        station = self._add_station_var.get().strip() or None
+        add_to_queue(recipe_id, qty, station)
         self._add_recipe_var.set("")
         self._add_qty_var.set("1")
+        self._add_station_var.set("")
+        self._add_station_cb.configure(values=[""])
         self._refresh_job_list()
         if self._mode == "totals":
             self._refresh_breakdown()
@@ -1762,6 +1987,17 @@ class CraftQueuePanel:
         self._refresh_breakdown()
 
     # --- breakdown / totals tree ---
+
+    def _on_bd_tree_configure(self, _event=None):
+        if self._bd_resize_job is not None:
+            self._win.after_cancel(self._bd_resize_job)
+        self._bd_resize_job = self._win.after(150, self._refresh_breakdown)
+
+    def _available_label_px(self, depth=0):
+        width = self._bd_tree.winfo_width()
+        if width <= 1:
+            width = 260
+        return max(60, width - 20 - 16 * depth)
 
     def _refresh_breakdown(self):
         tree = self._bd_tree
@@ -1792,21 +2028,31 @@ class CraftQueuePanel:
                 tags=("section",),
             )
             return
-        queue_id, recipe_id, output_name, qty = self._selected_job
+        queue_id, recipe_id, output_name, qty, job_station = self._selected_job
         alt_prefs = get_alt_prefs()
         node = resolve_recipe_tree(
             output_name, qty_needed=qty, _root_recipe_id=recipe_id, _alt_prefs=alt_prefs
         )
+        if job_station:
+            times = get_recipe_station_times(recipe_id, job_station)
+            if times:
+                node["station"] = job_station
+                node["auto_craft_seconds"], node["manual_craft_seconds"] = times
         checked = get_queue_checked(queue_id)
         oqty = node.get("output_qty", 1.0)
         crafts = math.ceil(qty / oqty)
-        root_label = f"◆  {output_name}  ×{qty:g}"
+        base_label = f"◆  {output_name}  ×{qty:g}"
         if crafts > 1 or oqty > 1:
-            root_label += f"  ({crafts:g} crafts)"
-        root_label += _format_craft_meta_suffix(
+            base_label += f"  ({crafts:g} crafts)"
+        optional_parts = _craft_meta_parts(
             node.get("station"), node.get("auto_craft_seconds")
         )
-        root_label += _format_byproducts_suffix(node.get("byproducts"))
+        byproducts_part = _byproducts_part(node.get("byproducts"))
+        if byproducts_part:
+            optional_parts.append(byproducts_part)
+        root_label = _fit_label(
+            base_label, optional_parts, self._available_label_px(0), self._bd_font
+        )
         root_iid = tree.insert("", "end", text=root_label, open=True, tags=("root",))
         self._bd_iid_info[root_iid] = {"type": "root"}
         for child in node["children"]:
@@ -1821,16 +2067,25 @@ class CraftQueuePanel:
         all_raw: dict = {}
         all_crafted: dict = {}
         per_job = []
-        for qid, recipe_id, rname, output_name, qty in jobs:
+        combined_count = 0
+        for qid, recipe_id, rname, output_name, qty, station, combine in jobs:
             node = resolve_recipe_tree(
                 output_name,
                 qty_needed=qty,
                 _root_recipe_id=recipe_id,
                 _alt_prefs=alt_prefs,
             )
+            if station:
+                times = get_recipe_station_times(recipe_id, station)
+                if times:
+                    node["station"] = station
+                    node["auto_craft_seconds"], node["manual_craft_seconds"] = times
             job_raw = Overlay.collect_totals(node)
             job_crafted = Overlay.collect_basic_crafted(node)
             per_job.append((qid, rname, qty, job_crafted, job_raw))
+            if not combine:
+                continue
+            combined_count += 1
             for iname, raw_qty in job_raw.items():
                 all_raw[iname] = all_raw.get(iname, 0) + raw_qty
             for iname, info in job_crafted.items():
@@ -1858,7 +2113,11 @@ class CraftQueuePanel:
             ]
 
         header = tree.insert(
-            "", "end", text=f"◆  All Jobs  ({len(jobs)})", open=True, tags=("root",)
+            "",
+            "end",
+            text=f"◆  All Jobs  ({combined_count})",
+            open=True,
+            tags=("root",),
         )
         self._bd_iid_info[header] = {"type": "root"}
         self._insert_totals_sections(
@@ -1904,15 +2163,25 @@ class CraftQueuePanel:
                     if is_done
                     else self._overlay.img_unchecked
                 )
-                suffix = f"  ({crafts:g} crafts)" if oq > 1 else ""
-                suffix += _format_craft_meta_suffix(
+                base_label = f"{qty:g}×  {iname}"
+                if oq > 1:
+                    base_label += f"  ({crafts:g} crafts)"
+                optional_parts = _craft_meta_parts(
                     info.get("station"), info.get("auto_craft_seconds")
                 )
-                suffix += _format_byproducts_suffix(info.get("byproducts"))
+                byproducts_part = _byproducts_part(info.get("byproducts"))
+                if byproducts_part:
+                    optional_parts.append(byproducts_part)
+                label = _fit_label(
+                    base_label,
+                    optional_parts,
+                    self._available_label_px(2),
+                    self._bd_font,
+                )
                 iid = tree.insert(
                     craft_hdr,
                     "end",
-                    text=f"{qty:g}×  {iname}{suffix}",
+                    text=label,
                     image=img,
                     open=False,
                     tags=("done" if is_done else "ingredient",),
@@ -1991,13 +2260,21 @@ class CraftQueuePanel:
         used_recipe = node.get("recipe_name", name)
         path_key = "|".join(path_parts + [name])
         is_done = path_key in checked
-        label = f"{qty:g}×  {name}"
+        base_label = f"{qty:g}×  {name}"
         if used_recipe and used_recipe != name:
-            label += f"  [{used_recipe}]"
-        label += _format_craft_meta_suffix(
+            base_label += f"  [{used_recipe}]"
+        optional_parts = _craft_meta_parts(
             node.get("station"), node.get("auto_craft_seconds")
         )
-        label += _format_byproducts_suffix(node.get("byproducts"))
+        byproducts_part = _byproducts_part(node.get("byproducts"))
+        if byproducts_part:
+            optional_parts.append(byproducts_part)
+        label = _fit_label(
+            base_label,
+            optional_parts,
+            self._available_label_px(depth + 1),
+            self._bd_font,
+        )
         img = self._overlay.img_checked if is_done else self._overlay.img_unchecked
         iid = tree.insert(
             parent_iid,
@@ -3882,52 +4159,13 @@ class Overlay(tk.Tk):
             relief="flat",
         ).pack(side="left", fill="x", expand=True, ipady=3, padx=(0, 8))
 
-        meta_row = tk.Frame(form, bg="#0d1117")
-        meta_row.pack(fill="x", pady=(0, 4))
         tk.Label(
-            meta_row, text="Station:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
-        ).pack(side="left", padx=(0, 4))
-        self._recipe_station_var = tk.StringVar()
-        self._recipe_station_cb = ttk.Combobox(
-            meta_row, textvariable=self._recipe_station_var, width=14
-        )
-        self._recipe_station_cb.pack(side="left", padx=(0, 8))
-        self._recipe_station_cb.bind(
-            "<FocusIn>",
-            lambda _e: self._recipe_station_cb.configure(values=get_all_stations()),
-        )
-        _LiveDropdown(
-            self._recipe_station_cb,
-            pre_fn=lambda: self._recipe_station_cb.configure(
-                values=get_all_stations()
-            ),
-        )
-        tk.Label(
-            meta_row, text="Auto:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
-        ).pack(side="left", padx=(0, 4))
-        self._recipe_auto_time_var = tk.StringVar()
-        tk.Entry(
-            meta_row,
-            textvariable=self._recipe_auto_time_var,
-            width=6,
-            bg="#161b22",
-            fg="#c9d1d9",
-            insertbackground="#c9d1d9",
-            relief="flat",
-        ).pack(side="left", ipady=3, padx=(0, 8))
-        tk.Label(
-            meta_row, text="Manual:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
-        ).pack(side="left", padx=(0, 4))
-        self._recipe_manual_time_var = tk.StringVar()
-        tk.Entry(
-            meta_row,
-            textvariable=self._recipe_manual_time_var,
-            width=6,
-            bg="#161b22",
-            fg="#c9d1d9",
-            insertbackground="#c9d1d9",
-            relief="flat",
-        ).pack(side="left", ipady=3)
+            form, text="Stations:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
+        ).pack(anchor="w", pady=(0, 2))
+        self._station_inner = tk.Frame(form, bg="#0d1117")
+        self._station_inner.pack(fill="x", pady=(0, 4))
+        self._station_rows: list = []
+        self._add_station_row()
 
         tk.Label(
             form, text="Outputs:", bg="#0d1117", fg="#8b949e", font=("Segoe UI", 8)
@@ -3980,6 +4218,17 @@ class Overlay(tk.Tk):
         self._ing_canvas.bind("<MouseWheel>", self._ing_scroll)
         self._ing_inner.bind("<MouseWheel>", self._ing_scroll)
 
+        tk.Button(
+            btn_row,
+            text="+ Station",
+            command=self._add_station_row,
+            bg="#21262d",
+            fg="#c9d1d9",
+            relief="flat",
+            bd=0,
+            padx=8,
+            font=("Segoe UI", 8),
+        ).pack(side="left", padx=(0, 6))
         tk.Button(
             btn_row,
             text="+ Output",
@@ -4084,6 +4333,70 @@ class Overlay(tk.Tk):
             row["frame"].destroy()
         self._out_rows = []
 
+    def _add_station_row(self, station="", auto="", manual=""):
+        row_frame = tk.Frame(self._station_inner, bg="#0d1117")
+        row_frame.pack(fill="x", pady=1)
+        station_var = tk.StringVar(value=str(station))
+        auto_var = tk.StringVar(value=str(auto))
+        manual_var = tk.StringVar(value=str(manual))
+        station_cb = ttk.Combobox(row_frame, textvariable=station_var, width=14)
+        station_cb["values"] = get_all_stations()
+        station_cb.pack(side="left", padx=(0, 4))
+        _LiveDropdown(
+            station_cb,
+            pre_fn=lambda cb=station_cb: cb.configure(values=get_all_stations()),
+        )
+        auto_entry = tk.Entry(
+            row_frame,
+            textvariable=auto_var,
+            width=6,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+        )
+        auto_entry.pack(side="left", padx=(0, 4), ipady=2)
+        manual_entry = tk.Entry(
+            row_frame,
+            textvariable=manual_var,
+            width=6,
+            bg="#161b22",
+            fg="#c9d1d9",
+            insertbackground="#c9d1d9",
+            relief="flat",
+        )
+        manual_entry.pack(side="left", padx=(0, 4), ipady=2)
+        row = {
+            "station_var": station_var,
+            "auto_var": auto_var,
+            "manual_var": manual_var,
+            "frame": row_frame,
+        }
+
+        def remove():
+            if len(self._station_rows) <= 1:
+                return
+            self._station_rows = [x for x in self._station_rows if x is not row]
+            row["frame"].destroy()
+
+        rm_btn = tk.Button(
+            row_frame,
+            text="×",
+            command=remove,
+            bg="#0d1117",
+            fg="#da3633",
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 9),
+        )
+        rm_btn.pack(side="left")
+        self._station_rows.append(row)
+
+    def _clear_station_rows(self):
+        for row in self._station_rows:
+            row["frame"].destroy()
+        self._station_rows = []
+
     def _refresh_recipe_list(self):
         if not hasattr(self, "_recipe_combo"):
             return
@@ -4102,12 +4415,15 @@ class Overlay(tk.Tk):
         self._usedin_recipe_id = recipe_id
         self._usedin_navigated_away = False
         self._recipe_name_var.set(name)
-        station, auto_s, manual_s = get_recipe_meta(recipe_id)
-        self._recipe_station_var.set(station or "")
-        self._recipe_auto_time_var.set(f"{auto_s:g}" if auto_s is not None else "")
-        self._recipe_manual_time_var.set(
-            f"{manual_s:g}" if manual_s is not None else ""
-        )
+        self._clear_station_rows()
+        for st_name, auto_s, manual_s in get_recipe_stations(recipe_id):
+            self._add_station_row(
+                st_name,
+                f"{auto_s:g}" if auto_s is not None else "",
+                f"{manual_s:g}" if manual_s is not None else "",
+            )
+        if not self._station_rows:
+            self._add_station_row()
         self._clear_output_rows()
         for out_name, out_qty in get_recipe_outputs(recipe_id):
             self._add_output_row(out_name, out_qty)
@@ -4257,12 +4573,15 @@ class Overlay(tk.Tk):
         self._recipe_combo.icursor("end")
         self._recipe_combo.selection_range(0, "end")
         self._recipe_name_var.set(rname)
-        station, auto_s, manual_s = get_recipe_meta(rid)
-        self._recipe_station_var.set(station or "")
-        self._recipe_auto_time_var.set(f"{auto_s:g}" if auto_s is not None else "")
-        self._recipe_manual_time_var.set(
-            f"{manual_s:g}" if manual_s is not None else ""
-        )
+        self._clear_station_rows()
+        for st_name, auto_s, manual_s in get_recipe_stations(rid):
+            self._add_station_row(
+                st_name,
+                f"{auto_s:g}" if auto_s is not None else "",
+                f"{manual_s:g}" if manual_s is not None else "",
+            )
+        if not self._station_rows:
+            self._add_station_row()
         self._clear_output_rows()
         for out_name, out_qty in get_recipe_outputs(rid):
             self._add_output_row(out_name, out_qty)
@@ -4387,16 +4706,25 @@ class Overlay(tk.Tk):
             )
             self.after(0, self._recipe_repaint)
             return
-        station = self._recipe_station_var.get().strip() or None
+        stations = []
         try:
-            auto_str = self._recipe_auto_time_var.get().strip()
-            auto_s = float(auto_str) if auto_str else None
-            manual_str = self._recipe_manual_time_var.get().strip()
-            manual_s = float(manual_str) if manual_str else None
+            for row in self._station_rows:
+                st_name = row["station_var"].get().strip()
+                if not st_name:
+                    continue
+                auto_str = row["auto_var"].get().strip()
+                auto_s = float(auto_str) if auto_str else None
+                manual_str = row["manual_var"].get().strip()
+                manual_s = float(manual_str) if manual_str else None
+                stations.append((st_name, auto_s, manual_s))
         except ValueError:
             messagebox.showwarning(
                 "Invalid time", "Craft time must be a number of seconds."
             )
+            self.after(0, self._recipe_repaint)
+            return
+        if not stations:
+            messagebox.showwarning("Missing info", "Add at least one station.")
             self.after(0, self._recipe_repaint)
             return
         rid = save_recipe(
@@ -4404,9 +4732,7 @@ class Overlay(tk.Tk):
             name,
             outputs,
             ingredients,
-            station=station,
-            auto_craft_seconds=auto_s,
-            manual_craft_seconds=manual_s,
+            stations,
         )
         self._recipe_selected_id = rid
         self._viewing_recipe_id = rid
@@ -4444,12 +4770,9 @@ class Overlay(tk.Tk):
         self._viewing_recipe_id = None
         if hasattr(self, "_recipe_name_var"):
             self._recipe_name_var.set("")
-        if hasattr(self, "_recipe_station_var"):
-            self._recipe_station_var.set("")
-        if hasattr(self, "_recipe_auto_time_var"):
-            self._recipe_auto_time_var.set("")
-        if hasattr(self, "_recipe_manual_time_var"):
-            self._recipe_manual_time_var.set("")
+        if hasattr(self, "_station_rows"):
+            self._clear_station_rows()
+            self._add_station_row()
         if hasattr(self, "_out_rows"):
             self._clear_output_rows()
             self._add_output_row()

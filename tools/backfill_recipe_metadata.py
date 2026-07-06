@@ -30,6 +30,19 @@ import overlay  # noqa: E402
 
 GAME_DATA_DIR = REPO_ROOT / "game_data_extract"
 
+# Local-machine-only path to the game's raw data.cdb, needed only for
+# multi-station enrichment: the per-building time-modifier attributes
+# (ProduceTimeFactor, UseManualCraftingTime) aren't part of the
+# game_data_extract/ snapshot, since only one category (Workshop_Smelter)
+# currently needs them. Acceptable here since this is a one-off dev-machine
+# maintenance script, not part of the shipped app.
+DATA_CDB_PATH = Path(r"D:\Documents\Spacecraft\shipbuilder\pak_out\data.cdb")
+
+# $Const.ShipOnBoardSmelterTimeFactor, verified via hlbc decompile of
+# hlboot.dat's `constant` sheet - the ship's on-board smelter skill runs at
+# getManualTime(craft) * this factor, with no auto/passive-queue equivalent.
+SHIP_ONBOARD_SMELTER_FACTOR = 3.0
+
 
 def _norm(s):
     return re.sub(r"\s+", " ", s or "").strip().lower()
@@ -185,6 +198,118 @@ def enrich(items, recipes, item_tags):
             )
 
 
+def load_buildings_by_tag():
+    """Every `item` sheet entry that provides a craft station (props.tag
+    set), grouped by tag, with its time-modifier attributes. Usually one
+    building per tag; Workshop_Smelter currently has two (Smelter,
+    Micro-Furnace)."""
+    if not DATA_CDB_PATH.exists():
+        raise FileNotFoundError(
+            f"Cannot find {DATA_CDB_PATH} - multi-station enrichment needs direct "
+            "access to the game's raw data.cdb, since the per-building time-modifier "
+            "attributes (ProduceTimeFactor, UseManualCraftingTime) aren't part of "
+            "game_data_extract/. Skipping multi-station enrichment."
+        )
+    data = json.loads(DATA_CDB_PATH.read_text(encoding="utf-8"))
+    sheets = {s["name"]: s for s in data["sheets"]}
+    buildings_by_tag = defaultdict(list)
+    for line in sheets["item"]["lines"]:
+        tag = line.get("props", {}).get("tag")
+        if not tag:
+            continue
+        attrs = {a["attr"]: a["value"] for a in line.get("attributes", [])}
+        buildings_by_tag[tag].append(
+            {
+                "id": line["id"],
+                "name": line.get("name") or line["id"],
+                "produce_time_factor": attrs.get("ProduceTimeFactor", 1),
+                "use_manual_crafting_time": bool(
+                    attrs.get("UseManualCraftingTime", 0)
+                ),
+            }
+        )
+    return buildings_by_tag
+
+
+def enrich_stations(recipes, item_tags):
+    """Populate recipe_stations with every usable station for already-matched
+    recipes (game_craft_id set), for categories where a recipe can be
+    crafted more than one way - mirrors ent.b.Factory.getProduceTime
+    (src/ent/b/Factory.hx:177-181) for each building's auto/passive-queue
+    value, plus the plain manual-click value (unaffected by per-building
+    modifiers), plus the ship's on-board smelter skill for Workshop_Smelter
+    specifically. Categories with exactly one plain building are left as
+    already backfilled by `enrich()` - re-running is safe."""
+    try:
+        buildings_by_tag = load_buildings_by_tag()
+    except FileNotFoundError as e:
+        print(e)
+        return
+
+    crafts_by_id = {c["id"]: c for c in recipes}
+
+    conn = sqlite3.connect(overlay.DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "SELECT id, game_craft_id FROM recipes"
+        " WHERE game_craft_id IS NOT NULL AND game_craft_id != ''"
+    )
+    matched = c.fetchall()
+
+    updated = 0
+    for rid, craft_id in matched:
+        craft = crafts_by_id.get(craft_id)
+        if craft is None:
+            continue
+        tag = craft.get("where")
+        buildings = buildings_by_tag.get(tag, [])
+        has_modifiers = any(
+            b["produce_time_factor"] != 1 or b["use_manual_crafting_time"]
+            for b in buildings
+        )
+        is_smelter = tag == "Workshop_Smelter"
+        if len(buildings) <= 1 and not has_modifiers and not is_smelter:
+            continue  # single plain station - already correctly backfilled
+
+        base_auto_s, manual_s = resolve_craft_time(craft, item_tags)
+        category_label = item_tags.get(tag, {}).get("label") or tag
+        stations = []
+        for b in buildings:
+            produce_time = (
+                manual_s if b["use_manual_crafting_time"] else base_auto_s
+            ) * b["produce_time_factor"]
+            station_label = b["name"] if len(buildings) > 1 else category_label
+            stations.append((station_label, float(produce_time), manual_s))
+        if is_smelter:
+            stations.append(
+                ("Ship (on-board)", None, manual_s * SHIP_ONBOARD_SMELTER_FACTOR)
+            )
+        if not stations:
+            continue
+
+        c.execute("DELETE FROM recipe_stations WHERE recipe_id=?", (rid,))
+        for st_name, auto_s, m_s in stations:
+            c.execute(
+                "INSERT INTO recipe_stations"
+                " (recipe_id, station, auto_craft_seconds, manual_craft_seconds)"
+                " VALUES (?, ?, ?, ?)",
+                (rid, st_name, auto_s, m_s),
+            )
+        primary = stations[0]
+        c.execute(
+            "UPDATE recipes SET station=?, auto_craft_seconds=?, manual_craft_seconds=?"
+            " WHERE id=?",
+            (primary[0], primary[1], primary[2], rid),
+        )
+        updated += 1
+
+    conn.commit()
+    conn.close()
+    print(
+        f"Multi-station enrichment: updated {updated} of {len(matched)} matched recipes."
+    )
+
+
 def get_matched_craft_ids():
     conn = sqlite3.connect(overlay.DB_PATH)
     c = conn.cursor()
@@ -264,6 +389,7 @@ def main():
         report_missing(items, recipes, item_tags)
     else:
         enrich(items, recipes, item_tags)
+        enrich_stations(recipes, item_tags)
 
 
 if __name__ == "__main__":
