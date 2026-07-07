@@ -1788,23 +1788,37 @@ def _byproducts_part(byproducts):
     return "  (" + ", ".join(parts) + ")"
 
 
-def _fit_label(base, optional_parts, available_px, font):
-    """base is always shown; optional_parts (priority order, most important
-    first) are appended while they still fit within available_px, and
-    dropped from the end (least important first) once they don't. base
-    itself is ellipsis-truncated as a last resort if it alone overflows."""
-    text = base
-    for part in optional_parts:
-        candidate = text + part
-        if font.measure(candidate) <= available_px:
-            text = candidate
-        else:
-            break
-    if font.measure(text) > available_px:
+def _wrap_label(base, optional_parts, available_px, font):
+    """base is always shown first; optional_parts (priority order, most
+    important first) are appended to line 1 while they still fit within
+    available_px. Anything left over is wrapped onto a second line instead
+    of being silently dropped, so station/time/byproduct info stays visible
+    rather than disappearing on a narrow window. Only ellipsis-truncates (as
+    a last resort) if a single line still can't fit on its own - the tree
+    this is used in has a taller-than-normal row height (see "Wrapped.
+    Treeview" style) to fit the second line."""
+
+    def _truncate(text):
+        if font.measure(text) <= available_px:
+            return text
         while text and font.measure(text + "…") > available_px:
             text = text[:-1]
-        text += "…"
-    return text
+        return text + "…"
+
+    line1 = base
+    remaining = list(optional_parts)
+    while remaining:
+        candidate = line1 + remaining[0]
+        if font.measure(candidate) <= available_px:
+            line1 = candidate
+            remaining.pop(0)
+        else:
+            break
+    line1 = _truncate(line1)
+    if not remaining:
+        return line1
+    line2 = "    " + "  ".join(p.strip() for p in remaining)
+    return line1 + "\n" + _truncate(line2)
 
 
 class _StepPopup:
@@ -2202,18 +2216,24 @@ class CraftQueuePanel:
 
         bd_frame.grid_rowconfigure(0, weight=1)
         bd_frame.grid_columnconfigure(0, weight=1)
-        self._bd_tree = ttk.Treeview(bd_frame, show="tree")
+        self._bd_font = tkfont.nametofont("TkDefaultFont")
+        # A named style (inherits everything else from the base "Treeview"
+        # style by ttk's dotted-name convention) with a taller row height -
+        # overflow text wraps onto a second line (see _wrap_label) rather
+        # than being truncated/dropped, so this tree needs room for it.
+        linespace = self._bd_font.metrics("linespace")
+        ttk.Style(self._win).configure("Wrapped.Treeview", rowheight=linespace * 2 + 8)
+        self._bd_tree = ttk.Treeview(bd_frame, show="tree", style="Wrapped.Treeview")
         self._bd_tree.grid(row=0, column=0, sticky="nsew")
-        bd_vsb = ttk.Scrollbar(
+        self._bd_vsb = ttk.Scrollbar(
             bd_frame,
             orient="vertical",
             style="Thin.Vertical.TScrollbar",
             command=self._bd_tree.yview,
         )
-        bd_vsb.grid(row=0, column=1, sticky="ns")
-        self._bd_tree.configure(yscrollcommand=_autohide_yscroll(bd_vsb))
+        self._bd_vsb.grid(row=0, column=1, sticky="ns")
+        self._bd_tree.configure(yscrollcommand=_autohide_yscroll(self._bd_vsb))
         self._bd_tree.bind("<ButtonRelease-1>", self._on_bd_click)
-        self._bd_font = tkfont.nametofont("TkDefaultFont")
         self._bd_resize_job = None
         self._bd_tree.bind("<Configure>", self._on_bd_tree_configure, add="+")
         self._bd_root_open = True
@@ -2520,6 +2540,14 @@ class CraftQueuePanel:
         width = self._bd_tree.winfo_width()
         if width <= 1:
             width = 260
+        # The scrollbar auto-hides/shows (see _autohide_yscroll) based on
+        # whether content overflows - but that decision, and the resulting
+        # grid reflow of the tree's own width, only resolves after this
+        # same insert pass finishes populating the tree. Reserving its width
+        # unconditionally (whether mapped right now or not) avoids sizing
+        # labels against a wider "no scrollbar yet" measurement that then
+        # gets clipped once the scrollbar actually appears.
+        width -= self._bd_vsb.winfo_reqwidth()
         return max(60, width - 20 - 16 * depth)
 
     def _refresh_breakdown(self):
@@ -2599,7 +2627,7 @@ class CraftQueuePanel:
         root_has_options = root_modes_available > 1
         if root_has_options:
             base_label += "  ▾"
-        root_label = _fit_label(
+        root_label = _wrap_label(
             base_label, optional_parts, self._available_label_px(0), self._bd_font
         )
         root_path_key = _node_path_key(node, [])
@@ -2758,7 +2786,7 @@ class CraftQueuePanel:
                 byproducts_part = _byproducts_part(info.get("byproducts"))
                 if byproducts_part:
                     optional_parts.append(byproducts_part)
-                label = _fit_label(
+                label = _wrap_label(
                     base_label,
                     optional_parts,
                     self._available_label_px(2),
@@ -2864,7 +2892,7 @@ class CraftQueuePanel:
         byproducts_part = _byproducts_part(node.get("byproducts"))
         if byproducts_part:
             optional_parts.append(byproducts_part)
-        label = _fit_label(
+        label = _wrap_label(
             base_label,
             optional_parts,
             self._available_label_px(depth + 1),
