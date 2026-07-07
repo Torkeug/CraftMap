@@ -229,9 +229,15 @@ def init_db():
     c.execute("""
         CREATE TABLE IF NOT EXISTS recipe_station_prefs (
             ingredient_name TEXT PRIMARY KEY,
-            station TEXT NOT NULL
+            station TEXT NOT NULL,
+            mode TEXT NOT NULL DEFAULT 'auto'
         )
     """)
+    c.execute("PRAGMA table_info(recipe_station_prefs)")
+    if "mode" not in [row[1] for row in c.fetchall()]:
+        c.execute(
+            "ALTER TABLE recipe_station_prefs ADD COLUMN mode TEXT NOT NULL DEFAULT 'auto'"
+        )
     c.execute("""
         CREATE TABLE IF NOT EXISTS craft_queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -246,6 +252,10 @@ def init_db():
         c.execute("ALTER TABLE craft_queue ADD COLUMN station TEXT")
     if "combine" not in queue_cols:
         c.execute("ALTER TABLE craft_queue ADD COLUMN combine INTEGER NOT NULL DEFAULT 1")
+    if "station_mode" not in queue_cols:
+        c.execute(
+            "ALTER TABLE craft_queue ADD COLUMN station_mode TEXT NOT NULL DEFAULT 'auto'"
+        )
     c.execute("""
         CREATE TABLE IF NOT EXISTS queue_checked (
             queue_id INTEGER NOT NULL,
@@ -643,18 +653,21 @@ def get_checked_paths(recipe_id):
     return paths
 
 
-def toggle_checked(recipe_id, path_key, currently_checked):
+def set_checked_many(recipe_id, path_keys, checked):
+    """Set (not toggle) every path_key in path_keys to the same checked
+    state in one go - used to cascade a step's checkbox onto its whole
+    subtree instead of toggling each descendant individually."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    if not currently_checked:
-        c.execute(
+    if checked:
+        c.executemany(
             "INSERT OR REPLACE INTO recipe_checked (recipe_id, path_key) VALUES (?, ?)",
-            (recipe_id, path_key),
+            [(recipe_id, pk) for pk in path_keys],
         )
     else:
-        c.execute(
+        c.executemany(
             "DELETE FROM recipe_checked WHERE recipe_id=? AND path_key=?",
-            (recipe_id, path_key),
+            [(recipe_id, pk) for pk in path_keys],
         )
     conn.commit()
     conn.close()
@@ -692,23 +705,25 @@ def clear_alt_pref(ingredient_name):
 
 
 def get_station_prefs():
-    """Return {ingredient_name: station} of user-chosen preferred crafting
-    stations, same idea as get_alt_prefs but for which station (rather than
-    which alternate recipe) to use for an ingredient."""
+    """Return {ingredient_name: (station, mode)} of user-chosen preferred
+    crafting stations and craft mode ('auto'/'manual'), same idea as
+    get_alt_prefs but for which station/mode (rather than which alternate
+    recipe) to use for an ingredient."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT ingredient_name, station FROM recipe_station_prefs")
-    prefs = dict(c.fetchall())
+    c.execute("SELECT ingredient_name, station, mode FROM recipe_station_prefs")
+    prefs = {name: (station, mode) for name, station, mode in c.fetchall()}
     conn.close()
     return prefs
 
 
-def set_station_pref(ingredient_name, station):
+def set_station_pref(ingredient_name, station, mode="auto"):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "INSERT OR REPLACE INTO recipe_station_prefs (ingredient_name, station) VALUES (?, ?)",
-        (ingredient_name, station),
+        "INSERT OR REPLACE INTO recipe_station_prefs (ingredient_name, station, mode)"
+        " VALUES (?, ?, ?)",
+        (ingredient_name, station, mode),
     )
     conn.commit()
     conn.close()
@@ -745,15 +760,16 @@ def get_deposits_for_ingredient(resource_name):
 
 def get_craft_queue():
     """Return [(queue_id, recipe_id, recipe_name, output_name, quantity,
-    station, combine), ...]. output_name is the recipe's primary (first)
-    output. station is the station chosen for this job (None = the
-    recipe's primary/default station). combine is whether this job's
+    station, combine, station_mode), ...]. output_name is the recipe's
+    primary (first) output. station is the station chosen for this job
+    (None = the recipe's primary/default station); station_mode is which of
+    that station's auto/manual times to use. combine is whether this job's
     numbers count toward the Totals view's combined "All Jobs" aggregate."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
         "SELECT cq.id, cq.recipe_id, r.name, ro.item_name, cq.quantity,"
-        " cq.station, cq.combine"
+        " cq.station, cq.combine, cq.station_mode"
         " FROM craft_queue cq"
         " JOIN recipes r ON r.id = cq.recipe_id"
         " JOIN recipe_outputs ro ON ro.recipe_id = r.id"
@@ -804,10 +820,13 @@ def update_queue_qty(queue_id, quantity):
     conn.close()
 
 
-def update_queue_station(queue_id, station):
+def update_queue_station(queue_id, station, mode="auto"):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("UPDATE craft_queue SET station=? WHERE id=?", (station, queue_id))
+    c.execute(
+        "UPDATE craft_queue SET station=?, station_mode=? WHERE id=?",
+        (station, mode, queue_id),
+    )
     conn.commit()
     conn.close()
 
@@ -840,27 +859,30 @@ def get_queue_checked(queue_id):
     return paths
 
 
-def toggle_queue_checked(queue_id, path_key, currently_checked):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    if not currently_checked:
-        c.execute(
-            "INSERT OR REPLACE INTO queue_checked (queue_id, path_key) VALUES (?, ?)",
-            (queue_id, path_key),
-        )
-    else:
-        c.execute(
-            "DELETE FROM queue_checked WHERE queue_id=? AND path_key=?",
-            (queue_id, path_key),
-        )
-    conn.commit()
-    conn.close()
-
-
 def clear_queue_checked(queue_id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM queue_checked WHERE queue_id=?", (queue_id,))
+    conn.commit()
+    conn.close()
+
+
+def set_queue_checked_many(queue_id, path_keys, checked):
+    """Set (not toggle) every path_key in path_keys to the same checked
+    state in one go - used to cascade a step's checkbox onto its whole
+    subtree instead of toggling each descendant individually."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    if checked:
+        c.executemany(
+            "INSERT OR REPLACE INTO queue_checked (queue_id, path_key) VALUES (?, ?)",
+            [(queue_id, pk) for pk in path_keys],
+        )
+    else:
+        c.executemany(
+            "DELETE FROM queue_checked WHERE queue_id=? AND path_key=?",
+            [(queue_id, pk) for pk in path_keys],
+        )
     conn.commit()
     conn.close()
 
@@ -988,6 +1010,7 @@ def resolve_recipe_tree(
     station = None
     auto_craft_seconds = None
     manual_craft_seconds = None
+    craft_mode = "auto"
     stations: list = []
     if is_recipe:
         recipe_outputs = _outputs_by_recipe.get(recipe_id, [(name, 1.0)])
@@ -999,8 +1022,10 @@ def resolve_recipe_tree(
         station = meta.get("station")
         auto_craft_seconds = meta.get("auto_craft_seconds")
         manual_craft_seconds = meta.get("manual_craft_seconds")
+        craft_mode = "auto" if auto_craft_seconds else "manual"
         stations = (_stations_by_recipe or {}).get(recipe_id, [])
-        pref_station = (_station_prefs or {}).get(name)
+        pref = (_station_prefs or {}).get(name)
+        pref_station, pref_mode = pref if pref else (None, None)
         if pref_station:
             for st_name, st_auto, st_manual in stations:
                 if st_name == pref_station:
@@ -1009,6 +1034,7 @@ def resolve_recipe_tree(
                         st_auto,
                         st_manual,
                     )
+                    craft_mode = pref_mode or ("auto" if st_auto else "manual")
                     break
         crafts = math.ceil(qty_needed / output_qty)
         byproducts = [
@@ -1086,8 +1112,82 @@ def resolve_recipe_tree(
         "station": station,
         "auto_craft_seconds": auto_craft_seconds,
         "manual_craft_seconds": manual_craft_seconds,
+        "craft_mode": craft_mode,
         "stations": stations,
     }
+
+
+def _node_crafts(node):
+    """Number of separate craft cycles needed to cover node['qty'], given its
+    own output_qty per craft. 0 for raw (non-recipe) nodes."""
+    if not node.get("is_recipe"):
+        return 0
+    return math.ceil(node["qty"] / node.get("output_qty", 1.0))
+
+
+def _node_active_seconds(node):
+    """(seconds, mode) for this node's currently active craft mode - the
+    per-craft time, not yet scaled by how many crafts are needed."""
+    mode = node.get("craft_mode", "auto")
+    seconds = (
+        node.get("auto_craft_seconds")
+        if mode == "auto"
+        else node.get("manual_craft_seconds")
+    )
+    return seconds, mode
+
+
+def _node_own_time(node):
+    """Total seconds this node's own craft step takes across every craft it
+    needs (per-craft time x crafts needed) - 0 for raw nodes or ones with no
+    timing data. This is the number that was previously shown un-scaled,
+    which made e.g. '4x Titanium Part Casing' look like it only took one
+    casing's craft time instead of four."""
+    seconds, _mode = _node_active_seconds(node)
+    if not seconds:
+        return 0.0
+    return seconds * _node_crafts(node)
+
+
+def _node_path_key(node, path_parts):
+    return "|".join(path_parts + [node["name"]])
+
+
+def _subtree_remaining_seconds(node, path_parts, checked):
+    """Sum of _node_own_time across this node and every descendant. A
+    checked path_key means its whole subtree is considered done (its own
+    time, and everything under it, drops out) rather than just itself."""
+    if _node_path_key(node, path_parts) in checked:
+        return 0.0
+    total = _node_own_time(node)
+    for child in node["children"]:
+        total += _subtree_remaining_seconds(child, path_parts + [node["name"]], checked)
+    return total
+
+
+def _collect_path_keys(node, path_parts):
+    """Every path_key in this node's own subtree, including itself - matches
+    the scheme used when inserting breakdown-tree rows, so checking a step
+    can cascade the same checked state onto everything it depends on."""
+    keys = [_node_path_key(node, path_parts)]
+    for child in node["children"]:
+        keys.extend(_collect_path_keys(child, path_parts + [node["name"]]))
+    return keys
+
+
+def _node_has_step_options(node):
+    """Whether this node has an alternate recipe or more than one usable
+    (station, mode) combination - i.e. whether its _StepPopup would show
+    anything at all."""
+    if not node.get("is_recipe"):
+        return False
+    if node.get("alts"):
+        return True
+    modes_available = sum(
+        (1 if st_auto else 0) + (1 if st_manual else 0)
+        for _name, st_auto, st_manual in node.get("stations", [])
+    )
+    return modes_available > 1
 
 
 # ---------- UI ----------
@@ -1316,7 +1416,7 @@ class _LiveDropdown:
             box.bind("<Triple-Button-1>", self._on_box_triple)
         box.bind("<KeyRelease>", self._on_key, add=True)
         box.bind("<FocusOut>", lambda _e: box.after(150, self._maybe_hide), add=True)
-        box.bind("<Escape>", lambda _e: self.hide(), add=True)
+        box.bind("<Escape>", self._on_box_escape, add=True)
         box.bind("<Down>", self._on_down, add=True)
         box.bind("<Return>", self._on_return, add=True)
         box.bind("<Configure>", self._reposition_arrow, add=True)
@@ -1483,7 +1583,7 @@ class _LiveDropdown:
         lb.configure(yscrollcommand=_yscroll)
         self._lb.bind("<ButtonRelease-1>", self._on_lb_click)
         self._lb.bind("<Return>", lambda _e: self._lb_pick())
-        self._lb.bind("<Escape>", lambda _e: self.hide())
+        self._lb.bind("<Escape>", self._on_lb_escape)
         self._lb.bind("<KeyPress>", self._lb_keypress)
 
     def _reposition(self):
@@ -1568,6 +1668,22 @@ class _LiveDropdown:
         if f is not self._box and f is not self._lb:
             self.hide()
 
+    def _on_box_escape(self, _event):
+        # Only swallow Escape (stopping it from also hitting the window's
+        # own Escape-to-hide binding) when the popup is actually open - an
+        # idle combobox with nothing showing shouldn't block that.
+        was_open = (
+            self._win is not None
+            and self._win.winfo_exists()
+            and self._win.winfo_ismapped()
+        )
+        self.hide()
+        return "break" if was_open else None
+
+    def _on_lb_escape(self, _event):
+        self.hide()
+        return "break"
+
     def hide(self):
         if self._win and self._win.winfo_exists():
             self._win.withdraw()
@@ -1613,13 +1729,28 @@ def _format_duration(seconds):
     return " ".join(parts)
 
 
-def _format_craft_meta_suffix(station, auto_s):
-    """Terse ' @ Station  12s auto' suffix for a breakdown-tree label."""
+def _remaining_part(seconds):
+    """Droppable label part showing subtree time remaining - the actionable
+    number, so it's dropped later than the raw per-craft rate under space
+    pressure."""
+    if not seconds or seconds <= 0:
+        return None
+    return f"  {_format_duration(seconds)} left"
+
+
+def _format_craft_meta_suffix(station, per_craft_seconds, mode="auto", remaining_seconds=None):
+    """Terse ' @ Station · Auto  12s left  12s/craft' suffix for a
+    breakdown-tree label. per_craft_seconds is the time for ONE craft cycle,
+    not scaled by how many crafts are needed - see _node_own_time for the
+    scaled total, which is what remaining_seconds should carry."""
     parts = []
     if station:
-        parts.append(f"@ {station}")
-    if auto_s:
-        parts.append(f"{_format_duration(auto_s)} auto")
+        parts.append(f"@ {station} · {mode.capitalize()}")
+    rem = _remaining_part(remaining_seconds)
+    if rem:
+        parts.append(rem.strip())
+    if per_craft_seconds:
+        parts.append(f"{_format_duration(per_craft_seconds)}/craft")
     if not parts:
         return ""
     return "  " + "  ".join(parts)
@@ -1633,13 +1764,20 @@ def _format_byproducts_suffix(byproducts):
     return "  (" + ", ".join(parts) + ")"
 
 
-def _craft_meta_parts(station, auto_s):
-    """Station/time as separately-droppable label parts, most important first."""
+def _craft_meta_parts(station, per_craft_seconds, mode="auto", remaining_seconds=None):
+    """Station/remaining/rate as separately-droppable label parts, most
+    important first. per_craft_seconds is the time for ONE craft cycle;
+    remaining_seconds is the already-scaled subtree total (see
+    _subtree_remaining_seconds) and is kept longer than the raw rate since
+    it's the more actionable number."""
     parts = []
     if station:
-        parts.append(f"  @ {station}")
-    if auto_s:
-        parts.append(f"  {_format_duration(auto_s)} auto")
+        parts.append(f"  @ {station} · {mode.capitalize()}")
+    rem = _remaining_part(remaining_seconds)
+    if rem:
+        parts.append(rem)
+    if per_craft_seconds:
+        parts.append(f"  {_format_duration(per_craft_seconds)}/craft")
     return parts
 
 
@@ -1669,6 +1807,160 @@ def _fit_label(base, optional_parts, available_px, font):
     return text
 
 
+class _StepPopup:
+    """Click-to-open popup listing every alternate recipe and station/mode
+    choice for one recipe-tree step, in a single control - replaces the old
+    always-expanded alt_header/station_header child rows, which only ever
+    surfaced station choices for the most basic crafting tier and forced
+    alt-recipe and station pickers to be two unrelated UI mechanisms."""
+
+    _active: "_StepPopup | None" = None
+
+    @classmethod
+    def show(cls, anchor_widget, x, y, node, on_alt, on_station):
+        cls.hide_any()
+        cls._active = cls(anchor_widget, x, y, node, on_alt, on_station)
+
+    @classmethod
+    def hide_any(cls):
+        if cls._active is not None:
+            cls._active._destroy()  # pylint: disable=protected-access
+            cls._active = None
+
+    def __init__(self, anchor_widget, x, y, node, on_alt, on_station):
+        self._win = win = tk.Toplevel(anchor_widget)
+        win.withdraw()
+        win.overrideredirect(True)
+        win.attributes("-topmost", True)
+        frm = tk.Frame(
+            win, bg="#1a2029", highlightbackground="#3a4350", highlightthickness=1
+        )
+        frm.pack(fill="both", expand=True)
+
+        def add_label(text):
+            tk.Label(
+                frm,
+                text=text,
+                bg="#1a2029",
+                fg="#5b6470",
+                font=("Segoe UI", 7),
+                anchor="w",
+            ).pack(fill="x", padx=8, pady=(6, 1))
+
+        def add_option(label, selected, command):
+            row = tk.Label(
+                frm,
+                text=("●  " if selected else "    ") + label,
+                bg="#242c3d" if selected else "#1a2029",
+                fg="#dce8ff" if selected else "#c9d1d9",
+                font=("Segoe UI", 8),
+                anchor="w",
+                padx=8,
+                pady=3,
+                cursor="hand2",
+            )
+            row.pack(fill="x")
+
+            def _enter(_e, r=row):
+                r.configure(bg="#2a3244")
+
+            def _leave(_e, r=row, sel=selected):
+                r.configure(bg="#242c3d" if sel else "#1a2029")
+
+            def _pick(_e, cmd=command):
+                cmd()
+                self._destroy()
+
+            row.bind("<Enter>", _enter)
+            row.bind("<Leave>", _leave)
+            row.bind("<ButtonRelease-1>", _pick)
+
+        alts = node.get("alts", [])
+        if alts:
+            add_label("ALTERNATE RECIPE")
+            for alt in alts:
+                add_option(
+                    alt["recipe_name"],
+                    False,
+                    lambda rid=alt["recipe_id"], rname=alt["recipe_name"]: on_alt(
+                        rid, rname
+                    ),
+                )
+
+        stations = node.get("stations", [])
+        modes_available = sum(
+            (1 if st_auto else 0) + (1 if st_manual else 0)
+            for _n, st_auto, st_manual in stations
+        )
+        if modes_available > 1:
+            if alts:
+                tk.Frame(frm, bg="#30363d", height=1).pack(fill="x", padx=4, pady=3)
+            add_label("STATION & MODE")
+            cur_station = node.get("station")
+            cur_mode = node.get("craft_mode", "auto")
+            for st_name, st_auto, st_manual in stations:
+                if st_auto:
+                    add_option(
+                        f"{st_name} · Auto  ({_format_duration(st_auto)}/craft)",
+                        st_name == cur_station and cur_mode == "auto",
+                        lambda s=st_name: on_station(s, "auto"),
+                    )
+                if st_manual:
+                    add_option(
+                        f"{st_name} · Manual  ({_format_duration(st_manual)}/craft)",
+                        st_name == cur_station and cur_mode == "manual",
+                        lambda s=st_name: on_station(s, "manual"),
+                    )
+
+        win.update_idletasks()
+        w = max(win.winfo_reqwidth(), 180)
+        h = win.winfo_reqheight()
+        sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
+        x = min(x, sw - w)
+        if y + h > sh:
+            y = max(0, y - h)
+        win.geometry(f"{w}x{h}+{x}+{y}")
+        win.deiconify()
+        win.lift()
+        # Deliberately never grabs real OS focus (no focus_force()) - this
+        # app is click-through whenever it doesn't have OS foreground focus
+        # (see Overlay._sync_all_input_passthrough), so a popup that stole
+        # focus made the window that spawned it go click-through the moment
+        # it opened. Same reason _LiveDropdown's combobox popup never grabs
+        # focus either. Dismissal is instead a plain click-away catcher on
+        # the owning window - any click that reaches it is by construction
+        # outside this separate Toplevel.
+        self._anchor = anchor_widget
+        self._root = anchor_widget.winfo_toplevel()
+        self._click_bind_id = self._root.bind(
+            "<ButtonPress-1>", self._on_outside_click, add="+"
+        )
+        def _on_escape(_e):
+            self._destroy()
+            return "break"
+
+        self._escape_bind_id = anchor_widget.bind("<Escape>", _on_escape, add="+")
+
+    def _on_outside_click(self, _event):
+        self._destroy()
+
+    def _destroy(self):
+        try:
+            self._root.unbind("<ButtonPress-1>", self._click_bind_id)
+        except tk.TclError:
+            pass
+        try:
+            self._anchor.unbind("<Escape>", self._escape_bind_id)
+        except tk.TclError:
+            pass
+        try:
+            self._win.destroy()
+        except tk.TclError:
+            pass
+        if _StepPopup._active is self:
+            _StepPopup._active = None
+
+
 class CraftQueuePanel:
     """
     Pinnable always-on-top floating window for the persistent crafting queue.
@@ -1686,7 +1978,8 @@ class CraftQueuePanel:
         self._overlay = overlay
         self._pinned = False
         self._mode = "queue"
-        self._selected_job = None  # (queue_id, recipe_id, output_name, qty)
+        # (queue_id, recipe_id, output_name, qty, station, station_mode)
+        self._selected_job = None
         self._job_frames: dict = {}
         self._bd_iid_info: dict = {}
         self._bd_toggled = False
@@ -1923,12 +2216,9 @@ class CraftQueuePanel:
         self._bd_font = tkfont.nametofont("TkDefaultFont")
         self._bd_resize_job = None
         self._bd_tree.bind("<Configure>", self._on_bd_tree_configure, add="+")
-        self._bd_tree.bind(
-            "<<TreeviewOpen>>", lambda _e: setattr(self, "_bd_toggled", True)
-        )
-        self._bd_tree.bind(
-            "<<TreeviewClose>>", lambda _e: setattr(self, "_bd_toggled", True)
-        )
+        self._bd_root_open = True
+        self._bd_tree.bind("<<TreeviewOpen>>", self._on_bd_toggled)
+        self._bd_tree.bind("<<TreeviewClose>>", self._on_bd_toggled)
 
     def _job_scroll(self, event):
         if self._job_inner.winfo_reqheight() > self._job_canvas.winfo_height():
@@ -2030,15 +2320,17 @@ class CraftQueuePanel:
                 fg="#6e7681",
                 font=("Segoe UI", 8),
             ).pack(anchor="w", padx=4, pady=4)
-        for queue_id, recipe_id, _, output_name, qty, station, combine in jobs:
+        for queue_id, recipe_id, _, output_name, qty, station, combine, station_mode in jobs:
             self._build_job_row(
-                queue_id, recipe_id, output_name, qty, station, combine
+                queue_id, recipe_id, output_name, qty, station, combine, station_mode
             )
         self._job_canvas.configure(
             scrollregion=self._job_canvas.bbox("all") or (0, 0, 0, 0)
         )
 
-    def _build_job_row(self, queue_id, recipe_id, output_name, qty, station, combine):
+    def _build_job_row(
+        self, queue_id, recipe_id, output_name, qty, station, combine, station_mode="auto"
+    ):
         is_sel = self._selected_job is not None and self._selected_job[0] == queue_id
         bg = "#1f6feb" if is_sel else "#161b22"
         row = tk.Frame(self._job_inner, bg=bg, cursor="hand2")
@@ -2117,19 +2409,29 @@ class CraftQueuePanel:
             )
             station_cb.bind("<MouseWheel>", self._job_scroll, add=True)
 
-        def _on_click(_ev, qid=queue_id, rid=recipe_id, oname=output_name, qv=qty_var, st=station):
-            self._select_job(qid, rid, oname, qv, st)
+        def _on_click(
+            _ev,
+            qid=queue_id,
+            rid=recipe_id,
+            oname=output_name,
+            qv=qty_var,
+            st=station,
+            stm=station_mode,
+        ):
+            self._select_job(qid, rid, oname, qv, st, stm)
 
         for w in (row, lbl):
             w.bind("<ButtonPress-1>", _on_click)
             w.bind("<MouseWheel>", self._job_scroll, add=True)
 
-    def _select_job(self, queue_id, recipe_id, output_name, qty_var, station=None):
+    def _select_job(
+        self, queue_id, recipe_id, output_name, qty_var, station=None, station_mode="auto"
+    ):
         try:
             qty = max(float(qty_var.get()), 0.001)
         except ValueError:
             qty = 1.0
-        self._selected_job = (queue_id, recipe_id, output_name, qty, station)
+        self._selected_job = (queue_id, recipe_id, output_name, qty, station, station_mode)
         self._refresh_job_list()
         if self._mode == "queue":
             self._refresh_breakdown()
@@ -2144,15 +2446,15 @@ class CraftQueuePanel:
         update_queue_qty(queue_id, qty)
         if self._selected_job and self._selected_job[0] == queue_id:
             old = self._selected_job
-            self._selected_job = (old[0], old[1], old[2], qty, old[4])
+            self._selected_job = (old[0], old[1], old[2], qty, old[4], old[5])
             self._refresh_breakdown()
 
-    def _update_station(self, queue_id, station):
+    def _update_station(self, queue_id, station, mode="auto"):
         station = station or None
-        update_queue_station(queue_id, station)
+        update_queue_station(queue_id, station, mode)
         if self._selected_job and self._selected_job[0] == queue_id:
             old = self._selected_job
-            self._selected_job = (old[0], old[1], old[2], old[3], station)
+            self._selected_job = (old[0], old[1], old[2], old[3], station, mode)
         if self._mode == "queue":
             self._refresh_breakdown()
 
@@ -2249,7 +2551,9 @@ class CraftQueuePanel:
                 tags=("section",),
             )
             return
-        queue_id, recipe_id, output_name, qty, job_station = self._selected_job
+        queue_id, recipe_id, output_name, qty, job_station, job_station_mode = (
+            self._selected_job
+        )
         alt_prefs = get_alt_prefs()
         station_prefs = get_station_prefs()
         node = resolve_recipe_tree(
@@ -2264,23 +2568,64 @@ class CraftQueuePanel:
             if times:
                 node["station"] = job_station
                 node["auto_craft_seconds"], node["manual_craft_seconds"] = times
+                if job_station_mode == "manual" and times[1]:
+                    node["craft_mode"] = "manual"
+                elif job_station_mode == "auto" and times[0]:
+                    node["craft_mode"] = "auto"
+                else:
+                    node["craft_mode"] = "auto" if times[0] else "manual"
         checked = get_queue_checked(queue_id)
         oqty = node.get("output_qty", 1.0)
         crafts = math.ceil(qty / oqty)
         base_label = f"◆  {output_name}  ×{qty:g}"
         if crafts > 1 or oqty > 1:
             base_label += f"  ({crafts:g} crafts)"
+        active_seconds, active_mode = _node_active_seconds(node)
+        remaining = _subtree_remaining_seconds(node, [], checked)
         optional_parts = _craft_meta_parts(
-            node.get("station"), node.get("auto_craft_seconds")
+            node.get("station"), active_seconds, active_mode, remaining
         )
         byproducts_part = _byproducts_part(node.get("byproducts"))
         if byproducts_part:
             optional_parts.append(byproducts_part)
+        # Alts are deliberately excluded from the root's own options: a
+        # queued job is tied to the specific recipe_id it was queued with,
+        # so switching to a wholly different recipe here doesn't apply the
+        # way it does for a sub-ingredient - only station/mode does.
+        root_modes_available = sum(
+            (1 if st_auto else 0) + (1 if st_manual else 0)
+            for _name, st_auto, st_manual in node.get("stations", [])
+        )
+        root_has_options = root_modes_available > 1
+        if root_has_options:
+            base_label += "  ▾"
         root_label = _fit_label(
             base_label, optional_parts, self._available_label_px(0), self._bd_font
         )
-        root_iid = tree.insert("", "end", text=root_label, open=True, tags=("root",))
-        self._bd_iid_info[root_iid] = {"type": "root"}
+        root_path_key = _node_path_key(node, [])
+        root_is_done = root_path_key in checked
+        root_img = (
+            self._overlay.img_checked if root_is_done else self._overlay.img_unchecked
+        )
+        root_iid = tree.insert(
+            "",
+            "end",
+            iid="bd_root",
+            text=root_label,
+            image=root_img,
+            open=self._bd_root_open,
+            tags=("root",),
+        )
+        self._bd_iid_info[root_iid] = {
+            "type": "ingredient",
+            "queue_id": queue_id,
+            "path_key": root_path_key,
+            "checked": root_is_done,
+            "node": node,
+            "path_parts": [],
+            "has_options": root_has_options,
+            "is_queue_root": True,
+        }
         for child in node["children"]:
             self._insert_node(tree, root_iid, child, queue_id, [], checked)
 
@@ -2295,7 +2640,7 @@ class CraftQueuePanel:
         all_crafted: dict = {}
         per_job = []
         combined_count = 0
-        for qid, recipe_id, rname, output_name, qty, station, combine in jobs:
+        for qid, recipe_id, rname, output_name, qty, station, combine, station_mode in jobs:
             node = resolve_recipe_tree(
                 output_name,
                 qty_needed=qty,
@@ -2308,6 +2653,12 @@ class CraftQueuePanel:
                 if times:
                     node["station"] = station
                     node["auto_craft_seconds"], node["manual_craft_seconds"] = times
+                    if station_mode == "manual" and times[1]:
+                        node["craft_mode"] = "manual"
+                    elif station_mode == "auto" and times[0]:
+                        node["craft_mode"] = "auto"
+                    else:
+                        node["craft_mode"] = "auto" if times[0] else "manual"
             job_raw = Overlay.collect_totals(node)
             job_crafted = Overlay.collect_basic_crafted(node)
             per_job.append((qid, rname, qty, job_crafted, job_raw))
@@ -2343,8 +2694,9 @@ class CraftQueuePanel:
         header = tree.insert(
             "",
             "end",
+            iid="bd_root",
             text=f"◆  All Jobs  ({combined_count})",
-            open=True,
+            open=self._bd_root_open,
             tags=("root",),
         )
         self._bd_iid_info[header] = {"type": "root"}
@@ -2391,11 +2743,17 @@ class CraftQueuePanel:
                     if is_done
                     else self._overlay.img_unchecked
                 )
+                has_options = _node_has_step_options(info)
                 base_label = f"{qty:g}×  {iname}"
                 if oq > 1:
                     base_label += f"  ({crafts:g} crafts)"
+                if has_options:
+                    base_label += "  ▾"
+                active_seconds, active_mode = _node_active_seconds(info)
+                own_time = (active_seconds * crafts) if active_seconds else 0.0
+                remaining = 0.0 if is_done else own_time
                 optional_parts = _craft_meta_parts(
-                    info.get("station"), info.get("auto_craft_seconds")
+                    info.get("station"), active_seconds, active_mode, remaining
                 )
                 byproducts_part = _byproducts_part(info.get("byproducts"))
                 if byproducts_part:
@@ -2419,6 +2777,10 @@ class CraftQueuePanel:
                     "queue_id": queue_id,
                     "path_key": path_key,
                     "checked": is_done,
+                    "node": info,
+                    "ingredient_name": iname,
+                    "has_options": has_options,
+                    "flat": True,
                 }
                 for raw_name in sorted(info.get("raw_names", [])):
                     raw_iid = tree.insert(
@@ -2442,22 +2804,6 @@ class CraftQueuePanel:
                             tags=("location",),
                         )
                         self._bd_iid_info[loc_iid] = {"type": "location"}
-                stations = info.get("stations", [])
-                if len(stations) > 1:
-                    current_station = info.get("station")
-                    for st_name, st_auto, _st_manual in stations:
-                        if st_name == current_station:
-                            continue
-                        st_label = f"⚒  {st_name}  (station — click to use)"
-                        st_label += _format_craft_meta_suffix(None, st_auto)
-                        st_iid = tree.insert(
-                            iid, "end", text=st_label, open=False, tags=("alt_header",)
-                        )
-                        self._bd_iid_info[st_iid] = {
-                            "type": "station_header",
-                            "ingredient_name": iname,
-                            "station": st_name,
-                        }
 
         self._insert_raw_totals(tree, parent_iid, queue_id, raw, checked)
 
@@ -2502,13 +2848,18 @@ class CraftQueuePanel:
         name = node["name"]
         qty = node["qty"]
         used_recipe = node.get("recipe_name", name)
-        path_key = "|".join(path_parts + [name])
+        path_key = _node_path_key(node, path_parts)
         is_done = path_key in checked
+        has_options = _node_has_step_options(node)
         base_label = f"{qty:g}×  {name}"
         if used_recipe and used_recipe != name:
             base_label += f"  [{used_recipe}]"
+        if has_options:
+            base_label += "  ▾"
+        active_seconds, active_mode = _node_active_seconds(node)
+        remaining = _subtree_remaining_seconds(node, path_parts, checked)
         optional_parts = _craft_meta_parts(
-            node.get("station"), node.get("auto_craft_seconds")
+            node.get("station"), active_seconds, active_mode, remaining
         )
         byproducts_part = _byproducts_part(node.get("byproducts"))
         if byproducts_part:
@@ -2533,6 +2884,9 @@ class CraftQueuePanel:
             "queue_id": queue_id,
             "path_key": path_key,
             "checked": is_done,
+            "node": node,
+            "path_parts": path_parts,
+            "has_options": has_options,
         }
         if node["children"]:
             for child in node["children"]:
@@ -2551,45 +2905,46 @@ class CraftQueuePanel:
                     iid, "end", text=f"    📍 {loc_text}", tags=("location",)
                 )
                 self._bd_iid_info[loc_iid] = {"type": "location"}
-        for alt in node.get("alts", []):
-            alt_iid = tree.insert(
-                iid,
-                "end",
-                text=f"⟳  {alt['recipe_name']}  (alt — click to use)",
-                open=False,
-                tags=("alt_header",),
-            )
-            self._bd_iid_info[alt_iid] = {
-                "type": "alt_header",
-                "ingredient_name": name,
-                "alt_recipe_id": alt["recipe_id"],
-            }
-            for alt_child in alt["children"]:
-                self._insert_node(
-                    tree,
-                    alt_iid,
-                    alt_child,
-                    queue_id,
-                    path_parts + [f"~{alt['recipe_id']}~{name}"],
-                    checked,
-                )
-        # Other stations this same recipe could be crafted at - collapsed
-        # header per station, click to prefer it for this ingredient.
-        if node["is_recipe"] and len(node.get("stations", [])) > 1:
-            current_station = node.get("station")
-            for st_name, st_auto, _st_manual in node["stations"]:
-                if st_name == current_station:
-                    continue
-                st_label = f"⚒  {st_name}  (station — click to use)"
-                st_label += _format_craft_meta_suffix(None, st_auto)
-                st_iid = tree.insert(
-                    iid, "end", text=st_label, open=False, tags=("alt_header",)
-                )
-                self._bd_iid_info[st_iid] = {
-                    "type": "station_header",
-                    "ingredient_name": name,
-                    "station": st_name,
-                }
+
+    def _open_step_popup(self, tree, iid, info):
+        node = info["node"]
+        bbox = tree.bbox(iid)
+        if not bbox:
+            return
+        x = tree.winfo_rootx() + bbox[0]
+        y = tree.winfo_rooty() + bbox[1] + bbox[3]
+        is_queue_root = info.get("is_queue_root", False)
+        # Totals mode's aggregated entries don't carry their own "name" (see
+        # collect_basic_crafted) - the loop that inserted them stashed it
+        # separately as ingredient_name instead.
+        ingredient_name = info.get("ingredient_name") or node.get("name")
+        # A queued job is tied to the specific recipe_id it was queued
+        # with, so there's no meaningful alt-recipe switch for its root -
+        # only offer the station/mode section for it.
+        popup_node = {**node, "alts": []} if is_queue_root else node
+
+        def on_alt(alt_recipe_id, _alt_recipe_name):
+            set_alt_pref(ingredient_name, alt_recipe_id)
+            self._refresh_breakdown()
+
+        def on_station(station, mode):
+            if is_queue_root:
+                self._update_station(info["queue_id"], station, mode)
+            else:
+                set_station_pref(ingredient_name, station, mode)
+            self._refresh_breakdown()
+
+        _StepPopup.show(tree, x, y, popup_node, on_alt, on_station)
+
+    def _on_bd_toggled(self, event):
+        # Every checkbox click fully rebuilds this tree (see _on_bd_click's
+        # cascade-check), which re-inserts the root row fresh each time -
+        # remember whatever open/closed state the user last set for it here
+        # so a rebuild doesn't silently re-expand it right back.
+        self._bd_toggled = True
+        tree = event.widget
+        if tree.exists("bd_root"):
+            self._bd_root_open = bool(tree.item("bd_root", "open"))
 
     def _on_bd_click(self, event):
         if self._bd_toggled:
@@ -2602,32 +2957,23 @@ class CraftQueuePanel:
         info = self._bd_iid_info.get(iid)
         if not info:
             return
-        if info["type"] == "alt_header":
-            set_alt_pref(info["ingredient_name"], info["alt_recipe_id"])
-            self._refresh_breakdown()
-            return
-        if info["type"] == "station_header":
-            set_station_pref(info["ingredient_name"], info["station"])
-            self._refresh_breakdown()
-            return
         if info["type"] == "ingredient":
-            if "image" not in tree.identify("element", event.x, event.y):
+            if "image" in tree.identify("element", event.x, event.y):
+                queue_id = info["queue_id"]
+                new_done = not info.get("checked", False)
+                node = info.get("node")
+                if info.get("flat") or node is None:
+                    # Totals mode already flattens the tree into one entry
+                    # per basic-crafted item name, so there's no subtree
+                    # structure left to cascade into - just this one entry.
+                    path_keys = [info["path_key"]]
+                else:
+                    path_keys = _collect_path_keys(node, info["path_parts"])
+                set_queue_checked_many(queue_id, path_keys, new_done)
+                self._refresh_breakdown()
                 return
-            queue_id = info["queue_id"]
-            path_key = info["path_key"]
-            is_done = info.get("checked", False)
-            toggle_queue_checked(queue_id, path_key, currently_checked=is_done)
-            new_done = not is_done
-            info["checked"] = new_done
-            tree.item(
-                iid,
-                image=(
-                    self._overlay.img_checked
-                    if new_done
-                    else self._overlay.img_unchecked
-                ),
-                tags=("done" if new_done else "ingredient",),
-            )
+            if info.get("has_options") and info.get("node") is not None:
+                self._open_step_popup(tree, iid, info)
 
     # --- show / hide / pin ---
 
@@ -4315,6 +4661,7 @@ class Overlay(tk.Tk):
         self._recipe_breakdown_tree.bind(
             "<Double-Button-1>", self._on_breakdown_double_click
         )
+        self._recipe_root_open = True
         self._recipe_breakdown_tree.bind("<<TreeviewOpen>>", self._on_bd_toggled)
         self._recipe_breakdown_tree.bind("<<TreeviewClose>>", self._on_bd_toggled)
 
@@ -4682,14 +5029,19 @@ class Overlay(tk.Tk):
         name = node["name"]
         qty = node["qty"]
         used_recipe = node.get("recipe_name", name)
-        path_key = "|".join(path_parts + [name])
+        path_key = _node_path_key(node, path_parts)
         is_done = path_key in checked
+        has_options = _node_has_step_options(node)
         qty_str = f"{qty:g}"
         label = f"{qty_str}×  {name}"
         if used_recipe and used_recipe != name:
             label += f"  [{used_recipe}]"
+        if has_options:
+            label += "  ▾"
+        active_seconds, active_mode = _node_active_seconds(node)
+        remaining = _subtree_remaining_seconds(node, path_parts, checked)
         label += _format_craft_meta_suffix(
-            node.get("station"), node.get("auto_craft_seconds")
+            node.get("station"), active_seconds, active_mode, remaining
         )
         label += _format_byproducts_suffix(node.get("byproducts"))
         tag = "done" if is_done else "ingredient"
@@ -4702,6 +5054,9 @@ class Overlay(tk.Tk):
             "recipe_id": recipe_id,
             "path_key": path_key,
             "checked": is_done,
+            "node": node,
+            "path_parts": path_parts,
+            "has_options": has_options,
         }
         if node["children"]:
             for child in node["children"]:
@@ -4720,50 +5075,48 @@ class Overlay(tk.Tk):
                     iid, "end", text=f"    📍 {loc_text}", tags=("location",)
                 )
                 self._recipe_iid_info[loc_iid] = {"type": "location"}
-        # Alternate recipes for the same output — collapsed by default; click to select
-        for alt in node.get("alts", []):
-            alt_label = f"⟳  {alt['recipe_name']}  (alt — click to use)"
-            alt_label += _format_byproducts_suffix(alt.get("byproducts"))
-            alt_iid = self._recipe_breakdown_tree.insert(
-                iid,
-                "end",
-                text=alt_label,
-                open=False,
-                tags=("alt_header",),
-            )
-            self._recipe_iid_info[alt_iid] = {
-                "type": "alt_header",
-                "ingredient_name": name,
-                "alt_recipe_id": alt["recipe_id"],
-            }
-            for alt_child in alt["children"]:
-                self._insert_breakdown_node(
-                    alt_iid,
-                    alt_child,
-                    recipe_id,
-                    path_parts + [f"~{alt['recipe_id']}~{name}"],
-                    checked,
-                )
-        # Other stations this same recipe could be crafted at - collapsed
-        # header per station, click to prefer it for this ingredient.
-        if node["is_recipe"] and len(node.get("stations", [])) > 1:
-            current_station = node.get("station")
-            for st_name, st_auto, _st_manual in node["stations"]:
-                if st_name == current_station:
-                    continue
-                st_label = f"⚒  {st_name}  (station — click to use)"
-                st_label += _format_craft_meta_suffix(None, st_auto)
-                st_iid = self._recipe_breakdown_tree.insert(
-                    iid, "end", text=st_label, open=False, tags=("alt_header",)
-                )
-                self._recipe_iid_info[st_iid] = {
-                    "type": "station_header",
-                    "ingredient_name": name,
-                    "station": st_name,
-                }
 
-    def _on_bd_toggled(self, _):
+    def _open_recipe_step_popup(self, tree, iid, info):
+        node = info["node"]
+        bbox = tree.bbox(iid)
+        if not bbox:
+            return
+        x = tree.winfo_rootx() + bbox[0]
+        y = tree.winfo_rooty() + bbox[1] + bbox[3]
+
+        is_root = info.get("is_root", False)
+        # Totals mode's aggregated entries don't carry their own "name" (see
+        # collect_basic_crafted) - stashed separately as ingredient_name.
+        ingredient_name = info.get("ingredient_name") or node.get("name")
+
+        def on_alt(alt_recipe_id, alt_recipe_name):
+            # The root recipe is forced via _root_recipe_id, so a generic
+            # alt_pref (keyed by ingredient name) wouldn't take effect here
+            # the way it does for a sub-ingredient - switch the whole panel
+            # to viewing that other recipe instead, same as double-clicking
+            # a "used in" result.
+            if is_root:
+                self._load_recipe_into_form(alt_recipe_id, alt_recipe_name)
+            else:
+                set_alt_pref(ingredient_name, alt_recipe_id)
+            self._refresh_recipe_breakdown()
+
+        def on_station(station, mode):
+            set_station_pref(ingredient_name, station, mode)
+            self._refresh_recipe_breakdown()
+
+        _StepPopup.show(tree, x, y, node, on_alt, on_station)
+
+    def _on_bd_toggled(self, event):
+        # Every checkbox click fully rebuilds this tree (see
+        # _on_breakdown_click's cascade-check), which re-inserts the root
+        # row fresh each time - remember whatever open/closed state the
+        # user last set for it here so a rebuild doesn't silently
+        # re-expand it right back.
         self._bd_toggled = True
+        tree = event.widget
+        if tree.exists("recipe_root"):
+            self._recipe_root_open = bool(tree.item("recipe_root", "open"))
 
     def _load_recipe_into_form(self, rid: int, rname: str):
         self._recipe_selected_id = rid
@@ -4825,36 +5178,29 @@ class Overlay(tk.Tk):
         info = self._recipe_iid_info.get(iid)
         if not info:
             return
-        if info["type"] == "alt_header":
-            set_alt_pref(info["ingredient_name"], info["alt_recipe_id"])
-            self._refresh_recipe_breakdown()
-            return
-        if info["type"] == "station_header":
-            set_station_pref(info["ingredient_name"], info["station"])
-            self._refresh_recipe_breakdown()
-            return
         if info["type"] == "usedin_recipe":
             self._load_recipe_into_form(info["recipe_id"], info["recipe_name"])
             return
         if info["type"] != "ingredient":
             return
-        if "image" not in tree.identify("element", event.x, event.y):
-            return
         recipe_id = self._viewing_recipe_id
         if recipe_id is None:
             return
-        path_key = info["path_key"]
-        is_done = info.get("checked", False)
-        toggle_checked(recipe_id, path_key, currently_checked=is_done)
-        new_done = not is_done
-        info["checked"] = new_done
-        tree.item(
-            iid,
-            image=self.img_checked if new_done else self.img_unchecked,
-            tags=("done" if new_done else "ingredient",),
-        )
-        tree.tag_configure("ingredient", foreground="#c9d1d9")
-        tree.tag_configure("done", foreground="#6e7681")
+        if "image" in tree.identify("element", event.x, event.y):
+            node = info.get("node")
+            new_done = not info.get("checked", False)
+            if info.get("flat") or node is None:
+                # Totals mode already flattens the tree into one entry per
+                # basic-crafted item name, so there's no subtree structure
+                # left to cascade into - just this one entry.
+                path_keys = [info["path_key"]]
+            else:
+                path_keys = _collect_path_keys(node, info["path_parts"])
+            set_checked_many(recipe_id, path_keys, new_done)
+            self._refresh_recipe_breakdown()
+            return
+        if info.get("has_options") and info.get("node") is not None:
+            self._open_recipe_step_popup(tree, iid, info)
 
     def save_recipe_action(self):
         name = self._recipe_name_var.get().strip()
@@ -5073,14 +5419,37 @@ class Overlay(tk.Tk):
                 root_label = f"◆  {output_name}  ×{craft_qty:g}"
                 if crafts > 1 or oqty > 1:
                     root_label += f"  ({crafts:g} crafts)"
+            root_has_options = _node_has_step_options(node)
+            if root_has_options:
+                root_label += "  ▾"
+            active_seconds, active_mode = _node_active_seconds(node)
+            root_remaining = _subtree_remaining_seconds(node, [], checked)
             root_label += _format_craft_meta_suffix(
-                node.get("station"), node.get("auto_craft_seconds")
+                node.get("station"), active_seconds, active_mode, root_remaining
             )
             root_label += _format_byproducts_suffix(node.get("byproducts"))
+            root_path_key = _node_path_key(node, [])
+            root_is_done = root_path_key in checked
+            root_img = self.img_checked if root_is_done else self.img_unchecked
             root_iid = tree.insert(
-                "", "end", text=root_label, open=True, tags=("root",)
+                "",
+                "end",
+                iid="recipe_root",
+                text=root_label,
+                image=root_img,
+                open=self._recipe_root_open,
+                tags=("root",),
             )
-            self._recipe_iid_info[root_iid] = {"type": "root"}
+            self._recipe_iid_info[root_iid] = {
+                "type": "ingredient",
+                "recipe_id": recipe_id,
+                "path_key": root_path_key,
+                "checked": root_is_done,
+                "node": node,
+                "path_parts": [],
+                "has_options": root_has_options,
+                "is_root": True,
+            }
             for child in node["children"]:
                 self._insert_breakdown_node(root_iid, child, recipe_id, [], checked)
 
@@ -5158,6 +5527,7 @@ class Overlay(tk.Tk):
                 entry = totals.setdefault(
                     child["name"],
                     {
+                        "is_recipe": True,
                         "qty": 0.0,
                         "output_qty": child.get("output_qty", 1.0),
                         "alts": child.get("alts", []),
@@ -5166,6 +5536,7 @@ class Overlay(tk.Tk):
                         "stations": child.get("stations", []),
                         "auto_craft_seconds": child.get("auto_craft_seconds"),
                         "manual_craft_seconds": child.get("manual_craft_seconds"),
+                        "craft_mode": child.get("craft_mode", "auto"),
                         "byproducts": child.get("byproducts", []),
                     },
                 )
@@ -5185,14 +5556,37 @@ class Overlay(tk.Tk):
             root_label = f"◆  {recipe_name}  ×{craft_qty:g}"
             if crafts > 1 or oqty > 1:
                 root_label += f"  ({crafts:g} crafts)"
+        root_has_options = _node_has_step_options(node)
+        if root_has_options:
+            root_label += "  ▾"
+        root_active_seconds, root_active_mode = _node_active_seconds(node)
+        root_remaining = _subtree_remaining_seconds(node, [], checked)
         root_label += _format_craft_meta_suffix(
-            node.get("station"), node.get("auto_craft_seconds")
+            node.get("station"), root_active_seconds, root_active_mode, root_remaining
         )
         root_label += _format_byproducts_suffix(node.get("byproducts"))
+        root_path_key = _node_path_key(node, [])
+        root_is_done = root_path_key in checked
+        root_img = self.img_checked if root_is_done else self.img_unchecked
         header = tree.insert(
-            "", "end", text=root_label, open=True, tags=("total_header",)
+            "",
+            "end",
+            iid="recipe_root",
+            text=root_label,
+            image=root_img,
+            open=self._recipe_root_open,
+            tags=("total_header",),
         )
-        self._recipe_iid_info[header] = {"type": "root"}
+        self._recipe_iid_info[header] = {
+            "type": "ingredient",
+            "recipe_id": recipe_id,
+            "path_key": root_path_key,
+            "checked": root_is_done,
+            "node": node,
+            "path_parts": [],
+            "has_options": root_has_options,
+            "is_root": True,
+        }
 
         def insert_raw(parent, res_name, qty, path_key):
             is_done = path_key in checked
@@ -5236,9 +5630,15 @@ class Overlay(tk.Tk):
                 path_key = f"__craft__|{res_name}"
                 is_done = path_key in checked
                 img = self.img_checked if is_done else self.img_unchecked
+                has_options = _node_has_step_options(info)
                 suffix = f"  ({crafts:g} crafts)" if oq > 1 else ""
+                if has_options:
+                    suffix += "  ▾"
+                active_seconds, active_mode = _node_active_seconds(info)
+                own_time = (active_seconds * crafts) if active_seconds else 0.0
+                remaining = 0.0 if is_done else own_time
                 suffix += _format_craft_meta_suffix(
-                    info.get("station"), info.get("auto_craft_seconds")
+                    info.get("station"), active_seconds, active_mode, remaining
                 )
                 suffix += _format_byproducts_suffix(info.get("byproducts"))
                 iid = tree.insert(
@@ -5254,6 +5654,10 @@ class Overlay(tk.Tk):
                     "recipe_id": recipe_id,
                     "path_key": path_key,
                     "checked": is_done,
+                    "node": info,
+                    "ingredient_name": res_name,
+                    "has_options": has_options,
+                    "flat": True,
                 }
                 for raw_name in info["raw_names"]:
                     raw_iid = tree.insert(
@@ -5277,37 +5681,6 @@ class Overlay(tk.Tk):
                             tags=("location",),
                         )
                         self._recipe_iid_info[loc_iid] = {"type": "location"}
-                for alt in info.get("alts", []):
-                    alt_label = f"⟳  {alt['recipe_name']}  (alt — click to use)"
-                    alt_label += _format_byproducts_suffix(alt.get("byproducts"))
-                    alt_iid = tree.insert(
-                        iid,
-                        "end",
-                        text=alt_label,
-                        open=False,
-                        tags=("alt_header",),
-                    )
-                    self._recipe_iid_info[alt_iid] = {
-                        "type": "alt_header",
-                        "ingredient_name": res_name,
-                        "alt_recipe_id": alt["recipe_id"],
-                    }
-                stations = info.get("stations", [])
-                if len(stations) > 1:
-                    current_station = info.get("station")
-                    for st_name, st_auto, _st_manual in stations:
-                        if st_name == current_station:
-                            continue
-                        st_label = f"⚒  {st_name}  (station — click to use)"
-                        st_label += _format_craft_meta_suffix(None, st_auto)
-                        st_iid = tree.insert(
-                            iid, "end", text=st_label, open=False, tags=("alt_header",)
-                        )
-                        self._recipe_iid_info[st_iid] = {
-                            "type": "station_header",
-                            "ingredient_name": res_name,
-                            "station": st_name,
-                        }
 
         raw_hdr = tree.insert(
             header, "end", text="── Raw materials ──", open=True, tags=("section",)

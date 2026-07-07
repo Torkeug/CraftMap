@@ -288,3 +288,152 @@ def test_get_all_output_names_includes_secondary_outputs(db):
 
     assert "Silicium Ingot" in names
     assert "Aluminium Ingot" in names
+
+
+def test_station_pref_overrides_station_and_mode(db):
+    db.save_recipe(
+        None,
+        "Steel Ingot",
+        outputs=[("Steel Ingot", 3)],
+        ingredients=[("Iron Ingot", 4)],
+        stations=[("Smelter", 180.0, 5.0), ("Micro-Furnace", 10.0, 5.0)],
+    )
+
+    db.set_station_pref("Steel Ingot", "Micro-Furnace", "manual")
+    tree = db.resolve_recipe_tree(
+        "Steel Ingot", qty_needed=3, _station_prefs=db.get_station_prefs()
+    )
+
+    assert tree["station"] == "Micro-Furnace"
+    assert tree["craft_mode"] == "manual"
+    assert tree["manual_craft_seconds"] == 5.0
+
+
+def test_station_prefs_round_trip(db):
+    db.set_station_pref("Iron Ingot", "Smelter", "auto")
+
+    assert db.get_station_prefs() == {"Iron Ingot": ("Smelter", "auto")}
+
+    db.clear_station_pref("Iron Ingot")
+
+    assert db.get_station_prefs() == {}
+
+
+def test_craft_mode_defaults_to_manual_when_no_auto_time(db):
+    # A manual-only station (e.g. "Ship (on-board)") has no auto value at
+    # all - the default mode must fall back to manual rather than pointing
+    # at a nonexistent auto time.
+    db.save_recipe(
+        None,
+        "Field Repair Kit",
+        outputs=[("Field Repair Kit", 1)],
+        ingredients=[("Scrap Metal", 2)],
+        stations=[("Ship (on-board)", None, 15.0)],
+    )
+
+    tree = db.resolve_recipe_tree("Field Repair Kit", qty_needed=1)
+
+    assert tree["craft_mode"] == "manual"
+    assert tree["manual_craft_seconds"] == 15.0
+
+
+def test_node_own_time_scales_by_crafts_needed(db):
+    # Regression test for the bug where the breakdown tree showed a single
+    # craft's time (e.g. "24m") regardless of how many crafts were actually
+    # needed (e.g. 4x → should reflect 4 separate craft cycles).
+    db.save_recipe(
+        None,
+        "Titanium Part Casing",
+        outputs=[("Titanium Part Casing", 1)],
+        ingredients=[("Titanium Ingot", 1)],
+        stations=[("Fabricator", 1440.0, None)],
+    )
+
+    tree = db.resolve_recipe_tree("Titanium Part Casing", qty_needed=4)
+
+    assert db._node_crafts(tree) == 4
+    assert db._node_own_time(tree) == 1440.0 * 4
+
+
+def test_subtree_remaining_seconds_excludes_checked_subtree(db):
+    db.save_recipe(
+        None,
+        "Iron Bar",
+        outputs=[("Iron Bar", 1)],
+        ingredients=[("Iron Ore", 2)],
+        stations=[("Smelter", 100.0, None)],
+    )
+    db.save_recipe(
+        None,
+        "Gear",
+        outputs=[("Gear", 1)],
+        ingredients=[("Iron Bar", 3)],
+        stations=[("Assembler", 50.0, None)],
+    )
+
+    tree = db.resolve_recipe_tree("Gear", qty_needed=1)
+    iron_bar_path_key = "Gear|Iron Bar"
+
+    remaining_before = db._subtree_remaining_seconds(tree, [], set())
+    remaining_after = db._subtree_remaining_seconds(tree, [], {iron_bar_path_key})
+
+    # Gear itself: 1 craft * 50s. Iron Bar: 3 crafts * 100s = 300s.
+    assert remaining_before == 50.0 + 300.0
+    # Checking Iron Bar's path_key drops its whole subtree's contribution,
+    # leaving only Gear's own craft time.
+    assert remaining_after == 50.0
+
+
+def test_collect_path_keys_includes_self_and_descendants(db):
+    db.save_recipe(
+        None,
+        "Iron Bar",
+        outputs=[("Iron Bar", 1)],
+        ingredients=[("Iron Ore", 2)],
+        stations=DEFAULT_STATIONS,
+    )
+    db.save_recipe(
+        None,
+        "Gear",
+        outputs=[("Gear", 1)],
+        ingredients=[("Iron Bar", 3)],
+        stations=DEFAULT_STATIONS,
+    )
+
+    tree = db.resolve_recipe_tree("Gear", qty_needed=1)
+
+    keys = db._collect_path_keys(tree, [])
+
+    assert keys == ["Gear", "Gear|Iron Bar", "Gear|Iron Bar|Iron Ore"]
+
+
+def test_node_has_step_options_true_for_alts_and_multi_mode_stations(db):
+    db.save_recipe(
+        None,
+        "Fuel",
+        outputs=[("Energy", 1)],
+        ingredients=[("Coal", 2)],
+        stations=DEFAULT_STATIONS,
+    )
+    db.save_recipe(
+        None,
+        "Battery",
+        outputs=[("Energy", 1)],
+        ingredients=[("Lithium", 1)],
+        stations=DEFAULT_STATIONS,
+    )
+    db.save_recipe(
+        None,
+        "Steel Ingot",
+        outputs=[("Steel Ingot", 3)],
+        ingredients=[("Iron Ingot", 4)],
+        stations=[("Smelter", 180.0, 5.0), ("Micro-Furnace", 10.0, 5.0)],
+    )
+
+    energy_tree = db.resolve_recipe_tree("Energy", qty_needed=1)
+    steel_tree = db.resolve_recipe_tree("Steel Ingot", qty_needed=3)
+    iron_ore_tree = db.resolve_recipe_tree("Iron Ore", qty_needed=1)
+
+    assert db._node_has_step_options(energy_tree) is True  # has alts
+    assert db._node_has_step_options(steel_tree) is True  # multi-mode stations
+    assert db._node_has_step_options(iron_ore_tree) is False  # raw, no options
