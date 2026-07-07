@@ -2249,7 +2249,13 @@ class CraftQueuePanel:
         self._bd_tree.bind("<ButtonRelease-1>", self._on_bd_click)
         self._bd_resize_job = None
         self._bd_tree.bind("<Configure>", self._on_bd_tree_configure, add="+")
-        self._bd_root_open = True
+        # path_key -> whether the user last left that node expanded. Every
+        # checkbox/station/alt change fully rebuilds this tree (see
+        # _on_bd_click), which would otherwise silently re-collapse anything
+        # the user had opened - including just from resizing/dragging the
+        # window, since that also fires <Configure> (see
+        # _on_bd_tree_configure) and triggers the same rebuild.
+        self._bd_node_open: dict = {}
         self._bd_tree.bind("<<TreeviewOpen>>", self._on_bd_toggled)
         self._bd_tree.bind("<<TreeviewClose>>", self._on_bd_toggled)
 
@@ -2634,7 +2640,7 @@ class CraftQueuePanel:
             iid="bd_root",
             text=root_label,
             image=root_img,
-            open=self._bd_root_open,
+            open=self._bd_node_open.get(root_path_key, True),
             tags=("root",),
         )
         self._bd_iid_info[root_iid] = {
@@ -2717,10 +2723,10 @@ class CraftQueuePanel:
             "end",
             iid="bd_root",
             text=f"◆  All Jobs  ({combined_count})",
-            open=self._bd_root_open,
+            open=self._bd_node_open.get("__all_jobs__", True),
             tags=("root",),
         )
-        self._bd_iid_info[header] = {"type": "root"}
+        self._bd_iid_info[header] = {"type": "root", "path_key": "__all_jobs__"}
         self._insert_totals_sections(
             tree, header, self._TOTALS_QID, all_crafted, all_raw
         )
@@ -2790,7 +2796,7 @@ class CraftQueuePanel:
                     "end",
                     text=label,
                     image=img,
-                    open=False,
+                    open=self._bd_node_open.get(path_key, False),
                     tags=("done" if is_done else "ingredient",),
                 )
                 self._bd_iid_info[iid] = {
@@ -2897,7 +2903,7 @@ class CraftQueuePanel:
             "end",
             text=label,
             image=img,
-            open=False,
+            open=self._bd_node_open.get(path_key, False),
             tags=("done" if is_done else "ingredient",),
         )
         self._bd_iid_info[iid] = {
@@ -2958,14 +2964,32 @@ class CraftQueuePanel:
         _StepPopup.show(tree, x, y, popup_node, on_alt, on_station)
 
     def _on_bd_toggled(self, event):
-        # Every checkbox click fully rebuilds this tree (see _on_bd_click's
-        # cascade-check), which re-inserts the root row fresh each time -
-        # remember whatever open/closed state the user last set for it here
-        # so a rebuild doesn't silently re-expand it right back.
+        # Any rebuild of this tree (checkbox clicks, station/alt changes,
+        # or just the debounced re-fit after a resize/drag - see
+        # _on_bd_tree_configure) re-inserts every row fresh, so remember
+        # whichever nodes the user last expanded/collapsed here instead of
+        # letting a rebuild silently reset them all back to closed.
+        # Resync every currently-known node's actual open state from the
+        # live tree rather than trying to identify "the" toggled item.
+        # Deferred via after_idle: <<TreeviewOpen>>/<<TreeviewClose>> fire
+        # *before* ttk actually applies the new -open value internally, so
+        # reading tree.item(iid, "open") synchronously here would capture
+        # the stale, pre-toggle state (recording the opposite of what the
+        # user just did) rather than what it's about to become.
         self._bd_toggled = True
         tree = event.widget
-        if tree.exists("bd_root"):
-            self._bd_root_open = bool(tree.item("bd_root", "open"))
+
+        def _resync():
+            for iid, info in self._bd_iid_info.items():
+                path_key = info.get("path_key")
+                if not path_key:
+                    continue
+                try:
+                    self._bd_node_open[path_key] = bool(tree.item(iid, "open"))
+                except tk.TclError:
+                    pass
+
+        tree.after_idle(_resync)
 
     def _on_bd_click(self, event):
         if self._bd_toggled:
