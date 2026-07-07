@@ -2425,26 +2425,6 @@ class CraftQueuePanel:
         )
         qty_e.bind("<MouseWheel>", self._job_scroll, add=True)
 
-        # Only show a station picker for recipes that actually have more
-        # than one usable station - keeps the row uncluttered for the vast
-        # majority of recipes, which only have one.
-        recipe_stations = get_recipe_stations(recipe_id)
-        if len(recipe_stations) > 1:
-            station_var = tk.StringVar(value=station or "")
-            station_cb = ttk.Combobox(
-                row,
-                textvariable=station_var,
-                width=9,
-                values=[s[0] for s in recipe_stations],
-                font=("Segoe UI", 8),
-            )
-            station_cb.pack(side="right", padx=2)
-            _LiveDropdown(
-                station_cb,
-                on_select_fn=lambda v, qid=queue_id: self._update_station(qid, v),
-            )
-            station_cb.bind("<MouseWheel>", self._job_scroll, add=True)
-
         def _on_click(
             _ev,
             qid=queue_id,
