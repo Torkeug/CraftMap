@@ -1297,6 +1297,11 @@ def _configure_button_styles(style: ttk.Style) -> None:
 
     # Minimal icon buttons (titlebar ✕/📌/⚙, row "×" removers) - no static
     # border so they blend into their bar/row at rest, just a hover highlight.
+    # width=1 is essential here: ttk's "default" theme otherwise reserves a
+    # much wider button (~65px, vs. ~13px with this set) for a single-glyph
+    # label regardless of how tight `padding` is - width is what actually
+    # controls it. Without this, a long titlebar title text can squeeze the
+    # pin button out of the packed row entirely.
     def icon_role(name, bg, fg, hover):
         style.configure(
             f"{name}.TButton",
@@ -1305,12 +1310,16 @@ def _configure_button_styles(style: ttk.Style) -> None:
             borderwidth=0,
             relief="flat",
             font=("Segoe UI", 9),
-            padding=(4, 2),
+            padding=(2, 1),
+            width=2,
         )
         style.map(f"{name}.TButton", background=[("active", hover)])
 
     icon_role("IconClose", "#161b22", "#c9d1d9", "#21262d")
     icon_role("IconSettings", "#161b22", "#8b949e", "#21262d")
+    # The ⚙ gear glyph renders a bit wider than ✕/📌 at the same character
+    # width, so it needs slightly more room than the shared icon_role default.
+    style.configure("IconSettings.TButton", width=3)
 
     style.configure(
         "IconPin.TButton",
@@ -1319,7 +1328,8 @@ def _configure_button_styles(style: ttk.Style) -> None:
         borderwidth=0,
         relief="flat",
         font=("Segoe UI", 9),
-        padding=(4, 2),
+        padding=(2, 1),
+        width=2,
     )
     style.map(
         "IconPin.TButton",
@@ -1335,6 +1345,7 @@ def _configure_button_styles(style: ttk.Style) -> None:
         relief="flat",
         font=("Segoe UI", 9),
         padding=(2, 0),
+        width=2,
     )
     style.map("Remove.TButton", background=[("active", "#21262d")])
 
@@ -1346,6 +1357,7 @@ def _configure_button_styles(style: ttk.Style) -> None:
         relief="flat",
         font=("Segoe UI", 9),
         padding=(2, 0),
+        width=2,
     )
     style.map(
         "JobRemove.TButton",
@@ -2029,15 +2041,10 @@ class CraftQueuePanel:
         drag = tk.Frame(self._win, bg="#161b22", height=28)
         drag.pack(fill="x")
 
-        self._title_label = tk.Label(
-            drag,
-            text=self._title_text(),
-            bg="#161b22",
-            fg="#c9d1d9",
-            font=("Segoe UI", 9),
-        )
-        self._title_label.pack(side="left", padx=8)
-
+        # Buttons packed before the title label so pack() reserves their
+        # space first - a long title (e.g. "(alt+twosuperior to hide)")
+        # then just clips itself against whatever's left, instead of
+        # squeezing a later-packed button out of the row entirely.
         ttk.Button(
             drag, text="✕", style="IconClose.TButton", command=self.hide
         ).pack(side="right", padx=4)
@@ -2047,6 +2054,15 @@ class CraftQueuePanel:
         )
         self._pin_btn.state(["selected" if self._pinned else "!selected"])
         self._pin_btn.pack(side="right", padx=2)
+
+        self._title_label = tk.Label(
+            drag,
+            text=self._title_text(),
+            bg="#161b22",
+            fg="#c9d1d9",
+            font=("Segoe UI", 9),
+        )
+        self._title_label.pack(side="left", padx=8)
 
         for widget in (drag, self._title_label):
             widget.bind("<ButtonPress-1>", self._start_move)
@@ -3265,15 +3281,10 @@ class Overlay(tk.Tk):
         drag_bar = tk.Frame(self, bg="#161b22", height=28)
         drag_bar.pack(fill="x", side="top")
 
-        self._title_label = tk.Label(
-            drag_bar,
-            text=self._title_text(),
-            bg="#161b22",
-            fg="#c9d1d9",
-            font=("Segoe UI", 9),
-        )
-        self._title_label.pack(side="left", padx=8)
-
+        # Buttons packed before the title label so pack() reserves their
+        # space first - a long title text then just clips itself against
+        # whatever's left, instead of squeezing a later-packed button out
+        # of the row entirely.
         close_btn = ttk.Button(
             drag_bar, text="✕", style="IconClose.TButton", command=self.quit_app
         )
@@ -3286,6 +3297,15 @@ class Overlay(tk.Tk):
             command=self._open_hotkey_settings,
         )
         settings_btn.pack(side="right", padx=2)
+
+        self._title_label = tk.Label(
+            drag_bar,
+            text=self._title_text(),
+            bg="#161b22",
+            fg="#c9d1d9",
+            font=("Segoe UI", 9),
+        )
+        self._title_label.pack(side="left", padx=8)
 
         for widget in (drag_bar, self._title_label):
             widget.bind("<ButtonPress-1>", self._start_move)
