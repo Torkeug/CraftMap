@@ -1311,15 +1311,12 @@ def _configure_button_styles(style: ttk.Style) -> None:
             relief="flat",
             font=("Segoe UI", 9),
             padding=(2, 1),
-            width=2,
+            width=3,
         )
         style.map(f"{name}.TButton", background=[("active", hover)])
 
     icon_role("IconClose", "#161b22", "#c9d1d9", "#21262d")
     icon_role("IconSettings", "#161b22", "#8b949e", "#21262d")
-    # The ⚙ gear glyph renders a bit wider than ✕/📌 at the same character
-    # width, so it needs slightly more room than the shared icon_role default.
-    style.configure("IconSettings.TButton", width=3)
 
     style.configure(
         "IconPin.TButton",
@@ -1329,7 +1326,7 @@ def _configure_button_styles(style: ttk.Style) -> None:
         relief="flat",
         font=("Segoe UI", 9),
         padding=(2, 1),
-        width=2,
+        width=3,
     )
     style.map(
         "IconPin.TButton",
